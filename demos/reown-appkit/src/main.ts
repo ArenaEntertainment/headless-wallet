@@ -4,18 +4,32 @@ import { SolanaAdapter } from '@reown/appkit-adapter-solana'
 import { mainnet, polygon, arbitrum, optimism, solana } from '@reown/appkit/networks'
 import { SolflareWalletAdapter, PhantomWalletAdapter } from '@solana/wallet-adapter-wallets'
 import { ethers } from 'ethers'
+import { Keypair, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js'
+import * as nacl from 'tweetnacl'
+import { registerWallet } from '@wallet-standard/wallet'
+import type { Wallet, WalletAccount } from '@wallet-standard/base'
 
-// Test accounts - using hardhat test keys for consistency
-const TEST_ACCOUNTS = [
-  {
-    privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-    address: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
-  },
-  {
-    privateKey: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
-    address: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8'
+// Test accounts - using hardhat test keys for EVM and a generated Solana key
+const TEST_ACCOUNTS = {
+  evm: [
+    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+    '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+  ],
+  solana: {
+    // Generated Solana test account for consistent testing
+    secretKey: new Uint8Array([141,196,137,34,144,18,247,222,228,224,112,55,202,220,93,49,244,240,19,46,249,76,139,247,222,31,248,121,93,21,121,81,89,224,220,231,50,198,164,55,90,7,80,82,149,109,43,91,192,216,216,220,56,87,102,98,191,29,217,200,188,229,164,181])
   }
-]
+}
+
+// Helper function to derive addresses from private keys
+function getEVMAddresses() {
+  return TEST_ACCOUNTS.evm.map(privateKey => new ethers.Wallet(privateKey).address)
+}
+
+// Unified wallet configuration
+const WALLET_NAME = 'Arena Mock Wallet'
+const WALLET_ICON = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5"/><path d="M16 14v.5"/><path d="M11.25 16.25h1.5L12 17l-.75-.75Z"/></svg>'
+const WALLET_RDNS = 'com.arena.mock-wallet'
 
 interface MockWallet {
   request(args: { method: string; params?: any[] }): Promise<any>
@@ -99,7 +113,7 @@ class ArenaMockWallet implements MockWallet {
       case 'eth_requestAccounts': {
         if (this.isDisconnected) {
           this.isDisconnected = false
-          this.accounts = TEST_ACCOUNTS.map(acc => acc.address)
+          this.accounts = getEVMAddresses()
           addLog(`✅ Connected! Found ${this.accounts.length} accounts`)
 
           this.emit('connect', { chainId: this.currentChain })
@@ -163,12 +177,12 @@ class ArenaMockWallet implements MockWallet {
 
       case 'personal_sign': {
         const [message, address] = params
-        const account = TEST_ACCOUNTS.find(acc =>
-          acc.address.toLowerCase() === address.toLowerCase()
+        const privateKey = TEST_ACCOUNTS.evm.find(pk =>
+          new ethers.Wallet(pk).address.toLowerCase() === address.toLowerCase()
         )
-        if (!account) throw new Error('Account not found')
+        if (!privateKey) throw new Error('Account not found')
 
-        const wallet = new ethers.Wallet(account.privateKey)
+        const wallet = new ethers.Wallet(privateKey)
         const signature = await wallet.signMessage(message)
 
         addLog(`✍️ personal_sign: ${message} → ${signature.substring(0, 20)}...`)
@@ -177,13 +191,13 @@ class ArenaMockWallet implements MockWallet {
 
       case 'eth_signTypedData_v4': {
         const [address, typedDataJson] = params
-        const account = TEST_ACCOUNTS.find(acc =>
-          acc.address.toLowerCase() === address.toLowerCase()
+        const privateKey = TEST_ACCOUNTS.evm.find(pk =>
+          new ethers.Wallet(pk).address.toLowerCase() === address.toLowerCase()
         )
-        if (!account) throw new Error('Account not found')
+        if (!privateKey) throw new Error('Account not found')
 
         const typedData = JSON.parse(typedDataJson)
-        const wallet = new ethers.Wallet(account.privateKey)
+        const wallet = new ethers.Wallet(privateKey)
 
         // Remove EIP712Domain from types for ethers
         const { EIP712Domain, ...types } = typedData.types
@@ -215,7 +229,7 @@ class ArenaMockWallet implements MockWallet {
           // Grant eth_accounts permission (same as eth_requestAccounts)
           if (this.isDisconnected) {
             this.isDisconnected = false
-            this.accounts = TEST_ACCOUNTS.map(acc => acc.address)
+            this.accounts = getEVMAddresses()
             addLog(`✅ Permission granted for eth_accounts`)
 
             this.emit('connect', { chainId: this.currentChain })
@@ -265,16 +279,194 @@ class ArenaMockWallet implements MockWallet {
   }
 }
 
-// Create the mock wallet instance
-const mockWallet = new ArenaMockWallet()
+// Solana Wallet Standard Implementation
+class ArenaMockSolanaWallet implements Wallet {
+  readonly #version = '1.0.0' as const
+  readonly #name = WALLET_NAME
+  readonly #icon = WALLET_ICON
+  readonly #chains = ['solana:mainnet', 'solana:devnet', 'solana:testnet'] as const
 
-// EIP-6963 wallet discovery (following original library pattern exactly)
-function announceWallet() {
+  private keypair: Keypair
+  private isConnected = false
+  private listeners: Map<string, Set<Function>> = new Map()
+
+  constructor(secretKey: Uint8Array) {
+    this.keypair = Keypair.fromSecretKey(secretKey)
+    addLog(`🟣 Solana wallet created: ${this.keypair.publicKey.toBase58()}`)
+  }
+
+  // Wallet Standard required getters
+  get version() { return this.#version }
+  get name() { return this.#name }
+  get icon() { return this.#icon }
+  get chains() { return this.#chains.slice() }
+
+  get accounts(): readonly WalletAccount[] {
+    if (!this.isConnected) return []
+
+    return [{
+      address: this.keypair.publicKey.toBase58(),
+      publicKey: this.keypair.publicKey.toBytes(),
+      chains: this.#chains.slice(),
+      features: ['solana:signTransaction', 'solana:signMessage']
+    }]
+  }
+
+  get features() {
+    return {
+      'standard:connect': {
+        version: '1.0.0',
+        connect: this.#connect.bind(this)
+      },
+      'standard:disconnect': {
+        version: '1.0.0',
+        disconnect: this.#disconnect.bind(this)
+      },
+      'standard:events': {
+        version: '1.0.0',
+        on: this.#on.bind(this)
+      },
+      'solana:signTransaction': {
+        version: '1.0.0',
+        signTransaction: this.#signTransaction.bind(this)
+      },
+      'solana:signMessage': {
+        version: '1.0.0',
+        signMessage: this.#signMessage.bind(this)
+      }
+    }
+  }
+
+  // Standard methods
+  async #connect() {
+    this.isConnected = true
+    addLog(`🟣 Solana connected: ${this.keypair.publicKey.toBase58()}`)
+    this.emit('connect', this.keypair.publicKey)
+    return { accounts: this.accounts }
+  }
+
+  async #disconnect() {
+    this.isConnected = false
+    addLog('🟣 Solana disconnected')
+    this.emit('disconnect')
+  }
+
+  #on(event: string, listener: Function) {
+    if (!this.listeners.has(event)) {
+      this.listeners.set(event, new Set())
+    }
+    this.listeners.get(event)!.add(listener)
+
+    // Return unsubscribe function
+    return () => {
+      this.listeners.get(event)?.delete(listener)
+    }
+  }
+
+  async #signTransaction(input: { transaction: Transaction | VersionedTransaction }) {
+    if (!this.isConnected) {
+      throw new Error('Wallet not connected')
+    }
+
+    const { transaction } = input
+
+    if (transaction instanceof Transaction) {
+      transaction.sign(this.keypair)
+      addLog(`🟣 Solana transaction signed (legacy)`)
+      return { signedTransaction: transaction }
+    } else {
+      const signature = nacl.sign.detached(transaction.message.serialize(), this.keypair.secretKey)
+      transaction.addSignature(this.keypair.publicKey, signature)
+      addLog(`🟣 Solana transaction signed (versioned)`)
+      return { signedTransaction: transaction }
+    }
+  }
+
+  async #signMessage(input: { message: Uint8Array }) {
+    if (!this.isConnected) {
+      throw new Error('Wallet not connected')
+    }
+
+    const signature = nacl.sign.detached(input.message, this.keypair.secretKey)
+    addLog(`🟣 Solana message signed`)
+
+    return { signature, publicKey: this.keypair.publicKey.toBytes() }
+  }
+
+  // Legacy compatibility methods (for direct access)
+  get publicKey() {
+    return this.isConnected ? this.keypair.publicKey : null
+  }
+
+  get connected() {
+    return this.isConnected
+  }
+
+  async connect(): Promise<{ publicKey: PublicKey }> {
+    const result = await this.#connect()
+    return { publicKey: this.keypair.publicKey }
+  }
+
+  async disconnect(): Promise<void> {
+    return this.#disconnect()
+  }
+
+  on(event: string, handler: Function): void {
+    this.#on(event, handler)
+  }
+
+  removeListener(event: string, handler: Function): void {
+    this.listeners.get(event)?.delete(handler)
+  }
+
+  emit(event: string, ...args: any[]): void {
+    this.listeners.get(event)?.forEach(handler => {
+      try {
+        handler(...args)
+      } catch (error) {
+        console.error(`Error in Solana ${event} handler:`, error)
+      }
+    })
+  }
+
+  async signTransaction(transaction: Transaction | VersionedTransaction) {
+    const result = await this.#signTransaction({ transaction })
+    return result.signedTransaction
+  }
+
+  async signMessage(message: Uint8Array) {
+    const result = await this.#signMessage({ message })
+    return { signature: result.signature, publicKey: this.keypair.publicKey }
+  }
+
+  async signAndSendTransaction(transaction: Transaction): Promise<{ signature: string }> {
+    if (!this.isConnected) {
+      throw new Error('Wallet not connected')
+    }
+
+    // Sign the transaction
+    transaction.sign(this.keypair)
+
+    // Simulate sending
+    const fakeSignature = Array.from(crypto.getRandomValues(new Uint8Array(64)))
+      .map(b => b.toString(16).padStart(2, '0')).join('')
+
+    addLog(`🟣 Solana transaction sent: ${fakeSignature.substring(0, 20)}...`)
+    return { signature: fakeSignature }
+  }
+}
+
+// Create both wallet instances
+const mockWallet = new ArenaMockWallet()
+const mockSolanaWallet = new ArenaMockSolanaWallet(TEST_ACCOUNTS.solana.secretKey)
+
+// EIP-6963 wallet discovery for EVM
+function announceEVMWallet() {
   const info = {
     uuid: crypto.randomUUID(),
-    name: 'Arena Mock Wallet',
-    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5"/><path d="M16 14v.5"/><path d="M11.25 16.25h1.5L12 17l-.75-.75Z"/></svg>',
-    rdns: 'com.arena.mock-wallet'
+    name: WALLET_NAME,
+    icon: WALLET_ICON,
+    rdns: WALLET_RDNS
   }
 
   const detail = { info, provider: mockWallet }
@@ -283,30 +475,55 @@ function announceWallet() {
   })
 
   window.dispatchEvent(announceEvent)
-  addLog('📡 EIP-6963 wallet announcement dispatched')
+  addLog('📡 EIP-6963 EVM wallet announcement dispatched')
 }
 
-// Set up window.ethereum and EIP-6963 (following original library exactly)
+// Solana Wallet Standard registration
+function registerSolanaWallet() {
+  try {
+    registerWallet(mockSolanaWallet)
+    addLog('🟣 Solana wallet registered with Wallet Standard')
+  } catch (error) {
+    addLog(`❌ Failed to register Solana wallet: ${error}`)
+    console.error('Solana wallet registration error:', error)
+  }
+}
+
+// Inject both providers into window
 ;(window as any).ethereum = mockWallet
+
+// Inject Solana provider - following Phantom's approach
+if (!(window as any).phantom) {
+  ;(window as any).phantom = {}
+}
+;(window as any).phantom.solana = mockSolanaWallet
+
+// Also inject at window.solana for backward compatibility
+;(window as any).solana = mockSolanaWallet
 
 // Add global disconnect method that AppKit can call
 ;(window as any).ethereum.disconnect = () => {
-  addLog('🔓 Global disconnect method called')
+  addLog('🔓 Global EVM disconnect method called')
   return mockWallet.performDisconnect('Global method')
 }
 
 // Make performDisconnect public so it can be called externally
 mockWallet.performDisconnect = mockWallet['performDisconnect']
 
-// Listen for EIP-6963 requests
+// Listen for EIP-6963 requests (EVM)
 window.addEventListener('eip6963:requestProvider', () => {
   addLog('📡 EIP-6963 provider requested')
-  announceWallet()
+  announceEVMWallet()
 })
 
-// Announce wallet immediately and on DOM ready
-announceWallet()
-document.addEventListener('DOMContentLoaded', announceWallet)
+// Announce both wallets immediately and on DOM ready
+function announceAllWallets() {
+  announceEVMWallet()
+  registerSolanaWallet()
+}
+
+announceAllWallets()
+document.addEventListener('DOMContentLoaded', announceAllWallets)
 
 // Create adapters
 const ethersAdapter = new EthersAdapter()
@@ -401,12 +618,17 @@ function updateUI() {
   const accountEl = document.getElementById('account-info')
   if (accountEl) {
     if (isConnected) {
+      const evmAddresses = getEVMAddresses()
+      const solanaPublicKey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana.secretKey).publicKey.toBase58()
+
       accountEl.innerHTML = `
         <div class="wallet-info">
-          <h4>Connected Accounts</h4>
-          ${TEST_ACCOUNTS.map((acc, i) => `
-            <div class="code">Account ${i + 1}: ${acc.address}</div>
+          <h4>EVM Accounts</h4>
+          ${evmAddresses.map((address, i) => `
+            <div class="code">Account ${i + 1}: ${address}</div>
           `).join('')}
+          <h4>Solana Account</h4>
+          <div class="code">Public Key: ${solanaPublicKey}</div>
         </div>
       `
     } else {
@@ -441,6 +663,19 @@ function updateUI() {
   buttons.forEach(id => {
     const btn = document.getElementById(id) as HTMLButtonElement
     if (btn) btn.disabled = !isConnected
+  })
+
+  // Enable/disable Solana buttons (they work independently)
+  const solanaButtons = ['solana-connect', 'solana-disconnect', 'solana-sign-message', 'solana-send-transaction']
+  solanaButtons.forEach(id => {
+    const btn = document.getElementById(id) as HTMLButtonElement
+    if (btn) {
+      if (id === 'solana-connect') {
+        btn.disabled = false // Connect always available
+      } else {
+        btn.disabled = !mockSolanaWallet.connected
+      }
+    }
   })
 }
 
@@ -583,6 +818,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
 
+  // Solana button handlers
+  document.getElementById('solana-connect')?.addEventListener('click', async () => {
+    try {
+      const result = await mockSolanaWallet.connect()
+      addLog(`🟣 Solana connected: ${result.publicKey.toBase58()}`)
+      document.getElementById('solana-result')!.innerHTML = `
+        <div class="info-box">
+          <h4>Solana Connected</h4>
+          <div class="code">Public Key: ${result.publicKey.toBase58()}</div>
+        </div>
+      `
+      updateUI()
+    } catch (error) {
+      addLog(`❌ Solana connect failed: ${error}`)
+    }
+  })
+
+  document.getElementById('solana-disconnect')?.addEventListener('click', async () => {
+    try {
+      await mockSolanaWallet.disconnect()
+      addLog('🟣 Solana disconnected')
+      document.getElementById('solana-result')!.innerHTML = `
+        <div class="info-box">
+          <h4>Solana Disconnected</h4>
+        </div>
+      `
+      updateUI()
+    } catch (error) {
+      addLog(`❌ Solana disconnect failed: ${error}`)
+    }
+  })
+
+  document.getElementById('solana-sign-message')?.addEventListener('click', async () => {
+    try {
+      const message = new TextEncoder().encode('Hello from Arena Mock Wallet on Solana!')
+      const result = await mockSolanaWallet.signMessage(message)
+
+      document.getElementById('solana-result')!.innerHTML = `
+        <div class="info-box">
+          <h4>Solana Message Signed</h4>
+          <div class="code">Message: Hello from Arena Mock Wallet on Solana!</div>
+          <div class="code">Signature: ${Array.from(result.signature, b => b.toString(16).padStart(2, '0')).join('').substring(0, 40)}...</div>
+          <div class="code">Public Key: ${result.publicKey.toBase58()}</div>
+        </div>
+      `
+    } catch (error) {
+      addLog(`❌ Solana sign message failed: ${error}`)
+    }
+  })
+
+  document.getElementById('solana-send-transaction')?.addEventListener('click', async () => {
+    try {
+      // Create a fake transaction for demo purposes
+      const { Transaction, SystemProgram, PublicKey } = await import('@solana/web3.js')
+      const fromPubkey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana.secretKey).publicKey
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: fromPubkey,
+          toPubkey: new PublicKey('11111111111111111111111111111112'), // System program
+          lamports: 1000000 // 0.001 SOL
+        })
+      )
+
+      const result = await mockSolanaWallet.signAndSendTransaction(transaction)
+
+      document.getElementById('solana-result')!.innerHTML = `
+        <div class="info-box">
+          <h4>Solana Transaction Sent</h4>
+          <div class="code">Signature: ${result.signature}</div>
+        </div>
+      `
+    } catch (error) {
+      addLog(`❌ Solana transaction failed: ${error}`)
+    }
+  })
+
   // Add manual disconnect test button for debugging
   const manualDisconnectBtn = document.createElement('button')
   manualDisconnectBtn.textContent = 'Manual Disconnect Test'
@@ -607,5 +918,17 @@ mockWallet.on('chainChanged', (chainId: string) => {
   updateUI()
 })
 
+// Listen for Solana wallet events
+mockSolanaWallet.on('connect', (publicKey: PublicKey) => {
+  addLog(`🟣 Solana account connected: ${publicKey.toBase58()}`)
+  updateUI()
+})
+
+mockSolanaWallet.on('disconnect', () => {
+  addLog('🟣 Solana account disconnected')
+  updateUI()
+})
+
 addLog('🎮 Arena Wallet Mock + Reown AppKit Demo Initialised')
-addLog('📱 Using ethers adapter - should auto-detect via EIP-6963')
+addLog('📱 Using ethers adapter for EVM and solana adapter for Solana')
+addLog('🔧 Multi-chain wallet with SAME NAME for both adapters')
