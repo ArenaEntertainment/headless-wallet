@@ -5,8 +5,22 @@ export interface Account {
     privateKey: string | Uint8Array;
     type: 'evm' | 'solana';
 }
+export interface WalletBranding {
+    /** Name displayed in wallet connection UIs */
+    name?: string;
+    /** Base64 data URL or SVG string for wallet icon */
+    icon?: string;
+    /** Reverse domain name (e.g. 'com.company.wallet') */
+    rdns?: string;
+    /** Whether to identify as MetaMask for EVM (default: true) */
+    isMetaMask?: boolean;
+    /** Whether to identify as Phantom for Solana (default: true) */
+    isPhantom?: boolean;
+}
 export interface MockWalletConfig {
     accounts: Account[];
+    /** Optional wallet branding customization */
+    branding?: WalletBranding;
     evm?: {
         defaultChain?: Chain;
         transports?: Record<number, Transport>;
@@ -20,9 +34,10 @@ export interface MockWalletConfig {
 export declare class MockWallet {
     private evmWallet?;
     private solanaWallet?;
+    private branding;
     constructor(config: MockWalletConfig);
     getEthereumProvider(): {
-        isMetaMask: boolean;
+        isMetaMask: boolean | undefined;
         request: (args: {
             method: string;
             params?: any[];
@@ -31,7 +46,7 @@ export declare class MockWallet {
         removeListener: (event: string, handler: (...args: any[]) => void) => void;
     };
     getSolanaProvider(): {
-        isPhantom: boolean;
+        isPhantom: boolean | undefined;
         connect: () => Promise<{
             publicKey: import("@solana/web3.js").PublicKey;
         }>;
@@ -62,6 +77,7 @@ export declare class MockWallet {
     hasEVM(): boolean;
     hasSolana(): boolean;
 }
-export declare function injectMockWallet(config: MockWalletConfig): MockWallet;
+export declare function injectHeadlessWallet(config: MockWalletConfig): MockWallet;
+export declare const injectMockWallet: typeof injectHeadlessWallet;
 export { EVMWallet, SolanaWallet };
 export type { EVMWalletConfig, SolanaWalletConfig };

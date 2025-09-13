@@ -1,8 +1,8 @@
 {
-  "name": "@arenaentertainment/wallet-mock-monorepo",
+  "name": "@arenaentertainment/headless-wallet-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "Universal mock wallet library supporting both EVM and Solana chains",
+  "description": "Universal headless wallet library supporting both EVM and Solana chains",
   "workspaces": [
     "packages/*",
     "demos/*"

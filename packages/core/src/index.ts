@@ -1,15 +1,41 @@
 import { EVMWallet, type EVMWalletConfig } from './evm/wallet.js';
 import { SolanaWallet, type SolanaWalletConfig } from './solana/wallet.js';
 import type { Chain, Transport } from 'viem';
-import { randomUUID } from 'crypto';
+// Browser-compatible UUID generation
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback UUID generation for browsers without crypto.randomUUID
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 export interface Account {
   privateKey: string | Uint8Array;
   type: 'evm' | 'solana';
 }
 
+export interface WalletBranding {
+  /** Name displayed in wallet connection UIs */
+  name?: string;
+  /** Base64 data URL or SVG string for wallet icon */
+  icon?: string;
+  /** Reverse domain name (e.g. 'com.company.wallet') */
+  rdns?: string;
+  /** Whether to identify as MetaMask for EVM (default: true) */
+  isMetaMask?: boolean;
+  /** Whether to identify as Phantom for Solana (default: true) */
+  isPhantom?: boolean;
+}
+
 export interface MockWalletConfig {
   accounts: Account[];
+  /** Optional wallet branding customization */
+  branding?: WalletBranding;
   evm?: {
     defaultChain?: Chain;
     transports?: Record<number, Transport>;
@@ -24,8 +50,17 @@ export interface MockWalletConfig {
 export class MockWallet {
   private evmWallet?: EVMWallet;
   private solanaWallet?: SolanaWallet;
+  private branding: WalletBranding;
 
   constructor(config: MockWalletConfig) {
+    // Set up branding with defaults
+    this.branding = {
+      name: 'Arena Headless Wallet',
+      rdns: 'com.arenaentertainment.headless-wallet',
+      isMetaMask: true,
+      isPhantom: true,
+      ...config.branding
+    };
     // Separate accounts by type
     const evmAccounts = config.accounts.filter(acc => acc.type === 'evm');
     const solanaAccounts = config.accounts.filter(acc => acc.type === 'solana');
@@ -59,7 +94,7 @@ export class MockWallet {
     }
 
     return {
-      isMetaMask: true,
+      isMetaMask: this.branding.isMetaMask,
       request: (args: { method: string; params?: any[] }) => {
         return this.evmWallet!.request(args);
       },
@@ -79,7 +114,7 @@ export class MockWallet {
     }
 
     return {
-      isPhantom: true,
+      isPhantom: this.branding.isPhantom,
       connect: () => this.solanaWallet!.connect(),
       disconnect: () => this.solanaWallet!.disconnect(),
       signTransaction: (transaction: any) => this.solanaWallet!.signTransaction(transaction),
@@ -144,28 +179,58 @@ export class MockWallet {
   }
 }
 
-// Create a proper wallet icon
-const WALLET_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <rect width="96" height="96" fill="url(#bg)" rx="20"/>
-  <rect x="20" y="32" width="56" height="40" fill="white" rx="4" opacity="0.9"/>
-  <circle cx="64" cy="52" r="4" fill="#6366f1"/>
-  <text x="48" y="78" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="10" font-weight="bold">MOCK</text>
+// Default wallet icon
+const DEFAULT_WALLET_ICON_SVG = `<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1080" height="1080" rx="320" fill="black"/>
+<path d="M203 830.128L470.486 230H607.658L876.001 830.128H730.255L510.78 300.301H565.649L345.316 830.128H203ZM336.743 701.529L373.608 596.078H682.245L719.968 701.529H336.743Z" fill="url(#paint0_linear_436_3860)"/>
+<defs>
+<linearGradient id="paint0_linear_436_3860" x1="539.5" y1="830.128" x2="539.5" y2="230" gradientUnits="userSpaceOnUse">
+<stop stop-color="#07D102"/>
+<stop offset="1" stop-color="#046B01"/>
+</linearGradient>
+</defs>
 </svg>`;
 
+// Browser-compatible base64 encoding
+function toBase64(str: string): string {
+  if (typeof btoa !== 'undefined') {
+    return btoa(str);
+  }
+  // Fallback for Node.js environments
+  if (typeof Buffer !== 'undefined') {
+    return Buffer.from(str).toString('base64');
+  }
+  throw new Error('Base64 encoding not available');
+}
+
+// Helper function to get wallet icon as data URL
+function getWalletIcon(customIcon?: string): string {
+  if (!customIcon) {
+    return `data:image/svg+xml;base64,${toBase64(DEFAULT_WALLET_ICON_SVG)}`;
+  }
+
+  // If it's already a data URL, return as-is
+  if (customIcon.startsWith('data:')) {
+    return customIcon;
+  }
+
+  // If it's raw SVG, encode it
+  if (customIcon.includes('<svg')) {
+    return `data:image/svg+xml;base64,${toBase64(customIcon)}`;
+  }
+
+  // Assume it's already base64 encoded
+  return `data:image/svg+xml;base64,${customIcon}`;
+}
+
 // Browser injection function (for Vue/React plugins)
-export function injectMockWallet(config: MockWalletConfig): MockWallet {
+export function injectHeadlessWallet(config: MockWalletConfig): MockWallet {
   if (typeof window === 'undefined') {
-    throw new Error('injectMockWallet can only be used in browser environment');
+    throw new Error('injectHeadlessWallet can only be used in browser environment');
   }
 
   if (process.env.NODE_ENV === 'production') {
-    console.warn('Mock wallet should not be used in production');
+    console.warn('Headless wallet should not be used in production');
   }
 
   const wallet = new MockWallet(config);
@@ -175,17 +240,19 @@ export function injectMockWallet(config: MockWalletConfig): MockWallet {
     (window as any).ethereum = wallet.getEthereumProvider();
 
     // EIP-6963 wallet discovery with proper compliance
-    const walletUuid = randomUUID(); // Generate proper UUIDv4
-    const walletIcon = `data:image/svg+xml;base64,${Buffer.from(WALLET_ICON_SVG).toString('base64')}`;
+    const walletUuid = generateUUID(); // Generate proper UUIDv4
+    const walletIcon = getWalletIcon(config.branding?.icon);
+    const walletName = config.branding?.name || 'Arena Headless Wallet';
+    const walletRdns = config.branding?.rdns || 'com.arenaentertainment.headless-wallet';
 
     const announceProvider = () => {
       window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
         detail: Object.freeze({
           info: {
             uuid: walletUuid,
-            name: 'Arena Mock Wallet',
+            name: walletName,
             icon: walletIcon,
-            rdns: 'com.arenaentertainment.wallet-mock'
+            rdns: walletRdns
           },
           provider: wallet.getEthereumProvider()
         })
@@ -205,12 +272,15 @@ export function injectMockWallet(config: MockWalletConfig): MockWallet {
     (window as any).phantom.solana = wallet.getSolanaProvider();
 
     // Solana Wallet Standard registration (simplified)
+    const solanaWalletName = config.branding?.name ? `${config.branding.name} (Solana)` : 'Arena Headless Wallet (Solana)';
+    const solanaWalletIcon = getWalletIcon(config.branding?.icon);
+
     window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', {
       detail: {
         wallet: {
           version: '1.0.0',
-          name: 'Arena Mock Wallet (Solana)',
-          icon: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=',
+          name: solanaWalletName,
+          icon: solanaWalletIcon,
           chains: ['solana:mainnet', 'solana:devnet', 'solana:testnet'],
           features: {
             'standard:connect': {
@@ -237,6 +307,9 @@ export function injectMockWallet(config: MockWalletConfig): MockWallet {
 
   return wallet;
 }
+
+// Backward compatibility alias
+export const injectMockWallet = injectHeadlessWallet;
 
 // Export wallet classes for advanced usage
 export { EVMWallet, SolanaWallet };

@@ -27,8 +27,8 @@ function getEVMAddresses() {
 }
 
 // Unified wallet configuration
-const WALLET_NAME = 'Arena Mock Wallet'
-const WALLET_ICON = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5"/><path d="M16 14v.5"/><path d="M11.25 16.25h1.5L12 17l-.75-.75Z"/></svg>'
+const WALLET_NAME = 'Arena Wallet'
+const WALLET_ICON = 'data:image/svg+xml,<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="1080" height="1080" rx="320" fill="black"/><path d="M203 830.128L470.486 230H607.658L876.001 830.128H730.255L510.78 300.301H565.649L345.316 830.128H203ZM336.743 701.529L373.608 596.078H682.245L719.968 701.529H336.743Z" fill="url(%23paint0_linear_436_3860)"/><defs><linearGradient id="paint0_linear_436_3860" x1="539.5" y1="830.128" x2="539.5" y2="230" gradientUnits="userSpaceOnUse"><stop stop-color="%2307D102"/><stop offset="1" stop-color="%23046B01"/></linearGradient></defs></svg>'
 const WALLET_RDNS = 'com.arena.mock-wallet'
 
 interface MockWallet {
@@ -59,7 +59,7 @@ class ArenaMockWallet implements MockWallet {
   public readonly isMetaMask = true
 
   constructor() {
-    addLog('🎮 Arena Mock Wallet created')
+    addLog('🎮 Arena Wallet created')
   }
 
   // Add direct disconnect method that AppKit might call
@@ -537,7 +537,7 @@ const appKit = createAppKit({
   networks: [mainnet, polygon, arbitrum, optimism, solana],
   metadata: {
     name: 'Arena Wallet Mock + Reown AppKit Demo',
-    description: 'Demo of Arena mock wallet with Reown AppKit using ethers',
+    description: 'Demo of Arena Wallet with Reown AppKit using ethers',
     url: window.location.origin,
     icons: ['https://avatars.githubusercontent.com/u/37784886']
   },
@@ -731,7 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sign-message')?.addEventListener('click', async () => {
     try {
       const accounts = await mockWallet.request({ method: 'eth_accounts' })
-      const message = 'Hello from Arena Mock Wallet!'
+      const message = 'Hello from Arena Wallet!'
       const signature = await mockWallet.request({
         method: 'personal_sign',
         params: [message, accounts[0]]
@@ -766,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         primaryType: 'TestMessage',
         domain: {
-          name: 'Arena Mock Wallet Test',
+          name: 'Arena Wallet Test',
           version: '1',
           chainId: 1
         },
@@ -852,13 +852,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('solana-sign-message')?.addEventListener('click', async () => {
     try {
-      const message = new TextEncoder().encode('Hello from Arena Mock Wallet on Solana!')
+      const message = new TextEncoder().encode('Hello from Arena Wallet on Solana!')
       const result = await mockSolanaWallet.signMessage(message)
 
       document.getElementById('solana-result')!.innerHTML = `
         <div class="info-box">
           <h4>Solana Message Signed</h4>
-          <div class="code">Message: Hello from Arena Mock Wallet on Solana!</div>
+          <div class="code">Message: Hello from Arena Wallet on Solana!</div>
           <div class="code">Signature: ${Array.from(result.signature, b => b.toString(16).padStart(2, '0')).join('').substring(0, 40)}...</div>
           <div class="code">Public Key: ${result.publicKey.toBase58()}</div>
         </div>

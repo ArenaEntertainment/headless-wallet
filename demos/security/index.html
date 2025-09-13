@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wallet Mock - Security Demo</title>
+    <title>Headless Wallet - Security Demo</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -39,7 +39,7 @@
     </style>
 </head>
 <body>
-    <h1>🔐 Wallet Mock Security Demo</h1>
+    <h1>🔐 Headless Wallet Security Demo</h1>
 
     <div class="card security-good">
         <h2>✅ Security Features Active</h2>
@@ -79,7 +79,7 @@
     </div>
 
     <script type="module">
-        import { createWallet } from '/Users/chriskitch/Repos/arena/wallet-mock/packages/core/dist/index.js';
+        import { injectHeadlessWallet } from '../../packages/core/dist/index.js';
 
         let wallet = null;
         const logs = [];
@@ -121,16 +121,11 @@
             try {
                 log('Attempting wallet connection...', 'info');
 
-                wallet = await createWallet({
-                    accounts: [{ type: 'evm', label: 'Security Demo Account' }],
-                    production: {
-                        allowedHosts: ['localhost', '127.0.0.1'],
-                        throwInProduction: true,
-                        enableWarnings: true
-                    }
+                wallet = injectHeadlessWallet({
+                    accounts: [{ privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }]
                 });
 
-                await wallet.connect();
+                await wallet.getEthereumProvider().request({ method: 'eth_requestAccounts' });
                 updateConnectionStatus(true);
                 log('✅ Wallet connected successfully', 'success');
 

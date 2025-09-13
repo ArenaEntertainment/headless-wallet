@@ -1,7 +1,7 @@
 {
-  "name": "@arenaentertainment/wallet-mock-react",
+  "name": "@arenaentertainment/headless-wallet-react",
   "version": "0.1.0",
-  "description": "React provider for @arenaentertainment/wallet-mock",
+  "description": "React provider for @arenaentertainment/headless-wallet",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@arenaentertainment/wallet-mock": "workspace:*"
+    "@arenaentertainment/headless-wallet": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0"

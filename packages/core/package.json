@@ -1,7 +1,7 @@
 {
-  "name": "@arenaentertainment/wallet-mock",
+  "name": "@arenaentertainment/headless-wallet",
   "version": "0.1.0",
-  "description": "Universal mock wallet library supporting both EVM and Solana chains",
+  "description": "Universal headless wallet library supporting both EVM and Solana chains",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

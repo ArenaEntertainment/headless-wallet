@@ -1,6 +1,6 @@
-# @arenaentertainment/wallet-mock
+# @arenaentertainment/headless-wallet
 
-A headless mock wallet for testing and development that provides real cryptographic operations for both EVM and Solana chains.
+A headless wallet for testing and development that provides real cryptographic operations for both EVM and Solana chains.
 
 ## Features
 
@@ -13,10 +13,10 @@ A headless mock wallet for testing and development that provides real cryptograp
 
 ## Packages
 
-- `@arenaentertainment/wallet-mock` - Core wallet implementation
-- `@arenaentertainment/wallet-mock-playwright` - Playwright testing integration
-- `@arenaentertainment/wallet-mock-vue` - Vue.js development plugin
-- `@arenaentertainment/wallet-mock-react` - React development provider
+- `@arenaentertainment/headless-wallet` - Core wallet implementation
+- `@arenaentertainment/headless-wallet-playwright` - Playwright testing integration
+- `@arenaentertainment/headless-wallet-vue` - Vue.js development plugin
+- `@arenaentertainment/headless-wallet-react` - React development provider
 
 ## Philosophy
 
@@ -27,11 +27,11 @@ This library acts as a **provider** that injects standard wallet interfaces (`wi
 ### Playwright Testing (Primary Use Case)
 
 ```typescript
-import { installMockWallet } from '@arenaentertainment/wallet-mock-playwright';
+import { installHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
 
 test('wallet integration', async ({ page }) => {
-  // Install mock wallet with real private key
-  await installMockWallet(page, {
+  // Install headless wallet with real private key
+  await installHeadlessWallet(page, {
     accounts: [
       { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
     ],
@@ -55,11 +55,11 @@ test('wallet integration', async ({ page }) => {
 ```typescript
 // main.ts
 import { createApp } from 'vue';
-import { MockWalletPlugin } from '@arenaentertainment/wallet-mock-vue';
+import { HeadlessWalletPlugin } from '@arenaentertainment/headless-wallet-vue';
 
 const app = createApp(App);
 
-app.use(MockWalletPlugin, {
+app.use(HeadlessWalletPlugin, {
   enabled: process.env.NODE_ENV === 'development',
   accounts: [
     { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
@@ -76,7 +76,7 @@ import { useAccount, useSignMessage } from 'wagmi-vue'
 const { address } = useAccount()  // wagmi handles this
 const { signMessage } = useSignMessage()  // wagmi handles this
 
-// wallet-mock just provides window.ethereum, wagmi does the rest
+// headless-wallet just provides window.ethereum, wagmi does the rest
 </script>
 ```
 
@@ -84,18 +84,18 @@ const { signMessage } = useSignMessage()  // wagmi handles this
 
 ```tsx
 // App.tsx
-import { MockWalletProvider } from '@arenaentertainment/wallet-mock-react';
+import { HeadlessWalletProvider } from '@arenaentertainment/headless-wallet-react';
 
 function App() {
   return (
-    <MockWalletProvider
+    <HeadlessWalletProvider
       enabled={process.env.NODE_ENV === 'development'}
       accounts={[
         { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
       ]}
     >
       <YourApp />
-    </MockWalletProvider>
+    </HeadlessWalletProvider>
   );
 }
 
@@ -104,7 +104,7 @@ function YourApp() {
   const { address } = useAccount();  // wagmi hook
   const { signMessage } = useSignMessage();  // wagmi hook
 
-  // wallet-mock just provides window.ethereum, wagmi does the rest
+  // headless-wallet just provides window.ethereum, wagmi does the rest
   return <div>Connected: {address}</div>;
 }
 ```
@@ -112,10 +112,10 @@ function YourApp() {
 ### Core Usage (Advanced)
 
 ```typescript
-import { injectMockWallet } from '@arenaentertainment/wallet-mock';
+import { injectHeadlessWallet } from '@arenaentertainment/headless-wallet';
 
 // Manually inject wallet providers
-const wallet = injectMockWallet({
+const wallet = injectHeadlessWallet({
   accounts: [
     { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
   ]
@@ -142,7 +142,7 @@ Since this library provides standard wallet interfaces, it works seamlessly with
 
 ## Real Cryptography
 
-Unlike other mock wallets that return fake data, this library:
+Unlike other mock libraries that return fake data, this library:
 
 - ✅ Generates real signatures using actual private keys
 - ✅ Derives real addresses from private keys
@@ -150,7 +150,9 @@ Unlike other mock wallets that return fake data, this library:
 - ✅ Uses @solana/web3.js for Solana operations
 - ✅ Supports chain switching, transaction signing, etc.
 
-## Account Configuration
+## Configuration
+
+### Basic Account Configuration
 
 ```typescript
 {
@@ -170,19 +172,43 @@ Unlike other mock wallets that return fake data, this library:
 }
 ```
 
+### Custom Wallet Branding
+
+Customize how your wallet appears in connection UIs:
+
+```typescript
+{
+  accounts: [...],
+  branding: {
+    name: 'My Custom Wallet',
+    icon: 'data:image/svg+xml;base64,...', // or raw SVG string
+    rdns: 'com.mycompany.wallet',
+    isMetaMask: false, // Don't identify as MetaMask for EVM
+    isPhantom: false   // Don't identify as Phantom for Solana
+  }
+}
+```
+
+**Branding Options:**
+- `name`: Display name in wallet connection UIs
+- `icon`: SVG string, base64 data URL, or data URL
+- `rdns`: Reverse domain name for EIP-6963 compliance
+- `isMetaMask`: Whether EVM provider identifies as MetaMask (default: true)
+- `isPhantom`: Whether Solana provider identifies as Phantom (default: true)
+
 ## Testing Examples
 
 ### Test with wagmi
 
 ```typescript
 test('wagmi integration', async ({ page }) => {
-  await installMockWallet(page, {
+  await installHeadlessWallet(page, {
     accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
   });
 
   await page.goto('/app');
 
-  // App uses wagmi, which detects our mock wallet
+  // App uses wagmi, which detects our headless wallet
   await page.click('[data-testid="connect-wallet"]');
   await page.waitForSelector('[data-testid="wallet-connected"]');
 
@@ -195,7 +221,7 @@ test('wagmi integration', async ({ page }) => {
 
 ```typescript
 test('message signing', async ({ page }) => {
-  await installMockWallet(page, {
+  await installHeadlessWallet(page, {
     accounts: [{ privateKey: '0xac0974...', type: 'evm' }],
     debug: true  // See wallet requests in console
   });

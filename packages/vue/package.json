@@ -1,7 +1,7 @@
 {
-  "name": "@arenaentertainment/wallet-mock-vue",
+  "name": "@arenaentertainment/headless-wallet-vue",
   "version": "0.1.0",
-  "description": "Vue plugin for @arenaentertainment/wallet-mock",
+  "description": "Vue plugin for @arenaentertainment/headless-wallet",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@arenaentertainment/wallet-mock": "workspace:*"
+    "@arenaentertainment/headless-wallet": "workspace:*"
   },
   "peerDependencies": {
     "vue": "^3.0.0"
