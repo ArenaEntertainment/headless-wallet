@@ -1,13 +1,13 @@
 import React, { useEffect, type ReactNode } from 'react';
-import { injectMockWallet, type MockWalletConfig } from '@arenaentertainment/headless-wallet';
+import { injectHeadlessWallet, type HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
 
-export interface MockWalletProviderProps extends MockWalletConfig {
+export interface HeadlessWalletProviderProps extends HeadlessWalletConfig {
   children: ReactNode;
   enabled?: boolean;
 }
 
 /**
- * MockWalletProvider - Injects mock wallet providers into the browser
+ * HeadlessWalletProvider - Injects mock wallet providers into the browser
  *
  * This provider simply injects window.ethereum (and window.phantom.solana if configured)
  * so that standard wallet libraries like wagmi, ethers, viem, Reown AppKit, etc. can
@@ -16,12 +16,12 @@ export interface MockWalletProviderProps extends MockWalletConfig {
  * @example
  * ```tsx
  * // In your app root
- * <MockWalletProvider
+ * <HeadlessWalletProvider
  *   enabled={process.env.NODE_ENV === 'development'}
  *   accounts={[{ privateKey: '0x...', type: 'evm' }]}
  * >
  *   <App />
- * </MockWalletProvider>
+ * </HeadlessWalletProvider>
  *
  * // Then use standard wallet libraries
  * function MyComponent() {
@@ -31,12 +31,12 @@ export interface MockWalletProviderProps extends MockWalletConfig {
  * }
  * ```
  */
-export function MockWalletProvider({
+export function HeadlessWalletProvider({
   children,
   enabled = process.env.NODE_ENV === 'development',
   accounts = [],
   ...walletConfig
-}: MockWalletProviderProps) {
+}: HeadlessWalletProviderProps) {
   useEffect(() => {
     if (!enabled) {
       return;
@@ -46,7 +46,7 @@ export function MockWalletProvider({
       // Simply inject the mock wallet providers into the browser
       // This sets up window.ethereum (and window.phantom.solana if configured)
       // Standard wallet libraries will detect and use these providers
-      injectMockWallet({
+      injectHeadlessWallet({
         accounts,
         ...walletConfig
       });

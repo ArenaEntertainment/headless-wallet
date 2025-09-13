@@ -1,28 +1,28 @@
 import type { Page, BrowserContext } from '@playwright/test';
-import { MockWallet, type Account, type MockWalletConfig } from '@arenaentertainment/headless-wallet';
+import { HeadlessWallet, type Account, type HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
 import { randomUUID } from 'crypto';
 
-export interface InstallMockWalletOptions extends MockWalletConfig {
+export interface InstallHeadlessWalletOptions extends HeadlessWalletConfig {
   debug?: boolean;
   autoConnect?: boolean;
 }
 
 // Global wallet storage for Playwright contexts
-const wallets: Map<string, MockWallet> = new Map();
+const wallets: Map<string, HeadlessWallet> = new Map();
 
-export async function installMockWallet(
+export async function installHeadlessWallet(
   target: Page | BrowserContext,
-  options: InstallMockWalletOptions
+  options: InstallHeadlessWalletOptions
 ): Promise<void> {
   const { debug = false, autoConnect = true, ...walletConfig } = options;
 
   // Create the real wallet in Node.js context
-  const wallet = new MockWallet(walletConfig);
+  const wallet = new HeadlessWallet(walletConfig);
   const walletId = randomUUID();
   wallets.set(walletId, wallet);
 
   // Expose bridge function for browser to call back to Node.js wallet
-  await target.exposeFunction('__mockWalletRequest', async (request: {
+  await target.exposeFunction('__headlessWalletRequest', async (request: {
     walletId: string;
     method: string;
     params?: any[];
@@ -59,7 +59,7 @@ export async function installMockWallet(
         const ethereumProvider = {
           isMetaMask: true,
           request: async (args: { method: string; params?: any[] }) => {
-            return await (window as any).__mockWalletRequest({
+            return await (window as any).__headlessWalletRequest({
               walletId,
               method: args.method,
               params: args.params,
@@ -103,21 +103,21 @@ export async function installMockWallet(
         const solanaProvider = {
           isPhantom: true,
           connect: async () => {
-            return await (window as any).__mockWalletRequest({
+            return await (window as any).__headlessWalletRequest({
               walletId,
               method: 'connect',
               provider: 'solana'
             });
           },
           disconnect: async () => {
-            return await (window as any).__mockWalletRequest({
+            return await (window as any).__headlessWalletRequest({
               walletId,
               method: 'disconnect',
               provider: 'solana'
             });
           },
           signTransaction: async (transaction: any) => {
-            return await (window as any).__mockWalletRequest({
+            return await (window as any).__headlessWalletRequest({
               walletId,
               method: 'signTransaction',
               params: [transaction],
@@ -125,7 +125,7 @@ export async function installMockWallet(
             });
           },
           signMessage: async (message: Uint8Array) => {
-            return await (window as any).__mockWalletRequest({
+            return await (window as any).__headlessWalletRequest({
               walletId,
               method: 'signMessage',
               params: [message],
@@ -164,19 +164,19 @@ export async function installMockWallet(
 }
 
 // Helper functions for testing
-export async function connectMockWallet(page: Page): Promise<void> {
+export async function connectHeadlessWallet(page: Page): Promise<void> {
   await page.evaluate(() => {
     return (window as any).ethereum?.request({ method: 'eth_requestAccounts' });
   });
 }
 
-export async function getMockWalletAccounts(page: Page): Promise<string[]> {
+export async function getHeadlessWalletAccounts(page: Page): Promise<string[]> {
   return await page.evaluate(() => {
     return (window as any).ethereum?.request({ method: 'eth_accounts' });
   });
 }
 
-export async function switchMockWalletChain(page: Page, chainId: string): Promise<void> {
+export async function switchHeadlessWalletChain(page: Page, chainId: string): Promise<void> {
   await page.evaluate((chainId) => {
     return (window as any).ethereum?.request({
       method: 'wallet_switchEthereumChain',
@@ -185,7 +185,7 @@ export async function switchMockWalletChain(page: Page, chainId: string): Promis
   }, chainId);
 }
 
-export async function signMockWalletMessage(page: Page, message: string, address?: string): Promise<string> {
+export async function signHeadlessWalletMessage(page: Page, message: string, address?: string): Promise<string> {
   return await page.evaluate(async ({ message, address }) => {
     const accounts = address ? [address] : await (window as any).ethereum.request({ method: 'eth_accounts' });
     return (window as any).ethereum.request({
@@ -209,6 +209,6 @@ export async function signMockSolanaMessage(page: Page, message: string): Promis
 }
 
 // Cleanup function to remove wallets from memory
-export function cleanupMockWallets(): void {
+export function cleanupHeadlessWallets(): void {
   wallets.clear();
 }

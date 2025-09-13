@@ -32,7 +32,7 @@ export interface WalletBranding {
   isPhantom?: boolean;
 }
 
-export interface MockWalletConfig {
+export interface HeadlessWalletConfig {
   accounts: Account[];
   /** Optional wallet branding customization */
   branding?: WalletBranding;
@@ -47,12 +47,12 @@ export interface MockWalletConfig {
   };
 }
 
-export class MockWallet {
+export class HeadlessWallet {
   private evmWallet?: EVMWallet;
   private solanaWallet?: SolanaWallet;
   private branding: WalletBranding;
 
-  constructor(config: MockWalletConfig) {
+  constructor(config: HeadlessWalletConfig) {
     // Set up branding with defaults
     this.branding = {
       name: 'Arena Headless Wallet',
@@ -224,7 +224,7 @@ function getWalletIcon(customIcon?: string): string {
 }
 
 // Browser injection function (for Vue/React plugins)
-export function injectHeadlessWallet(config: MockWalletConfig): MockWallet {
+export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWallet {
   if (typeof window === 'undefined') {
     throw new Error('injectHeadlessWallet can only be used in browser environment');
   }
@@ -233,7 +233,7 @@ export function injectHeadlessWallet(config: MockWalletConfig): MockWallet {
     console.warn('Headless wallet should not be used in production');
   }
 
-  const wallet = new MockWallet(config);
+  const wallet = new HeadlessWallet(config);
 
   // Inject EVM provider
   if (wallet.hasEVM()) {
@@ -308,8 +308,10 @@ export function injectHeadlessWallet(config: MockWalletConfig): MockWallet {
   return wallet;
 }
 
-// Backward compatibility alias
+// Backward compatibility aliases
 export const injectMockWallet = injectHeadlessWallet;
+export const MockWallet = HeadlessWallet;
+export type MockWalletConfig = HeadlessWalletConfig;
 
 // Export wallet classes for advanced usage
 export { EVMWallet, SolanaWallet };

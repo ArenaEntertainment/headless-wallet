@@ -17,7 +17,7 @@ export interface WalletBranding {
     /** Whether to identify as Phantom for Solana (default: true) */
     isPhantom?: boolean;
 }
-export interface MockWalletConfig {
+export interface HeadlessWalletConfig {
     accounts: Account[];
     /** Optional wallet branding customization */
     branding?: WalletBranding;
@@ -31,11 +31,11 @@ export interface MockWalletConfig {
         rpcUrl?: string;
     };
 }
-export declare class MockWallet {
+export declare class HeadlessWallet {
     private evmWallet?;
     private solanaWallet?;
     private branding;
-    constructor(config: MockWalletConfig);
+    constructor(config: HeadlessWalletConfig);
     getEthereumProvider(): {
         isMetaMask: boolean | undefined;
         request: (args: {
@@ -77,7 +77,9 @@ export declare class MockWallet {
     hasEVM(): boolean;
     hasSolana(): boolean;
 }
-export declare function injectHeadlessWallet(config: MockWalletConfig): MockWallet;
+export declare function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWallet;
 export declare const injectMockWallet: typeof injectHeadlessWallet;
+export declare const MockWallet: typeof HeadlessWallet;
+export type MockWalletConfig = HeadlessWalletConfig;
 export { EVMWallet, SolanaWallet };
 export type { EVMWalletConfig, SolanaWalletConfig };

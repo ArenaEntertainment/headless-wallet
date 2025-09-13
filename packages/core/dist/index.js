@@ -12,7 +12,7 @@ function generateUUID() {
         return v.toString(16);
     });
 }
-export class MockWallet {
+export class HeadlessWallet {
     constructor(config) {
         // Set up branding with defaults
         this.branding = {
@@ -174,7 +174,7 @@ export function injectHeadlessWallet(config) {
     if (process.env.NODE_ENV === 'production') {
         console.warn('Headless wallet should not be used in production');
     }
-    const wallet = new MockWallet(config);
+    const wallet = new HeadlessWallet(config);
     // Inject EVM provider
     if (wallet.hasEVM()) {
         window.ethereum = wallet.getEthereumProvider();
@@ -240,7 +240,8 @@ export function injectHeadlessWallet(config) {
     }
     return wallet;
 }
-// Backward compatibility alias
+// Backward compatibility aliases
 export const injectMockWallet = injectHeadlessWallet;
+export const MockWallet = HeadlessWallet;
 // Export wallet classes for advanced usage
 export { EVMWallet, SolanaWallet };

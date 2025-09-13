@@ -1,12 +1,12 @@
 import type { App } from 'vue';
-import { injectMockWallet, type MockWalletConfig } from '@arenaentertainment/headless-wallet';
+import { injectHeadlessWallet, type HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
 
-export interface MockWalletPluginOptions extends MockWalletConfig {
+export interface HeadlessWalletPluginOptions extends HeadlessWalletConfig {
   enabled?: boolean;
 }
 
 /**
- * MockWalletPlugin - Injects mock wallet providers into the browser
+ * HeadlessWalletPlugin - Injects mock wallet providers into the browser
  *
  * This plugin simply injects window.ethereum (and window.phantom.solana if configured)
  * so that standard wallet libraries like wagmi-vue, ethers, viem, Reown AppKit, etc. can
@@ -15,9 +15,9 @@ export interface MockWalletPluginOptions extends MockWalletConfig {
  * @example
  * ```ts
  * // In your main.ts
- * import { MockWalletPlugin } from '@arenaentertainment/wallet-mock-vue'
+ * import { HeadlessWalletPlugin } from '@arenaentertainment/wallet-mock-vue'
  *
- * app.use(MockWalletPlugin, {
+ * app.use(HeadlessWalletPlugin, {
  *   enabled: process.env.NODE_ENV === 'development',
  *   accounts: [{ privateKey: '0x...', type: 'evm' }]
  * })
@@ -32,8 +32,8 @@ export interface MockWalletPluginOptions extends MockWalletConfig {
  * </script>
  * ```
  */
-export const MockWalletPlugin = {
-  install(app: App, options: MockWalletPluginOptions) {
+export const HeadlessWalletPlugin = {
+  install(app: App, options: HeadlessWalletPluginOptions) {
     const {
       enabled = process.env.NODE_ENV === 'development',
       accounts = [],
@@ -48,7 +48,7 @@ export const MockWalletPlugin = {
       // Simply inject the mock wallet providers into the browser
       // This sets up window.ethereum (and window.phantom.solana if configured)
       // Standard wallet libraries will detect and use these providers
-      injectMockWallet({
+      injectHeadlessWallet({
         accounts,
         ...walletConfig
       });
