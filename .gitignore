@@ -28,7 +28,7 @@ coverage/
 .claude/settings.local.json
 
 # Package manager files
-pnpm-lock.yaml
+# pnpm-lock.yaml (keep this for reproducible builds)
 
 # Examples and temporary files
 examples/
