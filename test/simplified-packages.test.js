@@ -19,10 +19,10 @@ async function testSimplifiedPackages() {
   try {
     // Test Vue Plugin
     console.log('\n📦 Testing Vue Plugin...');
-    const { MockWalletPlugin } = await import('../packages/vue/dist/index.js');
+    const { HeadlessWalletPlugin } = await import('../packages/vue/dist/index.js');
 
-    if (!MockWalletPlugin || typeof MockWalletPlugin.install !== 'function') {
-      throw new Error('Vue MockWalletPlugin missing or invalid');
+    if (!HeadlessWalletPlugin || typeof HeadlessWalletPlugin.install !== 'function') {
+      throw new Error('Vue HeadlessWalletPlugin missing or invalid');
     }
 
     // Mock Vue app
@@ -30,7 +30,7 @@ async function testSimplifiedPackages() {
     const mockApp = {
       provide: () => {},
       use: (plugin, options) => {
-        if (plugin === MockWalletPlugin) {
+        if (plugin === HeadlessWalletPlugin) {
           plugin.install(mockApp, options);
           pluginCalled = true;
         }
@@ -38,7 +38,7 @@ async function testSimplifiedPackages() {
     };
 
     // Test plugin installation
-    mockApp.use(MockWalletPlugin, {
+    mockApp.use(HeadlessWalletPlugin, {
       enabled: true,
       accounts: [
         { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
@@ -58,10 +58,10 @@ async function testSimplifiedPackages() {
 
     // Test React Provider
     console.log('\n📦 Testing React Provider...');
-    const { MockWalletProvider } = await import('../packages/react/dist/index.js');
+    const { HeadlessWalletProvider } = await import('../packages/react/dist/index.js');
 
-    if (!MockWalletProvider || typeof MockWalletProvider !== 'function') {
-      throw new Error('React MockWalletProvider missing or invalid');
+    if (!HeadlessWalletProvider || typeof HeadlessWalletProvider !== 'function') {
+      throw new Error('React HeadlessWalletProvider missing or invalid');
     }
 
     console.log('✅ React provider exports correctly');
@@ -72,21 +72,21 @@ async function testSimplifiedPackages() {
     const vueExports = await import('../packages/vue/dist/index.js');
     const vueExportKeys = Object.keys(vueExports);
 
-    if (vueExportKeys.length !== 1 || !vueExportKeys.includes('MockWalletPlugin')) {
+    if (vueExportKeys.length !== 1 || !vueExportKeys.includes('HeadlessWalletPlugin')) {
       console.warn('⚠️  Vue package exports:', vueExportKeys);
-      console.warn('Expected only: MockWalletPlugin');
+      console.warn('Expected only: HeadlessWalletPlugin');
     } else {
-      console.log('✅ Vue package exports only MockWalletPlugin');
+      console.log('✅ Vue package exports only HeadlessWalletPlugin');
     }
 
     const reactExports = await import('../packages/react/dist/index.js');
     const reactExportKeys = Object.keys(reactExports);
 
-    if (reactExportKeys.length !== 1 || !reactExportKeys.includes('MockWalletProvider')) {
+    if (reactExportKeys.length !== 1 || !reactExportKeys.includes('HeadlessWalletProvider')) {
       console.warn('⚠️  React package exports:', reactExportKeys);
-      console.warn('Expected only: MockWalletProvider');
+      console.warn('Expected only: HeadlessWalletProvider');
     } else {
-      console.log('✅ React package exports only MockWalletProvider');
+      console.log('✅ React package exports only HeadlessWalletProvider');
     }
 
     // Test basic wallet functionality through window.ethereum
@@ -129,8 +129,8 @@ testSimplifiedPackages().then(success => {
   if (success) {
     console.log('\n✅ Simplified packages are working correctly!');
     console.log('\n💡 Key benefits of simplification:');
-    console.log('   - Vue plugin: Only exports MockWalletPlugin');
-    console.log('   - React provider: Only exports MockWalletProvider');
+    console.log('   - Vue plugin: Only exports HeadlessWalletPlugin');
+    console.log('   - React provider: Only exports HeadlessWalletProvider');
     console.log('   - Both simply inject window.ethereum for standard tooling');
     console.log('   - Developers use wagmi, ethers, viem, etc. for wallet interaction');
     console.log('   - No custom hooks/composables to learn or maintain');

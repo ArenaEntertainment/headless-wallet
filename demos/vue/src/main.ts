@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
-import { MockWalletPlugin } from '@arenaentertainment/wallet-mock-vue'
+import { HeadlessWalletPlugin } from '@arenaentertainment/wallet-mock-vue'
 import App from './App.vue'
 import './style.css'
 
@@ -41,6 +41,6 @@ const walletPluginOptions = {
 const app = createApp(App)
 
 app.use(router)
-app.use(MockWalletPlugin, walletPluginOptions)
+app.use(HeadlessWalletPlugin, walletPluginOptions)
 
 app.mount('#app')

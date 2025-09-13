@@ -1,4 +1,4 @@
-import { MockWallet } from '../packages/core/dist/index.js';
+import { HeadlessWallet } from '../packages/core/dist/index.js';
 
 // Test private key (hardhat account #0)
 const TEST_EVM_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -7,7 +7,7 @@ const EXPECTED_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 async function testEvmWallet() {
   console.log('🔧 Testing EVM wallet with REAL cryptographic operations...\n');
 
-  const wallet = new MockWallet({
+  const wallet = new HeadlessWallet({
     accounts: [{ privateKey: TEST_EVM_KEY, type: 'evm' }]
   });
 

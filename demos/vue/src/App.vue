@@ -146,7 +146,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useMockWallet } from '@arenaentertainment/wallet-mock-vue'
+import { useHeadlessWallet } from '@arenaentertainment/wallet-mock-vue'
 import {
   Menu,
   X,
@@ -165,7 +165,7 @@ import WalletStatus from './components/WalletStatus.vue'
 
 const router = useRouter()
 const route = useRoute()
-const mockWallet = useMockWallet()
+const headlessWallet = useHeadlessWallet()
 
 const sidebarOpen = ref(false)
 const isDark = ref(false)

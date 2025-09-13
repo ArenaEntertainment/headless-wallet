@@ -31,7 +31,7 @@ const WALLET_NAME = 'Arena Wallet'
 const WALLET_ICON = 'data:image/svg+xml,<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="1080" height="1080" rx="320" fill="black"/><path d="M203 830.128L470.486 230H607.658L876.001 830.128H730.255L510.78 300.301H565.649L345.316 830.128H203ZM336.743 701.529L373.608 596.078H682.245L719.968 701.529H336.743Z" fill="url(%23paint0_linear_436_3860)"/><defs><linearGradient id="paint0_linear_436_3860" x1="539.5" y1="830.128" x2="539.5" y2="230" gradientUnits="userSpaceOnUse"><stop stop-color="%2307D102"/><stop offset="1" stop-color="%23046B01"/></linearGradient></defs></svg>'
 const WALLET_RDNS = 'com.arena.mock-wallet'
 
-interface MockWallet {
+interface HeadlessWallet {
   request(args: { method: string; params?: any[] }): Promise<any>
   on(event: string, handler: (...args: any[]) => void): void
   removeListener(event: string, handler: (...args: any[]) => void): void
@@ -49,7 +49,7 @@ function addLog(message: string) {
 }
 
 // Create our mock wallet following the original pattern
-class ArenaMockWallet implements MockWallet {
+class ArenaHeadlessWallet implements HeadlessWallet {
   private listeners: Map<string, Set<Function>> = new Map()
   private accounts: string[] = []
   private currentChain: string = '0x1' // Ethereum mainnet
@@ -457,7 +457,7 @@ class ArenaMockSolanaWallet implements Wallet {
 }
 
 // Create both wallet instances
-const mockWallet = new ArenaMockWallet()
+const headlessWallet = new ArenaHeadlessWallet()
 const mockSolanaWallet = new ArenaMockSolanaWallet(TEST_ACCOUNTS.solana.secretKey)
 
 // EIP-6963 wallet discovery for EVM
@@ -469,7 +469,7 @@ function announceEVMWallet() {
     rdns: WALLET_RDNS
   }
 
-  const detail = { info, provider: mockWallet }
+  const detail = { info, provider: headlessWallet }
   const announceEvent = new CustomEvent('eip6963:announceProvider', {
     detail: Object.freeze(detail)
   })
@@ -490,7 +490,7 @@ function registerSolanaWallet() {
 }
 
 // Inject both providers into window
-;(window as any).ethereum = mockWallet
+;(window as any).ethereum = headlessWallet
 
 // Inject Solana provider - following Phantom's approach
 if (!(window as any).phantom) {
@@ -504,11 +504,11 @@ if (!(window as any).phantom) {
 // Add global disconnect method that AppKit can call
 ;(window as any).ethereum.disconnect = () => {
   addLog('🔓 Global EVM disconnect method called')
-  return mockWallet.performDisconnect('Global method')
+  return headlessWallet.performDisconnect('Global method')
 }
 
 // Make performDisconnect public so it can be called externally
-mockWallet.performDisconnect = mockWallet['performDisconnect']
+headlessWallet.performDisconnect = headlessWallet['performDisconnect']
 
 // Listen for EIP-6963 requests (EVM)
 window.addEventListener('eip6963:requestProvider', () => {
@@ -569,12 +569,12 @@ try {
         stateStr.includes('"address":null')
       )
 
-      const walletConnected = !mockWallet['isDisconnected'] && mockWallet['accounts'].length > 0
+      const walletConnected = !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
 
       if (appKitDisconnected && walletConnected && lastConnectedState) {
         addLog('🚨 AppKit disconnect detected! Triggering wallet disconnect...')
         setTimeout(() => {
-          mockWallet.performDisconnect('AppKit state change')
+          headlessWallet.performDisconnect('AppKit state change')
         }, 100)
       }
 
@@ -595,18 +595,18 @@ setInterval(() => {
   const connectButton = document.querySelector('w3m-button')
   if (connectButton) {
     const buttonText = connectButton.textContent || ''
-    const walletConnected = !mockWallet['isDisconnected'] && mockWallet['accounts'].length > 0
+    const walletConnected = !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
 
     if (buttonText.includes('Connect') && walletConnected) {
       addLog('🚨 AppKit button shows "Connect" but wallet is connected - triggering disconnect')
-      mockWallet.performDisconnect('Button state mismatch')
+      headlessWallet.performDisconnect('Button state mismatch')
     }
   }
 }, 1000)
 
 // UI Functions
 function updateUI() {
-  const isConnected = !mockWallet['isDisconnected'] && mockWallet['accounts'].length > 0
+  const isConnected = !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
 
   // Update connection status
   const statusEl = document.getElementById('connection-status')
@@ -646,7 +646,7 @@ function updateUI() {
       '0xa': 'Optimism'
     }
 
-    const chainId = mockWallet['currentChain']
+    const chainId = headlessWallet['currentChain']
     networkEl.innerHTML = `
       <div class="info-box">
         <h4>Current Network</h4>
@@ -692,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Chain switching buttons
   document.getElementById('switch-to-polygon')?.addEventListener('click', async () => {
     try {
-      await mockWallet.request({
+      await headlessWallet.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: '0x89' }]
       })
@@ -703,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('switch-to-ethereum')?.addEventListener('click', async () => {
     try {
-      await mockWallet.request({
+      await headlessWallet.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: '0x1' }]
       })
@@ -715,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Get capabilities button
   document.getElementById('get-capabilities')?.addEventListener('click', async () => {
     try {
-      const capabilities = await mockWallet.request({ method: 'wallet_getCapabilities' })
+      const capabilities = await headlessWallet.request({ method: 'wallet_getCapabilities' })
       document.getElementById('network-info')!.innerHTML += `
         <div class="info-box">
           <h4>Wallet Capabilities</h4>
@@ -730,9 +730,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Signing buttons
   document.getElementById('sign-message')?.addEventListener('click', async () => {
     try {
-      const accounts = await mockWallet.request({ method: 'eth_accounts' })
+      const accounts = await headlessWallet.request({ method: 'eth_accounts' })
       const message = 'Hello from Arena Wallet!'
-      const signature = await mockWallet.request({
+      const signature = await headlessWallet.request({
         method: 'personal_sign',
         params: [message, accounts[0]]
       })
@@ -751,7 +751,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('sign-typed-data')?.addEventListener('click', async () => {
     try {
-      const accounts = await mockWallet.request({ method: 'eth_accounts' })
+      const accounts = await headlessWallet.request({ method: 'eth_accounts' })
       const typedData = {
         types: {
           EIP712Domain: [
@@ -776,7 +776,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      const signature = await mockWallet.request({
+      const signature = await headlessWallet.request({
         method: 'eth_signTypedData_v4',
         params: [accounts[0], JSON.stringify(typedData)]
       })
@@ -796,8 +796,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Send transaction button
   document.getElementById('send-transaction')?.addEventListener('click', async () => {
     try {
-      const accounts = await mockWallet.request({ method: 'eth_accounts' })
-      const txHash = await mockWallet.request({
+      const accounts = await headlessWallet.request({ method: 'eth_accounts' })
+      const txHash = await headlessWallet.request({
         method: 'eth_sendTransaction',
         params: [{
           from: accounts[0],
@@ -899,7 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
   manualDisconnectBtn.textContent = 'Manual Disconnect Test'
   manualDisconnectBtn.addEventListener('click', () => {
     addLog('🧪 Manual disconnect test triggered')
-    mockWallet.performDisconnect('Manual test')
+    headlessWallet.performDisconnect('Manual test')
   })
   document.getElementById('transaction-result')?.appendChild(manualDisconnectBtn)
 
@@ -908,12 +908,12 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 // Listen for wallet events to update UI
-mockWallet.on('accountsChanged', (accounts: string[]) => {
+headlessWallet.on('accountsChanged', (accounts: string[]) => {
   addLog(`🔄 Account changed: ${accounts.join(', ') || 'disconnected'}`)
   updateUI()
 })
 
-mockWallet.on('chainChanged', (chainId: string) => {
+headlessWallet.on('chainChanged', (chainId: string) => {
   addLog(`🔄 Chain changed: ${chainId}`)
   updateUI()
 })

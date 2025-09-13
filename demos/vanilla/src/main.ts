@@ -1,6 +1,6 @@
 import {
-  injectMockWallet,
-  type MockWallet,
+  injectHeadlessWallet,
+  type HeadlessWallet,
   type Account
 } from '@arenaentertainment/wallet-mock'
 import { WalletUI } from './utils/ui'
@@ -10,7 +10,7 @@ import { Logger } from './utils/logger'
  * Main application class for the Vanilla JavaScript demo
  */
 class WalletDemo {
-  private wallet: MockWallet | null = null
+  private wallet: HeadlessWallet | null = null
   private ui: WalletUI
   private logger: Logger
 

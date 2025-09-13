@@ -73,7 +73,7 @@
 
     <div class="test-section">
         <h2>Test 4: Backward Compatibility</h2>
-        <p>Tests the old injectMockWallet function still works</p>
+        <p>Tests the old injectHeadlessWallet function still works</p>
         <button onclick="testBackwardCompatibility()">Test Old Function</button>
     </div>
 
@@ -85,7 +85,7 @@
 
     <script type="module">
         // Import the built version from dist to avoid Node.js compatibility issues
-        import { injectHeadlessWallet, injectMockWallet } from '../../packages/core/dist/index.js';
+        import { injectHeadlessWallet, injectHeadlessWallet } from '../../packages/core/dist/index.js';
 
         // Helper functions
         function log(message, type = 'info') {
@@ -206,9 +206,9 @@
 
         window.testBackwardCompatibility = function() {
             try {
-                log('🔄 Testing backward compatibility with injectMockWallet...');
+                log('🔄 Testing backward compatibility with injectHeadlessWallet...');
 
-                const wallet = injectMockWallet({
+                const wallet = injectHeadlessWallet({
                     accounts: [
                         { privateKey: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d', type: 'evm' }
                     ],
@@ -217,7 +217,7 @@
                     }
                 });
 
-                log('✅ Legacy injectMockWallet function works perfectly', 'success');
+                log('✅ Legacy injectHeadlessWallet function works perfectly', 'success');
                 log('📋 Backward compatibility maintained - old code still works');
                 log('📋 Custom branding also works with legacy function');
 

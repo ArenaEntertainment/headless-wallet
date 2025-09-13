@@ -92,7 +92,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useMockWallet, useEvmWallet } from '@arenaentertainment/wallet-mock-vue'
+import { useHeadlessWallet, useEvmWallet } from '@arenaentertainment/wallet-mock-vue'
 import {
   Wallet,
   User,
@@ -103,11 +103,11 @@ import {
   AlertCircle
 } from 'lucide-vue-next'
 
-const mockWallet = useMockWallet()
+const headlessWallet = useHeadlessWallet()
 const evmWallet = useEvmWallet()
 const isConnecting = ref(false)
 
-const isConnected = computed(() => mockWallet.isConnected)
+const isConnected = computed(() => headlessWallet.isConnected)
 
 const statusText = computed(() => {
   if (isConnecting.value) return 'Connecting...'
@@ -116,18 +116,18 @@ const statusText = computed(() => {
 })
 
 const currentAccount = computed(() => {
-  if (mockWallet.activeEvmAccount) {
+  if (headlessWallet.activeEvmAccount) {
     return {
       id: 1,
-      address: mockWallet.activeEvmAccount,
+      address: headlessWallet.activeEvmAccount,
       type: 'evm',
       label: 'EVM Account'
     }
   }
-  if (mockWallet.activeSolanaAccount) {
+  if (headlessWallet.activeSolanaAccount) {
     return {
       id: 1,
-      address: mockWallet.activeSolanaAccount,
+      address: headlessWallet.activeSolanaAccount,
       type: 'solana',
       label: 'Solana Account'
     }
@@ -136,11 +136,11 @@ const currentAccount = computed(() => {
 })
 
 const currentChain = computed(() => {
-  if (mockWallet.hasEVM && mockWallet.chainId) {
+  if (headlessWallet.hasEVM && headlessWallet.chainId) {
     return {
       name: 'Ethereum',
       type: 'evm',
-      chainId: mockWallet.chainId
+      chainId: headlessWallet.chainId
     }
   }
   return null
@@ -148,11 +148,11 @@ const currentChain = computed(() => {
 
 const accounts = computed(() => {
   const allAccounts = []
-  if (mockWallet.evmAccounts) {
-    allAccounts.push(...mockWallet.evmAccounts.map(addr => ({ address: addr, type: 'evm' })))
+  if (headlessWallet.evmAccounts) {
+    allAccounts.push(...headlessWallet.evmAccounts.map(addr => ({ address: addr, type: 'evm' })))
   }
-  if (mockWallet.solanaAccounts) {
-    allAccounts.push(...mockWallet.solanaAccounts.map(addr => ({ address: addr, type: 'solana' })))
+  if (headlessWallet.solanaAccounts) {
+    allAccounts.push(...headlessWallet.solanaAccounts.map(addr => ({ address: addr, type: 'solana' })))
   }
   return allAccounts
 })
@@ -160,7 +160,7 @@ const accounts = computed(() => {
 const connect = async () => {
   isConnecting.value = true
   try {
-    if (mockWallet.hasEVM) {
+    if (headlessWallet.hasEVM) {
       await evmWallet.connect()
     }
   } catch (error) {

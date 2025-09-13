@@ -75,7 +75,7 @@ User Interface (Demo)
        ↓
    window.ethereum (EIP-1193 Provider)
        ↓
-Arena Mock Wallet (Real Cryptography)
+Arena Wallet (Real Cryptography)
        ↓
      Viem (Blockchain Operations)
 ```
@@ -100,10 +100,10 @@ Arena Mock Wallet (Real Cryptography)
 This demo shows how developers can use our wallet-mock for testing their dApps:
 
 ```typescript
-import { injectMockWallet } from '@arenaentertainment/wallet-mock';
+import { injectHeadlessWallet } from '@arenaentertainment/wallet-mock';
 
 // Inject mock wallet before initializing your Web3 library
-injectMockWallet({
+injectHeadlessWallet({
   accounts: [
     { privateKey: 'your-test-private-key', type: 'evm' }
   ]

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installMockWallet, getMockWalletAccounts, signMockWalletMessage } from '../packages/playwright/dist/index.js';
+import { installHeadlessWallet, getHeadlessWalletAccounts, signHeadlessWalletMessage } from '../packages/playwright/dist/index.js';
 
 // Test private key (hardhat account #0)
 const TEST_EVM_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -8,7 +8,7 @@ const EXPECTED_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 test.describe('Mock Wallet Integration', () => {
   test('should inject real EVM wallet with actual signing', async ({ page }) => {
     // Install the mock wallet with real private key
-    await installMockWallet(page, {
+    await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_EVM_KEY, type: 'evm' }
       ],
@@ -28,13 +28,13 @@ test.describe('Mock Wallet Integration', () => {
     expect(isMetaMask).toBe(true);
 
     // Connect and get accounts
-    const accounts = await getMockWalletAccounts(page);
+    const accounts = await getHeadlessWalletAccounts(page);
     expect(accounts).toHaveLength(1);
     expect(accounts[0]).toBe(EXPECTED_ADDRESS);
 
     // Test real message signing
     const message = 'Hello from real crypto test!';
-    const signature = await signMockWalletMessage(page, message, accounts[0]);
+    const signature = await signHeadlessWalletMessage(page, message, accounts[0]);
 
     // Verify signature format (130 chars = 0x + 64 bytes hex)
     expect(signature).toMatch(/^0x[a-fA-F0-9]{130}$/);
@@ -51,7 +51,7 @@ test.describe('Mock Wallet Integration', () => {
       142,  34, 184, 19,  127,  77, 183,  59, 135, 175, 182, 111, 118, 162, 101, 238
     ]);
 
-    await installMockWallet(page, {
+    await installHeadlessWallet(page, {
       accounts: [
         { privateKey: testSolanaKey, type: 'solana' }
       ],
@@ -79,7 +79,7 @@ test.describe('Mock Wallet Integration', () => {
   test('should support multi-chain wallet', async ({ page }) => {
     const testSolanaKey = new Uint8Array(32).fill(1); // Simple test key
 
-    await installMockWallet(page, {
+    await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_EVM_KEY, type: 'evm' },
         { privateKey: testSolanaKey, type: 'solana' }

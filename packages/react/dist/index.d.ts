@@ -1,11 +1,11 @@
 import { type ReactNode } from 'react';
-import { type MockWalletConfig } from '@arenaentertainment/wallet-mock';
-export interface MockWalletProviderProps extends MockWalletConfig {
+import { type HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
+export interface HeadlessWalletProviderProps extends HeadlessWalletConfig {
     children: ReactNode;
     enabled?: boolean;
 }
 /**
- * MockWalletProvider - Injects mock wallet providers into the browser
+ * HeadlessWalletProvider - Injects mock wallet providers into the browser
  *
  * This provider simply injects window.ethereum (and window.phantom.solana if configured)
  * so that standard wallet libraries like wagmi, ethers, viem, Reown AppKit, etc. can
@@ -14,12 +14,12 @@ export interface MockWalletProviderProps extends MockWalletConfig {
  * @example
  * ```tsx
  * // In your app root
- * <MockWalletProvider
+ * <HeadlessWalletProvider
  *   enabled={process.env.NODE_ENV === 'development'}
  *   accounts={[{ privateKey: '0x...', type: 'evm' }]}
  * >
  *   <App />
- * </MockWalletProvider>
+ * </HeadlessWalletProvider>
  *
  * // Then use standard wallet libraries
  * function MyComponent() {
@@ -29,4 +29,4 @@ export interface MockWalletProviderProps extends MockWalletConfig {
  * }
  * ```
  */
-export declare function MockWalletProvider({ children, enabled, accounts, ...walletConfig }: MockWalletProviderProps): import("react/jsx-runtime").JSX.Element;
+export declare function HeadlessWalletProvider({ children, enabled, accounts, ...walletConfig }: HeadlessWalletProviderProps): import("react/jsx-runtime").JSX.Element;

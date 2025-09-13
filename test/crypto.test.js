@@ -1,4 +1,4 @@
-import { MockWallet } from '../packages/core/dist/index.js';
+import { HeadlessWallet } from '../packages/core/dist/index.js';
 
 // Test private key (hardhat account #0)
 const TEST_EVM_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -17,7 +17,7 @@ const TEST_SOLANA_KEY = new Uint8Array([
 async function testEvmWallet() {
   console.log('🔧 Testing EVM wallet with real cryptography...');
 
-  const wallet = new MockWallet({
+  const wallet = new HeadlessWallet({
     accounts: [{ privateKey: TEST_EVM_KEY, type: 'evm' }]
   });
 
@@ -47,7 +47,7 @@ async function testEvmWallet() {
 async function testSolanaWallet() {
   console.log('\n🔧 Testing Solana wallet with real cryptography...');
 
-  const wallet = new MockWallet({
+  const wallet = new HeadlessWallet({
     accounts: [{ privateKey: TEST_SOLANA_KEY, type: 'solana' }]
   });
 
@@ -71,7 +71,7 @@ async function testSolanaWallet() {
 async function testPlaywrightIntegration() {
   console.log('\n🎭 Testing Playwright-style integration...');
 
-  const wallet = new MockWallet({
+  const wallet = new HeadlessWallet({
     accounts: [
       { privateKey: TEST_EVM_KEY, type: 'evm' },
       { privateKey: TEST_SOLANA_KEY, type: 'solana' }

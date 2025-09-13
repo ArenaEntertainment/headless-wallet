@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installMockWallet } from '../packages/playwright/dist/index.js';
+import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
 
 // Test private key from hardhat accounts
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -8,7 +8,7 @@ const EXPECTED_ADDRESS = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 test.describe('Reown AppKit Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Install mock wallet before each test
-    await installMockWallet(page, {
+    await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_PRIVATE_KEY, type: 'evm' }
       ],
@@ -220,7 +220,7 @@ test.describe('Reown AppKit Integration Tests', () => {
           },
           primaryType: 'TestMessage',
           domain: {
-            name: 'Arena Mock Wallet Test',
+            name: 'Arena Wallet Test',
             version: '1',
             chainId: 1
           },

@@ -16,8 +16,8 @@ async function testReactProvider() {
   try {
     // Import the React provider
     const {
-      MockWalletProvider,
-      useMockWallet,
+      HeadlessWalletProvider,
+      useHeadlessWallet,
       useEvmWallet,
       useSolanaWallet,
       useWalletConnection,
@@ -29,8 +29,8 @@ async function testReactProvider() {
 
     // Verify all exports are available
     const exports = {
-      MockWalletProvider: !!MockWalletProvider,
-      useMockWallet: !!useMockWallet,
+      HeadlessWalletProvider: !!HeadlessWalletProvider,
+      useHeadlessWallet: !!useHeadlessWallet,
       useEvmWallet: !!useEvmWallet,
       useSolanaWallet: !!useSolanaWallet,
       useWalletConnection: !!useWalletConnection,
@@ -53,13 +53,13 @@ async function testReactProvider() {
       throw new Error('Some exports are missing');
     }
 
-    // Verify MockWalletProvider is a function
-    if (typeof MockWalletProvider !== 'function') {
-      throw new Error('MockWalletProvider is not a function');
+    // Verify HeadlessWalletProvider is a function
+    if (typeof HeadlessWalletProvider !== 'function') {
+      throw new Error('HeadlessWalletProvider is not a function');
     }
 
     // Verify hooks are functions
-    const hooks = { useMockWallet, useEvmWallet, useSolanaWallet, useWalletConnection, useWalletAccounts, useWalletSigning };
+    const hooks = { useHeadlessWallet, useEvmWallet, useSolanaWallet, useWalletConnection, useWalletAccounts, useWalletSigning };
     for (const [hookName, hook] of Object.entries(hooks)) {
       if (typeof hook !== 'function') {
         throw new Error(`${hookName} is not a function`);

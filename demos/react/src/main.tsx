@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import { MockWalletProvider } from '@arenaentertainment/wallet-mock-react'
+import { HeadlessWalletProvider } from '@arenaentertainment/wallet-mock-react'
 import { AccountType } from '@arenaentertainment/wallet-mock-shared'
 import App from './App.tsx'
 import './index.css'
@@ -49,9 +49,9 @@ const walletConfig = {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <MockWalletProvider {...walletConfig}>
+      <HeadlessWalletProvider {...walletConfig}>
         <App />
-      </MockWalletProvider>
+      </HeadlessWalletProvider>
     </BrowserRouter>
   </React.StrictMode>,
 )

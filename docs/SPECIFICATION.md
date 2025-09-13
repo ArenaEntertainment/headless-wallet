@@ -92,7 +92,7 @@ packages/
 ### Core Wallet Interface
 
 ```typescript
-interface MockWallet {
+interface HeadlessWallet {
   // Account management
   accounts: Account[]
   activeAccount: number
@@ -163,7 +163,7 @@ interface MockWallet {
 
 **Vue/Nuxt Plugin:**
 ```typescript
-app.use(MockWalletPlugin, {
+app.use(HeadlessWalletPlugin, {
   enabled: process.env.NODE_ENV === 'development',
   accounts: [
     { privateKey: '0x...', chains: ['ethereum', 'polygon'] },
@@ -176,14 +176,14 @@ app.use(MockWalletPlugin, {
 
 **React Integration:**
 ```typescript
-<MockWalletProvider accounts={accounts}>
+<HeadlessWalletProvider accounts={accounts}>
   <App />
-</MockWalletProvider>
+</HeadlessWalletProvider>
 ```
 
 **Playwright Integration:**
 ```typescript
-await installMockWallet(page, {
+await installHeadlessWallet(page, {
   accounts: [
     { type: 'evm', privateKey: '0x...', chains: ['ethereum'] },
     { type: 'solana', secretKey: [...] },
@@ -323,7 +323,7 @@ await installMockWallet(page, {
 
 ### Existing Implementations
 - `/Users/chriskitch/Repos/wallet-mock` - Forked johanneskares/wallet-mock
-- `/Users/chriskitch/Repos/metawin/web-metawin-v2/projects/main/utils/mockWallet.ts` - Current mock implementation
+- `/Users/chriskitch/Repos/metawin/web-metawin-v2/projects/main/utils/headlessWallet.ts` - Current mock implementation
 - `/Users/chriskitch/Repos/metawin/web-metawin-v2/projects/main/node_modules/@johanneskares/wallet-mock/` - Current dependency
 
 ### Standards Documentation

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installMockWallet } from '../packages/playwright/dist/index.js';
+import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
 
 test('detailed debug of wallet injection', async ({ page }) => {
   console.log('🔍 Starting detailed debug test...');
@@ -8,13 +8,13 @@ test('detailed debug of wallet injection', async ({ page }) => {
   await page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
   console.log('🔍 Installing mock wallet...');
-  await installMockWallet(page, {
+  await installHeadlessWallet(page, {
     accounts: [
       { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
     ],
     debug: true
   });
-  console.log('✅ installMockWallet completed');
+  console.log('✅ installHeadlessWallet completed');
 
   // Use goto with data URL instead of setContent
   await page.goto(`data:text/html,<!DOCTYPE html>
@@ -25,7 +25,7 @@ test('detailed debug of wallet injection', async ({ page }) => {
         console.log('=== SCRIPT RUNNING ===');
         console.log('window.ethereum:', window.ethereum);
         console.log('typeof window.ethereum:', typeof window.ethereum);
-        console.log('__mockWalletRequest:', typeof __mockWalletRequest);
+        console.log('__headlessWalletRequest:', typeof __headlessWalletRequest);
 
         if (window.ethereum) {
           console.log('window.ethereum.isMetaMask:', window.ethereum.isMetaMask);
@@ -35,9 +35,9 @@ test('detailed debug of wallet injection', async ({ page }) => {
         }
 
         // Try to call the request function directly
-        if (typeof __mockWalletRequest === 'function') {
-          console.log('Calling __mockWalletRequest directly...');
-          __mockWalletRequest({
+        if (typeof __headlessWalletRequest === 'function') {
+          console.log('Calling __headlessWalletRequest directly...');
+          __headlessWalletRequest({
             walletId: 'test-id', // This will fail but should show the error
             method: 'eth_accounts',
             provider: 'evm'
@@ -60,16 +60,16 @@ test('detailed debug of wallet injection', async ({ page }) => {
   console.log('🔍 Final check - window.ethereum exists:', hasEthereum);
 
   const hasFunction = await page.evaluate(() => {
-    return typeof window.__mockWalletRequest;
+    return typeof window.__headlessWalletRequest;
   });
 
-  console.log('🔍 Final check - __mockWalletRequest type:', hasFunction);
+  console.log('🔍 Final check - __headlessWalletRequest type:', hasFunction);
 
   // Let's also check if the init script parameters are being passed correctly
   const initScriptDebug = await page.evaluate(() => {
     return {
       ethereum: !!window.ethereum,
-      mockRequest: typeof window.__mockWalletRequest,
+      mockRequest: typeof window.__headlessWalletRequest,
       // Check if there are any errors in the console
       errors: window.__initScriptErrors || 'no errors recorded'
     };

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installMockWallet } from '../packages/playwright/dist/index.js';
+import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
 
 // Real private key from hardhat test accounts
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -10,7 +10,7 @@ test.describe('Real Wallet Integration Tests', () => {
     console.log('🧪 Testing real wallet injection...');
 
     // Install wallet with real private key
-    await installMockWallet(page, {
+    await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_PRIVATE_KEY, type: 'evm' }
       ],
@@ -118,7 +118,7 @@ test.describe('Real Wallet Integration Tests', () => {
   test('should handle chain switching', async ({ page }) => {
     console.log('🧪 Testing chain switching...');
 
-    await installMockWallet(page, {
+    await installHeadlessWallet(page, {
       accounts: [{ privateKey: TEST_PRIVATE_KEY, type: 'evm' }],
       debug: true
     });
@@ -147,7 +147,7 @@ test.describe('Real Wallet Integration Tests', () => {
     const account1 = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const account2 = '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d';
 
-    await installMockWallet(page, {
+    await installHeadlessWallet(page, {
       accounts: [
         { privateKey: account1, type: 'evm' },
         { privateKey: account2, type: 'evm' }

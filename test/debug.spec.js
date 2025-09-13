@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installMockWallet } from '../packages/playwright/dist/index.js';
+import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
 
 test('debug wallet injection', async ({ page }) => {
   console.log('🔍 Starting debug test...');
@@ -7,7 +7,7 @@ test('debug wallet injection', async ({ page }) => {
   // Add debugging to see what's happening
   await page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-  await installMockWallet(page, {
+  await installHeadlessWallet(page, {
     accounts: [
       { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
     ],
@@ -21,7 +21,7 @@ test('debug wallet injection', async ({ page }) => {
       <script>
         console.log('Script running...');
         console.log('window.ethereum exists:', !!window.ethereum);
-        console.log('__mockWalletRequest exists:', typeof __mockWalletRequest);
+        console.log('__headlessWalletRequest exists:', typeof __headlessWalletRequest);
 
         if (window.ethereum) {
           console.log('window.ethereum.isMetaMask:', window.ethereum.isMetaMask);
@@ -42,8 +42,8 @@ test('debug wallet injection', async ({ page }) => {
   console.log('🔍 window.ethereum exists:', hasEthereum);
 
   const hasFunction = await page.evaluate(() => {
-    return typeof window.__mockWalletRequest;
+    return typeof window.__headlessWalletRequest;
   });
 
-  console.log('🔍 __mockWalletRequest type:', hasFunction);
+  console.log('🔍 __headlessWalletRequest type:', hasFunction);
 });

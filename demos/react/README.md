@@ -124,13 +124,13 @@ src/
 
 ## Key Components
 
-### MockWalletProvider
+### HeadlessWalletProvider
 The main provider component that wraps the entire application:
 
 ```tsx
-import { MockWalletProvider } from '@arenaentertainment/wallet-mock-react'
+import { HeadlessWalletProvider } from '@arenaentertainment/wallet-mock-react'
 
-<MockWalletProvider
+<HeadlessWalletProvider
   accounts={[
     { type: 'evm', label: 'EVM Account 1' },
     { type: 'solana', label: 'Solana Account 1' },
@@ -143,7 +143,7 @@ import { MockWalletProvider } from '@arenaentertainment/wallet-mock-react'
   }}
 >
   <App />
-</MockWalletProvider>
+</HeadlessWalletProvider>
 ```
 
 ### Custom Hooks Usage

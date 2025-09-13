@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { installMockWallet } from '../packages/playwright/dist/index.js';
+import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
 
 test('debug chain ID method', async ({ page }) => {
   console.log('🔍 Testing chain ID method...');
 
   await page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-  await installMockWallet(page, {
+  await installHeadlessWallet(page, {
     accounts: [
       { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
     ],

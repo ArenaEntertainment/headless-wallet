@@ -29,27 +29,27 @@ async function testVuePlugin() {
 
   try {
     // Import the Vue plugin
-    const { MockWalletPlugin, useMockWallet } = await import('../packages/vue/dist/index.js');
+    const { HeadlessWalletPlugin, useHeadlessWallet } = await import('../packages/vue/dist/index.js');
 
     console.log('✅ Vue plugin imported successfully');
-    console.log('Available exports:', { MockWalletPlugin: !!MockWalletPlugin, useMockWallet: !!useMockWallet });
+    console.log('Available exports:', { HeadlessWalletPlugin: !!HeadlessWalletPlugin, useHeadlessWallet: !!useHeadlessWallet });
 
     // Verify plugin structure
-    if (MockWalletPlugin && typeof MockWalletPlugin.install === 'function') {
-      console.log('✅ MockWalletPlugin has install method');
+    if (HeadlessWalletPlugin && typeof HeadlessWalletPlugin.install === 'function') {
+      console.log('✅ HeadlessWalletPlugin has install method');
     } else {
-      throw new Error('MockWalletPlugin is missing install method');
+      throw new Error('HeadlessWalletPlugin is missing install method');
     }
 
-    if (typeof useMockWallet === 'function') {
-      console.log('✅ useMockWallet composable available');
+    if (typeof useHeadlessWallet === 'function') {
+      console.log('✅ useHeadlessWallet composable available');
     } else {
-      throw new Error('useMockWallet composable not available');
+      throw new Error('useHeadlessWallet composable not available');
     }
 
     // Create a mock Vue app to test plugin installation
     const app = createApp({});
-    const result = app.use(MockWalletPlugin, {
+    const result = app.use(HeadlessWalletPlugin, {
       accounts: [
         { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
       ],

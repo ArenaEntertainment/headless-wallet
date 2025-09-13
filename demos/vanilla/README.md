@@ -65,7 +65,7 @@ Main application controller:
 
 ```typescript
 class WalletDemo {
-  private wallet: MockWallet | null = null
+  private wallet: HeadlessWallet | null = null
   private ui: WalletUI
   private logger: Logger
 

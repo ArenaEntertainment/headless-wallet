@@ -1,12 +1,12 @@
 /**
  * Quick test of the new wallet_getCapabilities method
  */
-import { MockWallet } from '../packages/core/dist/index.js';
+import { HeadlessWallet } from '../packages/core/dist/index.js';
 
 async function testCapabilities() {
   console.log('🧪 Testing wallet_getCapabilities...');
 
-  const wallet = new MockWallet({
+  const wallet = new HeadlessWallet({
     accounts: [
       { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
     ]

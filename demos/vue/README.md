@@ -121,9 +121,9 @@ src/
 The main plugin setup in `main.ts`:
 
 ```typescript
-import { createMockWalletPlugin } from '@arenaentertainment/wallet-mock-vue'
+import { createHeadlessWalletPlugin } from '@arenaentertainment/wallet-mock-vue'
 
-const walletPlugin = createMockWalletPlugin({
+const walletPlugin = createHeadlessWalletPlugin({
   accounts: [
     { type: 'evm', label: 'EVM Account 1' },
     { type: 'solana', label: 'Solana Account 1' },

@@ -17,6 +17,7 @@
     "release:dry-run": "nx release --dry-run"
   },
   "devDependencies": {
+    "nx": "^21.5.2",
     "typescript": "^5.9.2"
   },
   "engines": {

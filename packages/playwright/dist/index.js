@@ -1,15 +1,15 @@
-import { MockWallet } from '@arenaentertainment/wallet-mock';
+import { HeadlessWallet } from '@arenaentertainment/headless-wallet';
 import { randomUUID } from 'crypto';
 // Global wallet storage for Playwright contexts
 const wallets = new Map();
-export async function installMockWallet(target, options) {
+export async function installHeadlessWallet(target, options) {
     const { debug = false, autoConnect = true, ...walletConfig } = options;
     // Create the real wallet in Node.js context
-    const wallet = new MockWallet(walletConfig);
+    const wallet = new HeadlessWallet(walletConfig);
     const walletId = randomUUID();
     wallets.set(walletId, wallet);
     // Expose bridge function for browser to call back to Node.js wallet
-    await target.exposeFunction('__mockWalletRequest', async (request) => {
+    await target.exposeFunction('__headlessWalletRequest', async (request) => {
         const { walletId: reqWalletId, method, params, provider } = request;
         const targetWallet = wallets.get(reqWalletId);
         if (!targetWallet) {
@@ -36,7 +36,7 @@ export async function installMockWallet(target, options) {
             const ethereumProvider = {
                 isMetaMask: true,
                 request: async (args) => {
-                    return await window.__mockWalletRequest({
+                    return await window.__headlessWalletRequest({
                         walletId,
                         method: args.method,
                         params: args.params,
@@ -75,21 +75,21 @@ export async function installMockWallet(target, options) {
             const solanaProvider = {
                 isPhantom: true,
                 connect: async () => {
-                    return await window.__mockWalletRequest({
+                    return await window.__headlessWalletRequest({
                         walletId,
                         method: 'connect',
                         provider: 'solana'
                     });
                 },
                 disconnect: async () => {
-                    return await window.__mockWalletRequest({
+                    return await window.__headlessWalletRequest({
                         walletId,
                         method: 'disconnect',
                         provider: 'solana'
                     });
                 },
                 signTransaction: async (transaction) => {
-                    return await window.__mockWalletRequest({
+                    return await window.__headlessWalletRequest({
                         walletId,
                         method: 'signTransaction',
                         params: [transaction],
@@ -97,7 +97,7 @@ export async function installMockWallet(target, options) {
                     });
                 },
                 signMessage: async (message) => {
-                    return await window.__mockWalletRequest({
+                    return await window.__headlessWalletRequest({
                         walletId,
                         method: 'signMessage',
                         params: [message],
@@ -130,17 +130,17 @@ export async function installMockWallet(target, options) {
     });
 }
 // Helper functions for testing
-export async function connectMockWallet(page) {
+export async function connectHeadlessWallet(page) {
     await page.evaluate(() => {
         return window.ethereum?.request({ method: 'eth_requestAccounts' });
     });
 }
-export async function getMockWalletAccounts(page) {
+export async function getHeadlessWalletAccounts(page) {
     return await page.evaluate(() => {
         return window.ethereum?.request({ method: 'eth_accounts' });
     });
 }
-export async function switchMockWalletChain(page, chainId) {
+export async function switchHeadlessWalletChain(page, chainId) {
     await page.evaluate((chainId) => {
         return window.ethereum?.request({
             method: 'wallet_switchEthereumChain',
@@ -148,7 +148,7 @@ export async function switchMockWalletChain(page, chainId) {
         });
     }, chainId);
 }
-export async function signMockWalletMessage(page, message, address) {
+export async function signHeadlessWalletMessage(page, message, address) {
     return await page.evaluate(async ({ message, address }) => {
         const accounts = address ? [address] : await window.ethereum.request({ method: 'eth_accounts' });
         return window.ethereum.request({
@@ -169,6 +169,6 @@ export async function signMockSolanaMessage(page, message) {
     }, message);
 }
 // Cleanup function to remove wallets from memory
-export function cleanupMockWallets() {
+export function cleanupHeadlessWallets() {
     wallets.clear();
 }
