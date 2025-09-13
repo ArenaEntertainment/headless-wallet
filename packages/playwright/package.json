@@ -1,6 +1,6 @@
 {
   "name": "@arenaentertainment/headless-wallet-playwright",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Playwright integration for @arenaentertainment/headless-wallet",
   "type": "module",
   "main": "./dist/index.js",
@@ -32,5 +32,14 @@
     "directory": "packages/playwright"
   },
   "license": "MIT",
-  "keywords": ["wallet", "headless", "testing", "playwright", "e2e", "ethereum", "solana", "web3"]
+  "keywords": [
+    "wallet",
+    "headless",
+    "testing",
+    "playwright",
+    "e2e",
+    "ethereum",
+    "solana",
+    "web3"
+  ]
 }

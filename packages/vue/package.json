@@ -1,6 +1,6 @@
 {
   "name": "@arenaentertainment/headless-wallet-vue",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Vue plugin for @arenaentertainment/headless-wallet",
   "type": "module",
   "main": "./dist/index.js",
@@ -32,5 +32,13 @@
     "directory": "packages/vue"
   },
   "license": "MIT",
-  "keywords": ["wallet", "headless", "testing", "vue", "ethereum", "solana", "web3"]
+  "keywords": [
+    "wallet",
+    "headless",
+    "testing",
+    "vue",
+    "ethereum",
+    "solana",
+    "web3"
+  ]
 }
