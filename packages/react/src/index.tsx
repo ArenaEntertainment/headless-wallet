@@ -1,5 +1,5 @@
 import React, { useEffect, type ReactNode } from 'react';
-import { injectMockWallet, type MockWalletConfig } from '@arenaentertainment/wallet-mock';
+import { injectMockWallet, type MockWalletConfig } from '@arenaentertainment/headless-wallet';
 
 export interface MockWalletProviderProps extends MockWalletConfig {
   children: ReactNode;

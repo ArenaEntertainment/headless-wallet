@@ -1,5 +1,5 @@
 import type { App } from 'vue';
-import { injectMockWallet, type MockWalletConfig } from '@arenaentertainment/wallet-mock';
+import { injectMockWallet, type MockWalletConfig } from '@arenaentertainment/headless-wallet';
 
 export interface MockWalletPluginOptions extends MockWalletConfig {
   enabled?: boolean;

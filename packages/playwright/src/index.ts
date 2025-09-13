@@ -1,5 +1,5 @@
 import type { Page, BrowserContext } from '@playwright/test';
-import { MockWallet, type Account, type MockWalletConfig } from '@arenaentertainment/wallet-mock';
+import { MockWallet, type Account, type MockWalletConfig } from '@arenaentertainment/headless-wallet';
 import { randomUUID } from 'crypto';
 
 export interface InstallMockWalletOptions extends MockWalletConfig {
