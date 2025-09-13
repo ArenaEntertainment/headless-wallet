@@ -19,5 +19,15 @@
   },
   "devDependencies": {
     "typescript": "^5.9.2"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArenaEntertainment/headless-wallet.git",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
+  "keywords": ["wallet", "headless", "testing", "ethereum", "solana", "evm", "web3"]
 }

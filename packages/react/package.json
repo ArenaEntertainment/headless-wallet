@@ -22,5 +22,15 @@
     "@types/react": "^18.0.0",
     "react": "^18.0.0",
     "typescript": "^5.9.2"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ArenaEntertainment/headless-wallet.git",
+    "directory": "packages/react"
+  },
+  "license": "MIT",
+  "keywords": ["wallet", "headless", "testing", "react", "ethereum", "solana", "web3"]
 }

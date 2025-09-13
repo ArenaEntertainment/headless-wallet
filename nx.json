@@ -36,5 +36,21 @@
       "buildable": true,
       "publishable": true
     }
+  },
+  "release": {
+    "projects": ["packages/*"],
+    "projectsRelationship": "independent",
+    "version": {
+      "conventionalCommits": true
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "createRelease": "github"
+      },
+      "projectChangelogs": {
+        "createRelease": "github"
+      }
+    },
+    "releaseTagPattern": "{projectName}-v{version}"
   }
 }
