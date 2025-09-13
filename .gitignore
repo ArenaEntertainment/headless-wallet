@@ -1,0 +1,34 @@
+node_modules
+*.log*
+.nuxt
+.nitro
+.cache
+.output
+dist
+main.css
+.vscode
+.idea
+.DS_Store
+
+# Nx workspace cache and metadata
+.nx/workspace-data/
+.nx/cache/
+
+# Build outputs and dist files
+packages/*/dist/
+packages/*/tsconfig.tsbuildinfo
+
+# Test outputs
+test-results/
+playwright-report/
+packages/*/test-results/
+coverage/
+
+# IDE and editor files
+.claude/settings.local.json
+
+# Package manager files
+pnpm-lock.yaml
+
+# Examples and temporary files
+examples/
