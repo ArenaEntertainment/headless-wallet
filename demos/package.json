@@ -1,0 +1,55 @@
+{
+  "name": "@arenaentertainment/wallet-mock-demos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Comprehensive demo applications showcasing wallet-mock functionality",
+  "type": "module",
+  "scripts": {
+    "dev:react": "cd react && npm run dev",
+    "dev:vue": "cd vue && npm run dev",
+    "dev:vanilla": "cd vanilla && npm run dev",
+    "dev:playwright": "cd playwright && npm run test:headed",
+    "dev:security": "cd security && npm run dev",
+    "build:all": "npm run build:react && npm run build:vue && npm run build:vanilla && npm run build:security",
+    "build:react": "cd react && npm run build",
+    "build:vue": "cd vue && npm run build",
+    "build:vanilla": "cd vanilla && npm run build",
+    "build:security": "cd security && npm run build",
+    "install:all": "npm run install:react && npm run install:vue && npm run install:vanilla && npm run install:playwright && npm run install:security",
+    "install:react": "cd react && npm install",
+    "install:vue": "cd vue && npm install",
+    "install:vanilla": "cd vanilla && npm install",
+    "install:playwright": "cd playwright && npm install",
+    "install:security": "cd security && npm install",
+    "test:playwright": "cd playwright && npm run test",
+    "test:security": "cd security && npm run test",
+    "preview:react": "cd react && npm run preview",
+    "preview:vue": "cd vue && npm run preview",
+    "preview:vanilla": "cd vanilla && npm run preview",
+    "preview:security": "cd security && npm run preview"
+  },
+  "workspaces": [
+    "react",
+    "vue",
+    "vanilla",
+    "playwright",
+    "security"
+  ],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "wallet-mock",
+    "demo",
+    "blockchain",
+    "ethereum",
+    "solana",
+    "multi-chain",
+    "testing"
+  ],
+  "author": "Arena Entertainment",
+  "license": "MIT"
+}

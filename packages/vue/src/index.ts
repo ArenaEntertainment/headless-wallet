@@ -1,182 +1,63 @@
-/**
- * @arenaentertainment/wallet-mock-vue
- *
- * Vue plugin and composables for wallet-mock integration
- *
- * This package provides a comprehensive Vue.js integration for the wallet-mock library,
- * including reactive composables, Vue components, and DevTools integration.
- *
- * Features:
- * - Reactive wallet state management with Vue composables
- * - Ready-to-use Vue components for wallet interaction
- * - Vue DevTools integration for debugging
- * - TypeScript support with full Vue 3 typing
- * - Production environment safeguards
- * - SSR compatibility
- */
+import type { App } from 'vue';
+import { injectMockWallet, type MockWalletConfig } from '@arenaentertainment/wallet-mock';
 
-// Core plugin
-export {
-  MockWalletPlugin,
-  createMockWalletPlugin,
-  WALLET_INJECTION_KEY,
-  getGlobalWalletInstance,
-  setGlobalWalletInstance,
-  isWalletAvailable
-} from './plugin.js';
-
-// Composables
-export {
-  useWallet,
-  useWalletEvents,
-  useAccount,
-  useAccountOperations,
-  useChain,
-  useChainOperations
-} from './composables/index.js';
-
-// Vue Components (commented out for now to avoid build issues)
-// export {
-//   WalletConnectButton,
-//   AccountSelector,
-//   ChainSelector
-// } from './components/index.js';
-
-// DevTools integration
-export {
-  setupDevTools,
-  updateDevToolsWallet,
-  isDevToolsAvailable
-} from './devtools.js';
-
-// Types
-export type {
-  // Plugin types
-  MockWalletPluginOptions,
-  MockWalletPlugin as MockWalletPluginInterface,
-
-  // Composable types
-  ReactiveWalletState,
-  ReactiveAccountState,
-  ReactiveChainState,
-  WalletComposableOptions,
-  WalletEventHandler,
-  WalletEventListeners,
-  ComposableEventOptions,
-
-  // Component types (commented out)
-  // WalletConnectButtonProps,
-  // AccountSelectorProps,
-  // ChainSelectorProps,
-
-  // DevTools types
-  DevToolsState,
-
-  // Utility types
-  ProductionSafetyCheck
-} from './types.js';
-
-// Re-export core wallet types for convenience
-export type {
-  // Core interfaces
-  MockWallet,
-  WalletFactory,
-  EventEmitter,
-
-  // Configuration
-  WalletConfig,
-  WalletState,
-
-  // Accounts
-  Account,
-  AccountConfig,
-  AccountType,
-  EVMAccount,
-  SolanaAccount,
-  DualChainAccount,
-  EVMAccountData,
-  SolanaAccountData,
-
-  // Chains
-  SupportedChain,
-  EVMChain,
-  SolanaCluster,
-  Chain,
-  ChainType,
-
-  // Events
-  WalletEvents,
-  AccountEvents,
-  ChainEvents,
-
-  // Transactions and signatures
-  TransactionRequest,
-  SignatureRequest
-} from '@arenaentertainment/wallet-mock';
-
-// Re-export constants for convenience
-export {
-  CHAIN_PRESETS
-} from '@arenaentertainment/wallet-mock';
-
-// Re-export standards types for convenience
-export type {
-  // EIP-1193 Ethereum Provider
-  EthereumProvider,
-  ProviderRequest,
-  ProviderRpcError,
-  ProviderEvents,
-  TransactionObject,
-  AddEthereumChainParameter,
-  SwitchEthereumChainParameter,
-  WatchAssetParameter,
-  PermissionObject,
-
-  // Solana Wallet Standard
-  SolanaWallet,
-  WalletAccount,
-  WalletProperties,
-  SolanaConnect,
-  SolanaDisconnect,
-  SolanaEvents,
-  SolanaSignTransaction,
-  SolanaSignMessage,
-  SolanaSignAndSendTransaction,
-  SolanaWalletEvents,
-  SolanaTransaction,
-  SolanaChain
-} from '@arenaentertainment/wallet-mock-standards';
+export interface MockWalletPluginOptions extends MockWalletConfig {
+  enabled?: boolean;
+}
 
 /**
- * Default export: the main plugin instance
+ * MockWalletPlugin - Injects mock wallet providers into the browser
+ *
+ * This plugin simply injects window.ethereum (and window.phantom.solana if configured)
+ * so that standard wallet libraries like wagmi-vue, ethers, viem, Reown AppKit, etc. can
+ * detect and interact with the mock wallet just like a real wallet.
  *
  * @example
- * ```typescript
- * import { createApp } from 'vue';
- * import WalletMockVue from '@arenaentertainment/wallet-mock-vue';
+ * ```ts
+ * // In your main.ts
+ * import { MockWalletPlugin } from '@arenaentertainment/wallet-mock-vue'
  *
- * const app = createApp();
- * app.use(WalletMockVue, {
- *   accounts: [{ type: 'dual_chain' }],
- *   autoConnect: true
- * });
+ * app.use(MockWalletPlugin, {
+ *   enabled: process.env.NODE_ENV === 'development',
+ *   accounts: [{ privateKey: '0x...', type: 'evm' }]
+ * })
+ *
+ * // Then use standard wallet libraries in components
+ * <script setup>
+ * import { useAccount, useSignMessage } from 'wagmi-vue' // or similar
+ *
+ * const { address } = useAccount() // wagmi-vue composable
+ * const { signMessage } = useSignMessage() // wagmi-vue composable
+ * // wallet-mock provides window.ethereum, wagmi handles the rest
+ * </script>
  * ```
  */
-export { MockWalletPlugin as default } from './plugin.js';
+export const MockWalletPlugin = {
+  install(app: App, options: MockWalletPluginOptions) {
+    const {
+      enabled = process.env.NODE_ENV === 'development',
+      accounts = [],
+      ...walletConfig
+    } = options;
 
-/**
- * Version information
- */
-export const version = '0.1.0';
+    if (!enabled) {
+      return;
+    }
 
-/**
- * Package metadata
- */
-export const meta = {
-  name: '@arenaentertainment/wallet-mock-vue',
-  version: '0.1.0',
-  description: 'Vue plugin and composables for wallet-mock',
-  homepage: 'https://github.com/arenaentertainment/wallet-mock',
-  repository: 'https://github.com/arenaentertainment/wallet-mock/tree/main/packages/vue',
-  license: 'MIT'
-} as const;
+    try {
+      // Simply inject the mock wallet providers into the browser
+      // This sets up window.ethereum (and window.phantom.solana if configured)
+      // Standard wallet libraries will detect and use these providers
+      injectMockWallet({
+        accounts,
+        ...walletConfig
+      });
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔧 Mock wallet injected for development');
+      }
+    } catch (error) {
+      console.warn('Failed to inject mock wallet:', error);
+    }
+  }
+};

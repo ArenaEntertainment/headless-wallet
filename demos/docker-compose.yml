@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  react-demo:
+    build:
+      context: ./react
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./react:/app
+      - /app/node_modules
+    command: npm run dev
+
+  vue-demo:
+    build:
+      context: ./vue
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./vue:/app
+      - /app/node_modules
+    command: npm run dev
+
+  vanilla-demo:
+    build:
+      context: ./vanilla
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./vanilla:/app
+      - /app/node_modules
+    command: npm run dev
+
+  security-demo:
+    build:
+      context: ./security
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./security:/app
+      - /app/node_modules
+    command: npm run dev
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.46.1
+    working_dir: /app
+    volumes:
+      - ./playwright:/app
+      - /app/node_modules
+    environment:
+      - CI=true
+    depends_on:
+      - react-demo
+    command: npm run test

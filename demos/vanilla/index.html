@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Pure JavaScript demo showcasing wallet-mock functionality">
+    <title>Wallet Mock - Vanilla JavaScript Demo</title>
+
+    <!-- Preload fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="src/styles/main.css">
+</head>
+<body class="h-full bg-gray-50 dark:bg-gray-900 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h11M9 21V3m3 18h8"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Wallet Mock</h1>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Vanilla JavaScript Demo</p>
+                    </div>
+                </div>
+
+                <!-- Connection status -->
+                <div class="flex items-center gap-4">
+                    <div id="connection-status" class="flex items-center gap-2">
+                        <div id="status-indicator" class="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <span id="status-text" class="text-sm text-gray-600 dark:text-gray-400">Disconnected</span>
+                    </div>
+
+                    <!-- Theme toggle -->
+                    <button id="theme-toggle" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg">
+                        <svg id="sun-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <svg id="moon-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Hero section -->
+        <section class="text-center mb-12">
+            <div class="w-16 h-16 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h11M9 21V3m3 18h8"></path>
+                </svg>
+            </div>
+
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                Welcome to <span class="bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">Wallet Mock</span>
+            </h1>
+
+            <p class="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-8">
+                A pure JavaScript implementation showcasing the wallet-mock library's functionality
+                without frameworks or dependencies.
+            </p>
+
+            <button id="connect-btn" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Connect Wallet
+            </button>
+        </section>
+
+        <!-- Wallet information -->
+        <section id="wallet-info" class="hidden space-y-8">
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Total Accounts</p>
+                            <p id="total-accounts" class="text-2xl font-bold text-gray-900 dark:text-gray-100">0</p>
+                        </div>
+                        <div class="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Active Chain</p>
+                            <p id="active-chain" class="text-2xl font-bold text-gray-900 dark:text-gray-100">None</p>
+                        </div>
+                        <div class="p-3 bg-green-100 dark:bg-green-900 rounded-full">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9-9a9 9 0 00-9 9"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Status</p>
+                            <p id="wallet-status" class="text-2xl font-bold text-gray-900 dark:text-gray-100">Connected</p>
+                        </div>
+                        <div class="p-3 bg-purple-100 dark:bg-purple-900 rounded-full">
+                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Account -->
+            <div id="current-account" class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Active Account</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Details</label>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">Type:</span>
+                                    <span id="account-type" class="text-sm font-medium text-gray-900 dark:text-gray-100">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">ID:</span>
+                                    <span id="account-id" class="text-sm font-mono text-gray-900 dark:text-gray-100">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Address</label>
+                            <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
+                                <code id="account-address" class="text-sm font-mono text-gray-900 dark:text-gray-100 break-all">-</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Demo Actions -->
+        <section id="demo-actions" class="hidden space-y-8">
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Interactive Demo</h2>
+                <p class="text-gray-600 dark:text-gray-400">Try out wallet operations with these interactive examples</p>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <button id="create-account-btn" class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-500 transition-colors text-left">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 dark:text-gray-100">Create Account</h3>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Create a new blockchain account</p>
+                </button>
+
+                <button id="sign-message-btn" class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-primary-500 transition-colors text-left">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 dark:text-gray-100">Sign Message</h3>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Sign a message with current account</p>
+                </button>
+
+                <button id="disconnect-btn" class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-red-500 transition-colors text-left">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 dark:text-gray-100">Disconnect</h3>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Disconnect from wallet</p>
+                </button>
+            </div>
+        </section>
+
+        <!-- Results/Logs -->
+        <section id="demo-logs" class="hidden">
+            <div class="bg-gray-900 dark:bg-gray-800 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-white mb-4">Demo Logs</h3>
+                <div id="log-content" class="space-y-2 font-mono text-sm text-gray-300 max-h-64 overflow-y-auto">
+                    <!-- Logs will be inserted here -->
+                </div>
+                <button id="clear-logs-btn" class="mt-4 px-4 py-2 bg-gray-700 text-white text-sm rounded hover:bg-gray-600">
+                    Clear Logs
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts -->
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

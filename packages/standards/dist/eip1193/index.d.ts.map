@@ -1,1 +1,0 @@
-{"version":3,"file":"index.d.ts","sourceRoot":"","sources":["../../src/eip1193/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,oBAAoB,EAAE,MAAM,eAAe,CAAC;AACrD,YAAY,EACV,gBAAgB,EAChB,eAAe,EACf,gBAAgB,EAChB,cAAc,EACd,iBAAiB,EACjB,yBAAyB,EACzB,4BAA4B,EAC5B,mBAAmB,EACnB,gBAAgB,EACjB,MAAM,YAAY,CAAC;AACpB,OAAO,EAAE,cAAc,EAAE,iBAAiB,EAAE,MAAM,YAAY,CAAC"}

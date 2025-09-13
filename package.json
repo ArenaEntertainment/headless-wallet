@@ -3,48 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "description": "Universal mock wallet library supporting both EVM and Solana chains",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/arenaentertainment/wallet-mock.git"
-  },
-  "author": "Arena Entertainment",
-  "license": "MIT",
   "workspaces": [
     "packages/*",
-    "apps/*"
+    "demos/*"
   ],
   "scripts": {
-    "build": "nx run-many --target=build --all",
-    "test": "nx run-many --target=test --all",
-    "test:e2e": "nx e2e e2e",
-    "lint": "nx run-many --target=lint --all",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "dev": "nx run-many --target=dev --all --parallel",
-    "affected:build": "nx affected:build",
-    "affected:test": "nx affected:test",
-    "graph": "nx graph",
-    "demo:react": "nx serve demo-react",
-    "demo:vue": "nx serve demo-vue"
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "demo": "cd demos/vanilla && pnpm dev"
   },
   "devDependencies": {
-    "@nx/eslint-plugin": "^21.5.2",
-    "@nx/js": "^21.5.2",
-    "@nx/playwright": "^21.5.2",
-    "@nx/react": "^21.5.2",
-    "@nx/vite": "^21.5.2",
-    "@nx/vue": "^21.5.2",
-    "@nx/workspace": "^21.5.2",
-    "@playwright/test": "^1.55.0",
-    "@swc/core": "^1.13.5",
-    "eslint": "^8.57.1",
-    "nx": "21.5.2",
-    "prettier": "^3.6.2",
-    "typescript": "^5.9.2",
-    "vite": "^5.4.20",
-    "vitest": "^1.6.1"
+    "typescript": "^5.9.2"
   },
-  "nx": {},
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+  "engines": {
+    "node": ">=16.0.0",
+    "pnpm": ">=8.0.0"
   }
 }
