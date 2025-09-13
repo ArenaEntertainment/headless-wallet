@@ -13,11 +13,12 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "viem": "^2.21.53",
     "@solana/web3.js": "^1.95.4",
-    "tweetnacl": "^1.0.3"
+    "tweetnacl": "^1.0.3",
+    "viem": "^2.21.53"
   },
   "devDependencies": {
+    "@types/node": "^24.3.3",
     "typescript": "^5.9.2"
   },
   "publishConfig": {
@@ -29,5 +30,13 @@
     "directory": "packages/core"
   },
   "license": "MIT",
-  "keywords": ["wallet", "headless", "testing", "ethereum", "solana", "evm", "web3"]
+  "keywords": [
+    "wallet",
+    "headless",
+    "testing",
+    "ethereum",
+    "solana",
+    "evm",
+    "web3"
+  ]
 }
