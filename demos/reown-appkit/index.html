@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arena Wallet Mock + Reown AppKit Demo</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+      line-height: 1.6;
+      color: #333;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 2.5rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #7f8c8d;
+      font-size: 1.2rem;
+      margin-bottom: 3rem;
+    }
+
+    .section {
+      margin: 2rem 0;
+      padding: 1.5rem;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      background: #f8f9fa;
+    }
+
+    .section h2 {
+      color: #495057;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-left: 0.5rem;
+    }
+
+    .status.connected {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.disconnected {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status.pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 0.5rem 0.5rem 0.5rem 0;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #0056b3;
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border: 1px solid #bee5eb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .wallet-info {
+      background: #f0f8f0;
+      border: 1px solid #c3e6cb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .error {
+      background: #ffe6e6;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1rem 0;
+    }
+
+    .code {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 0.5rem;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.875rem;
+      word-break: break-all;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+
+    .feature-card {
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+    }
+
+    .icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .logs {
+      background: #1a1a1a;
+      color: #00ff00;
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 1rem 0;
+    }
+
+    w3m-button {
+      margin: 1rem 0;
+    }
+
+    .demo-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+
+      .container {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Arena Wallet Mock + Reown AppKit</h1>
+    <p class="subtitle">
+      Demonstrating seamless integration between Arena's mock wallet and Reown's AppKit for Web3 development
+    </p>
+
+    <div class="info-box">
+      <h3>🎯 What This Demo Shows</h3>
+      <ul>
+        <li>EIP-6963 wallet discovery - AppKit automatically detects our mock wallet</li>
+        <li>Real cryptographic operations using viem with actual private keys</li>
+        <li>Multi-chain support with EVM (Ethereum, Polygon, Arbitrum, Optimism) and SVM (Solana)</li>
+        <li>Standard wallet operations (connect, sign, send transactions)</li>
+        <li>Chain switching functionality</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>🔗 Connection Status</h2>
+      <div id="connection-status">
+        <span class="status disconnected">Disconnected</span>
+      </div>
+      <div class="demo-actions">
+        <w3m-button></w3m-button>
+        <w3m-network-button></w3m-network-button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>👤 Account Information</h2>
+      <div id="account-info">
+        <p>Connect your wallet to see account details</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>🌐 Network Information</h2>
+      <div id="network-info">
+        <p>Connect to see network details</p>
+      </div>
+      <div class="demo-actions">
+        <button id="switch-to-polygon" disabled>Switch to Polygon</button>
+        <button id="switch-to-ethereum" disabled>Switch to Ethereum</button>
+        <button id="get-capabilities" disabled>Get Wallet Capabilities</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>✍️ Signing Demo</h2>
+      <div class="demo-actions">
+        <button id="sign-message" disabled>Sign Message</button>
+        <button id="sign-typed-data" disabled>Sign Typed Data</button>
+      </div>
+      <div id="signature-result"></div>
+    </div>
+
+    <div class="section">
+      <h2>💸 Transaction Demo</h2>
+      <div class="demo-actions">
+        <button id="send-transaction" disabled>Send Test Transaction</button>
+      </div>
+      <div id="transaction-result"></div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🔍</div>
+        <h3>EIP-6963 Discovery</h3>
+        <p>Automatic wallet detection through standard protocol</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔐</div>
+        <h3>Real Cryptography</h3>
+        <p>Actual private key operations, not fake signatures</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🌍</div>
+        <h3>Multi-Chain Support</h3>
+        <p>Switch between networks seamlessly</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">⚡</div>
+        <h3>Standards Compliant</h3>
+        <p>Follows EIP-1193, EIP-6963, and other standards</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>📊 Event Logs</h2>
+      <button id="clear-logs">Clear Logs</button>
+      <div id="logs" class="logs">
+        <div>🎮 Arena Wallet Mock + Reown AppKit Demo Initialized</div>
+        <div>📡 Waiting for wallet connection...</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
