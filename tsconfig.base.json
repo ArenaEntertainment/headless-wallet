@@ -1,0 +1,45 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {
+      "@arenaentertainment/wallet-mock": ["./packages/core/src/index.ts"],
+      "@arenaentertainment/wallet-mock-shared": ["./packages/shared/src/index.ts"],
+      "@arenaentertainment/wallet-mock-standards": ["./packages/standards/src/index.ts"],
+      "@arenaentertainment/wallet-mock-evm": ["./packages/evm/src/index.ts"],
+      "@arenaentertainment/wallet-mock-solana": ["./packages/solana/src/index.ts"],
+      "@arenaentertainment/wallet-mock-playwright": ["./packages/playwright/src/index.ts"],
+      "@arenaentertainment/wallet-mock-vue": ["./packages/vue/src/index.ts"],
+      "@arenaentertainment/wallet-mock-react": ["./packages/react/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
+  "references": [
+    { "path": "./packages/shared" },
+    { "path": "./packages/standards" },
+    { "path": "./packages/evm" },
+    { "path": "./packages/solana" },
+    { "path": "./packages/core" },
+    { "path": "./packages/playwright" },
+    { "path": "./packages/vue" },
+    { "path": "./packages/react" }
+  ]
+}

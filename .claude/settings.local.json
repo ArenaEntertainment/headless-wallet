@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Read(//Users/chriskitch/Repos/wallet-mock/**)",
+      "Read(//Users/chriskitch/Repos/metawin/web-metawin-v2/projects/main/utils/**)",
+      "WebFetch(domain:github.com)",
+      "Bash(tree:*)",
+      "Read(//Users/chriskitch/Repos/metawin/web-metawin-v2/projects/main/node_modules/@johanneskares/wallet-mock/**)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "WebFetch(domain:eips.ethereum.org)",
+      "WebFetch(domain:cheatsheetseries.owasp.org)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
