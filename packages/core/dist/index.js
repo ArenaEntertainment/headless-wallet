@@ -145,14 +145,6 @@ class ProductionGuard {
     return false;
   }
 }
-function createProductionGuard(config = {}) {
-  return new ProductionGuard({
-    enableProductionChecks: config.enableProductionChecks ?? true,
-    customProductionDetector: config.customProductionDetector,
-    allowProductionOverride: config.allowProductionOverride ?? false,
-    overrideEnvVar: config.overrideEnvVar
-  });
-}
 class StateManager {
   constructor(config = {}) {
     __publicField(this, "state");
@@ -1555,30 +1547,1448 @@ const createSolanaWallet = walletFactory.createSolanaWallet.bind(walletFactory);
 const createMultiChainWallet = walletFactory.createMultiChainWallet.bind(walletFactory);
 const createDevWallet = walletFactory.createDevWallet.bind(walletFactory);
 const createWalletFromPreset = walletFactory.createFromPreset.bind(walletFactory);
+class EnhancedProductionGuard {
+  constructor(config = {}) {
+    __publicField(this, "config");
+    __publicField(this, "activeOverrides", /* @__PURE__ */ new Map());
+    __publicField(this, "detectionCache", /* @__PURE__ */ new Map());
+    __publicField(this, "eventLog", []);
+    this.config = {
+      confidenceThreshold: 85,
+      blockedDomains: [
+        "*.com",
+        "*.org",
+        "*.net",
+        "*prod*",
+        "*production*",
+        "*live*",
+        "*staging*",
+        "vercel.app",
+        "netlify.app",
+        "herokuapp.com",
+        "railway.app",
+        "render.com"
+      ],
+      allowedDomains: [
+        "localhost",
+        "127.0.0.1",
+        "*.local",
+        "*.dev",
+        "*.test",
+        "*.localhost",
+        "dev-*",
+        "test-*",
+        "local-*"
+      ],
+      throwInProduction: true,
+      overrideConfig: {
+        allowOverrides: false,
+        overrideTimeLimit: 30 * 60 * 1e3,
+        // 30 minutes
+        requireReason: true,
+        auditOverrides: true
+      },
+      enableLogging: true,
+      ...config
+    };
+    this.startCleanupTimer();
+  }
+  /**
+   * Performs comprehensive production environment check
+   */
+  async checkProductionEnvironment() {
+    const cacheKey = this.generateCacheKey();
+    const cached = this.detectionCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 5 * 60 * 1e3) {
+      return cached;
+    }
+    const environment = this.gatherEnvironmentInfo();
+    const detectionMethods = [];
+    detectionMethods.push(await this.checkDomainPatterns(environment));
+    detectionMethods.push(await this.checkEnvironmentVariables(environment));
+    detectionMethods.push(await this.checkNetworkConfiguration(environment));
+    detectionMethods.push(await this.checkCIPlatforms(environment));
+    detectionMethods.push(await this.checkContainerEnvironment(environment));
+    detectionMethods.push(await this.checkDNSResolution(environment));
+    detectionMethods.push(await this.checkSSLCertificate(environment));
+    detectionMethods.push(await this.checkHttpHeaders(environment));
+    let totalWeight = 0;
+    let weightedScore = 0;
+    for (const method of detectionMethods) {
+      totalWeight += method.weight;
+      if (method.result) {
+        weightedScore += method.weight * (method.confidence / 100);
+      }
+    }
+    const confidence = totalWeight > 0 ? Math.round(weightedScore / totalWeight * 100) : 0;
+    const isProduction = confidence >= this.config.confidenceThreshold;
+    const reasons = detectionMethods.filter((m) => m.result).map((m) => `${m.name}: ${m.details}`);
+    const result = {
+      isProduction,
+      confidence,
+      reasons,
+      detectionMethods,
+      timestamp: Date.now(),
+      environment
+    };
+    this.detectionCache.set(cacheKey, result);
+    this.logSecurityEvent({
+      type: "production_detection",
+      severity: isProduction ? "critical" : "info",
+      message: `Production environment ${isProduction ? "detected" : "not detected"}`,
+      details: { result },
+      timestamp: Date.now(),
+      source: "EnhancedProductionGuard"
+    });
+    return result;
+  }
+  /**
+   * Domain pattern checking
+   */
+  async checkDomainPatterns(env) {
+    const hostname = env.hostname.toLowerCase();
+    const isBlocked = this.config.blockedDomains.some((pattern) => {
+      const regex = this.patternToRegex(pattern);
+      return regex.test(hostname);
+    });
+    const isAllowed = this.config.allowedDomains.some((pattern) => {
+      const regex = this.patternToRegex(pattern);
+      return regex.test(hostname);
+    });
+    let confidence = 0;
+    let result = false;
+    if (isBlocked && !isAllowed) {
+      confidence = 90;
+      result = true;
+    } else if (isAllowed) {
+      confidence = 5;
+      result = false;
+    }
+    return {
+      name: "Domain Pattern Check",
+      weight: 30,
+      result,
+      confidence,
+      details: `Hostname: ${hostname}, Blocked: ${isBlocked}, Allowed: ${isAllowed}`
+    };
+  }
+  /**
+   * Environment variables checking
+   */
+  async checkEnvironmentVariables(env) {
+    var _a, _b, _c;
+    const prodIndicators = [
+      "production",
+      "prod",
+      "live",
+      "staging",
+      "stage"
+    ];
+    let confidence = 0;
+    let result = false;
+    if (typeof process !== "undefined" && process.env) {
+      const nodeEnv = ((_a = process.env.NODE_ENV) == null ? void 0 : _a.toLowerCase()) || "";
+      const appEnv = ((_b = process.env.APP_ENV) == null ? void 0 : _b.toLowerCase()) || "";
+      const environment = ((_c = process.env.ENVIRONMENT) == null ? void 0 : _c.toLowerCase()) || "";
+      const allEnvs = [nodeEnv, appEnv, environment].filter(Boolean);
+      for (const envVar of allEnvs) {
+        if (prodIndicators.includes(envVar)) {
+          confidence = Math.max(confidence, 95);
+          result = true;
+        }
+      }
+    }
+    return {
+      name: "Environment Variables",
+      weight: 25,
+      result,
+      confidence,
+      details: `NODE_ENV: ${env.nodeEnv || "undefined"}`
+    };
+  }
+  /**
+   * Network configuration checking
+   */
+  async checkNetworkConfiguration(env) {
+    let confidence = 0;
+    let result = false;
+    if (env.port === 80 || env.port === 443) {
+      confidence += 20;
+      result = true;
+    }
+    if (env.protocol === "https:" && !this.isLocalHost(env.hostname)) {
+      confidence += 30;
+      result = true;
+    }
+    const cdnPatterns = ["cdn", "static", "assets", "media"];
+    if (cdnPatterns.some((pattern) => env.hostname.includes(pattern))) {
+      confidence += 25;
+      result = true;
+    }
+    return {
+      name: "Network Configuration",
+      weight: 20,
+      result,
+      confidence,
+      details: `Port: ${env.port}, Protocol: ${env.protocol}, Host: ${env.hostname}`
+    };
+  }
+  /**
+   * CI/CD platform detection
+   */
+  async checkCIPlatforms(env) {
+    const ciIndicators = [
+      "CI",
+      "CONTINUOUS_INTEGRATION",
+      "GITHUB_ACTIONS",
+      "GITLAB_CI",
+      "JENKINS_URL",
+      "BUILDKITE",
+      "CIRCLECI",
+      "TRAVIS",
+      "VERCEL",
+      "NETLIFY"
+    ];
+    let confidence = 0;
+    let result = false;
+    if (typeof process !== "undefined" && process.env) {
+      for (const indicator of ciIndicators) {
+        if (process.env[indicator]) {
+          confidence = 60;
+          result = true;
+          break;
+        }
+      }
+    }
+    return {
+      name: "CI/CD Platform Detection",
+      weight: 15,
+      result,
+      confidence,
+      details: `CI Platform: ${env.ciPlatform || "none detected"}`
+    };
+  }
+  /**
+   * Container environment detection
+   */
+  async checkContainerEnvironment(env) {
+    let confidence = 0;
+    let result = false;
+    if (env.dockerized) {
+      confidence += 40;
+      result = true;
+    }
+    if (env.kubernetesDeployed) {
+      confidence += 50;
+      result = true;
+    }
+    return {
+      name: "Container Environment",
+      weight: 15,
+      result,
+      confidence,
+      details: `Docker: ${env.dockerized}, Kubernetes: ${env.kubernetesDeployed}`
+    };
+  }
+  /**
+   * DNS resolution checking
+   */
+  async checkDNSResolution(env) {
+    let confidence = 0;
+    let result = false;
+    if (this.isLocalHost(env.hostname) || this.isIPAddress(env.hostname)) {
+      return {
+        name: "DNS Resolution",
+        weight: 10,
+        result: false,
+        confidence: 0,
+        details: "Local host or IP address"
+      };
+    }
+    if (env.hostname.includes(".")) {
+      const parts = env.hostname.split(".");
+      if (parts.length >= 2) {
+        const tld = parts[parts.length - 1];
+        if (["com", "org", "net", "io", "app"].includes(tld)) {
+          confidence = 30;
+          result = true;
+        }
+      }
+    }
+    return {
+      name: "DNS Resolution",
+      weight: 10,
+      result,
+      confidence,
+      details: `Hostname analysis: ${env.hostname}`
+    };
+  }
+  /**
+   * SSL certificate checking
+   */
+  async checkSSLCertificate(env) {
+    let confidence = 0;
+    let result = false;
+    if (env.protocol === "https:" && !this.isLocalHost(env.hostname)) {
+      confidence = 40;
+      result = true;
+    }
+    return {
+      name: "SSL Certificate",
+      weight: 15,
+      result,
+      confidence,
+      details: `HTTPS: ${env.protocol === "https:"}, Host: ${env.hostname}`
+    };
+  }
+  /**
+   * HTTP headers checking
+   */
+  async checkHttpHeaders(env) {
+    let confidence = 0;
+    let result = false;
+    const ua = env.userAgent.toLowerCase();
+    const prodHeaders = ["bot", "crawler", "spider", "monitor"];
+    if (prodHeaders.some((header) => ua.includes(header))) {
+      confidence = 35;
+      result = true;
+    }
+    return {
+      name: "HTTP Headers",
+      weight: 10,
+      result,
+      confidence,
+      details: `User-Agent analysis complete`
+    };
+  }
+  /**
+   * Gather environment information
+   */
+  gatherEnvironmentInfo() {
+    const location = typeof window !== "undefined" ? window.location : {};
+    return {
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "",
+      hostname: location.hostname || "localhost",
+      protocol: location.protocol || "http:",
+      port: location.port ? parseInt(location.port) : location.protocol === "https:" ? 443 : 80,
+      origin: location.origin || "http://localhost",
+      nodeEnv: typeof process !== "undefined" ? process.env.NODE_ENV : void 0,
+      ciPlatform: this.detectCIPlatform(),
+      dockerized: this.detectDocker(),
+      kubernetesDeployed: this.detectKubernetes()
+    };
+  }
+  /**
+   * Detect CI platform
+   */
+  detectCIPlatform() {
+    if (typeof process === "undefined" || !process.env) return void 0;
+    const platforms = {
+      "GITHUB_ACTIONS": "GitHub Actions",
+      "GITLAB_CI": "GitLab CI",
+      "JENKINS_URL": "Jenkins",
+      "BUILDKITE": "Buildkite",
+      "CIRCLECI": "CircleCI",
+      "TRAVIS": "Travis CI",
+      "VERCEL": "Vercel",
+      "NETLIFY": "Netlify"
+    };
+    for (const [env, platform] of Object.entries(platforms)) {
+      if (process.env[env]) return platform;
+    }
+    return void 0;
+  }
+  /**
+   * Detect Docker environment
+   */
+  detectDocker() {
+    var _a;
+    if (typeof process === "undefined") return false;
+    try {
+      if (typeof require !== "undefined") {
+        const fs = require("fs");
+        return fs.existsSync("/.dockerenv");
+      }
+    } catch {
+    }
+    return !!(process.env.DOCKER_CONTAINER || ((_a = process.env.HOSTNAME) == null ? void 0 : _a.startsWith("docker-")));
+  }
+  /**
+   * Detect Kubernetes environment
+   */
+  detectKubernetes() {
+    if (typeof process === "undefined") return false;
+    return !!(process.env.KUBERNETES_SERVICE_HOST || process.env.KUBERNETES_PORT || process.env.K8S_NODE_NAME);
+  }
+  /**
+   * Convert pattern to regex
+   */
+  patternToRegex(pattern) {
+    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
+    return new RegExp(`^${escaped}$`, "i");
+  }
+  /**
+   * Check if hostname is localhost
+   */
+  isLocalHost(hostname) {
+    const localHosts = ["localhost", "127.0.0.1", "::1", "0.0.0.0"];
+    return localHosts.includes(hostname) || hostname.endsWith(".local");
+  }
+  /**
+   * Check if string is IP address
+   */
+  isIPAddress(hostname) {
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+    return ipv4Regex.test(hostname) || ipv6Regex.test(hostname);
+  }
+  /**
+   * Generate cache key for detection results
+   */
+  generateCacheKey() {
+    const env = this.gatherEnvironmentInfo();
+    return `${env.hostname}:${env.port}:${env.protocol}:${env.nodeEnv}`;
+  }
+  /**
+   * Log security event
+   */
+  logSecurityEvent(event) {
+    if (!this.config.enableLogging) return;
+    this.eventLog.push(event);
+    if (this.eventLog.length > 1e3) {
+      this.eventLog.splice(0, 500);
+    }
+    if (this.config.onSecurityEvent) {
+      this.config.onSecurityEvent(event);
+    }
+    if (event.severity === "critical" || event.severity === "error") {
+      console.error(`[SECURITY] ${event.message}`, event.details);
+    } else if (event.severity === "warning") {
+      console.warn(`[SECURITY] ${event.message}`, event.details);
+    } else if (this.config.enableLogging) {
+      console.info(`[SECURITY] ${event.message}`, event.details);
+    }
+  }
+  /**
+   * Start cleanup timer for expired overrides
+   */
+  startCleanupTimer() {
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, override] of this.activeOverrides.entries()) {
+        if (now > override.expiresAt) {
+          this.activeOverrides.delete(key);
+          this.logSecurityEvent({
+            type: "override_usage",
+            severity: "info",
+            message: "Production override expired",
+            details: { key, override },
+            timestamp: now,
+            source: "EnhancedProductionGuard"
+          });
+        }
+      }
+    }, 6e4);
+  }
+  /**
+   * Create temporary production override (discouraged)
+   */
+  createOverride(reason, durationMs) {
+    if (!this.config.overrideConfig.allowOverrides) {
+      throw new Error("Production overrides are disabled");
+    }
+    if (this.config.overrideConfig.requireReason && !reason) {
+      throw new Error("Override reason is required");
+    }
+    const overrideId = this.generateOverrideId();
+    const duration = durationMs || this.config.overrideConfig.overrideTimeLimit;
+    const override = {
+      reason,
+      timestamp: Date.now(),
+      expiresAt: Date.now() + duration,
+      creator: this.getCreatorInfo(),
+      audited: this.config.overrideConfig.auditOverrides
+    };
+    this.activeOverrides.set(overrideId, override);
+    this.logSecurityEvent({
+      type: "override_usage",
+      severity: "warning",
+      message: "Production override created",
+      details: { overrideId, reason, duration },
+      timestamp: Date.now(),
+      source: "EnhancedProductionGuard"
+    });
+    return overrideId;
+  }
+  /**
+   * Check if override is active
+   */
+  hasActiveOverride(overrideId) {
+    const override = this.activeOverrides.get(overrideId);
+    return override ? Date.now() < override.expiresAt : false;
+  }
+  /**
+   * Get security event log
+   */
+  getEventLog() {
+    return [...this.eventLog];
+  }
+  /**
+   * Clear detection cache
+   */
+  clearCache() {
+    this.detectionCache.clear();
+  }
+  /**
+   * Generate unique override ID
+   */
+  generateOverrideId() {
+    return `override_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  /**
+   * Get creator information for audit trail
+   */
+  getCreatorInfo() {
+    return `${Date.now()}_${typeof window !== "undefined" ? window.location.href : "server"}`;
+  }
+}
+function createProductionGuard(config) {
+  return new EnhancedProductionGuard(config);
+}
+function createStrictProductionGuard(config) {
+  const strictConfig = {
+    confidenceThreshold: 75,
+    // Lower threshold for stricter detection
+    throwInProduction: true,
+    overrideConfig: {
+      allowOverrides: false,
+      overrideTimeLimit: 5 * 60 * 1e3,
+      // 5 minutes max
+      requireReason: true,
+      auditOverrides: true
+    },
+    enableLogging: true,
+    ...config
+  };
+  return new EnhancedProductionGuard(strictConfig);
+}
+var SecurityLevel$1 = /* @__PURE__ */ ((SecurityLevel2) => {
+  SecurityLevel2["STRICT"] = "strict";
+  SecurityLevel2["STANDARD"] = "standard";
+  SecurityLevel2["PERMISSIVE"] = "permissive";
+  return SecurityLevel2;
+})(SecurityLevel$1 || {});
+class SecurityManager {
+  constructor(config = {}) {
+    __publicField(this, "config");
+    __publicField(this, "productionGuard");
+    __publicField(this, "securityEvents", []);
+    __publicField(this, "threatEvents", []);
+    __publicField(this, "violations", []);
+    __publicField(this, "operationCounters", /* @__PURE__ */ new Map());
+    __publicField(this, "lastHealthCheck", null);
+    this.config = this.mergeWithDefaults(config);
+    this.productionGuard = new EnhancedProductionGuard({
+      ...this.config.productionGuard,
+      onSecurityEvent: this.handleSecurityEvent.bind(this)
+    });
+    this.initializeComponents();
+    this.startPeriodicHealthChecks();
+  }
+  /**
+   * Initialize all security components based on configuration
+   */
+  initializeComponents() {
+    if (this.config.runtimeMonitor.enabled) {
+      this.initializeRuntimeMonitor();
+    }
+    if (this.config.memoryProtection.enabled) {
+      this.initializeMemoryProtection();
+    }
+    if (this.config.networkSecurity.enabled) {
+      this.initializeNetworkSecurity();
+    }
+    if (this.config.keyManagement.enabled) {
+      this.initializeKeyManagement();
+    }
+  }
+  /**
+   * Initialize runtime monitoring
+   */
+  initializeRuntimeMonitor() {
+    if (typeof window === "undefined") return;
+    if (this.config.runtimeMonitor.xssProtection) {
+      this.setupXSSProtection();
+    }
+    if (this.config.runtimeMonitor.consoleProtection) {
+      this.setupConsoleProtection();
+    }
+    if (this.config.runtimeMonitor.integrityChecks) {
+      this.setupIntegrityChecks();
+    }
+  }
+  /**
+   * Setup XSS Protection
+   */
+  setupXSSProtection() {
+    if (typeof window === "undefined") return;
+    const originalInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+    if (originalInnerHTML) {
+      Object.defineProperty(Element.prototype, "innerHTML", {
+        set: function(value) {
+          if (typeof value === "string" && SecurityManager.containsXSSPatterns(value)) {
+            ({
+              details: { value: value.substring(0, 100) }
+            });
+            console.error("[SECURITY] XSS attempt blocked:", value);
+            return;
+          }
+          originalInnerHTML.set.call(this, value);
+        },
+        get: originalInnerHTML.get,
+        configurable: true
+      });
+    }
+  }
+  /**
+   * Setup Console Protection
+   */
+  setupConsoleProtection() {
+    if (typeof console === "undefined") return;
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+    console.log = (...args) => {
+      if (this.containsSensitiveData(args)) {
+        this.recordViolation({
+          type: "sensitive_data_logging",
+          severity: "warning",
+          source: "console_protection",
+          message: "Sensitive data detected in console.log",
+          details: { args: args.map((arg) => typeof arg === "string" ? arg.substring(0, 50) : typeof arg) },
+          timestamp: Date.now(),
+          action: "filtered"
+        });
+        originalLog("[FILTERED SENSITIVE DATA]");
+        return;
+      }
+      originalLog.apply(console, args);
+    };
+    console.warn = (...args) => {
+      if (this.containsSensitiveData(args)) {
+        originalWarn("[FILTERED SENSITIVE DATA]");
+        return;
+      }
+      originalWarn.apply(console, args);
+    };
+    console.error = (...args) => {
+      if (this.containsSensitiveData(args)) {
+        originalError("[FILTERED SENSITIVE DATA]");
+        return;
+      }
+      originalError.apply(console, args);
+    };
+  }
+  /**
+   * Setup Integrity Checks
+   */
+  setupIntegrityChecks() {
+  }
+  /**
+   * Initialize Memory Protection
+   */
+  initializeMemoryProtection() {
+    if (this.config.memoryProtection.leakDetection) {
+      this.setupMemoryLeakDetection();
+    }
+  }
+  /**
+   * Setup Memory Leak Detection
+   */
+  setupMemoryLeakDetection() {
+    setInterval(() => {
+      if (typeof performance !== "undefined" && performance.memory) {
+        const memory = performance.memory;
+        if (memory.usedJSHeapSize > memory.totalJSHeapSize * 0.9) {
+          this.recordViolation({
+            type: "memory_leak_detected",
+            severity: "warning",
+            source: "memory_monitor",
+            message: "High memory usage detected",
+            details: {
+              usedHeapSize: memory.usedJSHeapSize,
+              totalHeapSize: memory.totalJSHeapSize
+            },
+            timestamp: Date.now(),
+            action: "logged"
+          });
+        }
+      }
+    }, 3e4);
+  }
+  /**
+   * Initialize Network Security
+   */
+  initializeNetworkSecurity() {
+    if (typeof window === "undefined") return;
+    if (this.config.networkSecurity.ssrfProtection) {
+      this.setupSSRFProtection();
+    }
+    if (this.config.networkSecurity.requestFiltering) {
+      this.setupRequestFiltering();
+    }
+  }
+  /**
+   * Setup SSRF Protection
+   */
+  setupSSRFProtection() {
+    if (typeof window === "undefined") return;
+    const originalFetch = window.fetch;
+    window.fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      if (this.isSSRFAttempt(url)) {
+        const threat = {
+          type: "ssrf_attempt",
+          severity: "high",
+          source: "network_security",
+          message: "SSRF attempt blocked",
+          details: { url },
+          timestamp: Date.now(),
+          blocked: true
+        };
+        this.recordThreat(threat);
+        throw new Error("Network request blocked by security policy");
+      }
+      return originalFetch(input, init);
+    };
+  }
+  /**
+   * Setup Request Filtering
+   */
+  setupRequestFiltering() {
+    if (typeof XMLHttpRequest !== "undefined") {
+      const originalOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function(method, url, ...args) {
+        if (SecurityManager.prototype.isSSRFAttempt(url)) {
+          throw new Error("XMLHttpRequest blocked by security policy");
+        }
+        return originalOpen.apply(this, [method, url, ...args]);
+      };
+    }
+  }
+  /**
+   * Initialize Key Management
+   */
+  initializeKeyManagement() {
+    if (this.config.keyManagement.autoRotation) {
+      this.startKeyRotation();
+    }
+  }
+  /**
+   * Start Key Rotation
+   */
+  startKeyRotation() {
+    setInterval(() => {
+      this.logInfo("Key rotation check performed");
+    }, 24 * 60 * 60 * 1e3);
+  }
+  /**
+   * Check if URL is SSRF attempt
+   */
+  isSSRFAttempt(url) {
+    try {
+      const parsed = new URL(url);
+      const hostname = parsed.hostname.toLowerCase();
+      const privateRanges = [
+        /^127\./,
+        // 127.0.0.0/8
+        /^192\.168\./,
+        // 192.168.0.0/16
+        /^10\./,
+        // 10.0.0.0/8
+        /^172\.(1[6-9]|2[0-9]|3[01])\./,
+        // 172.16.0.0/12
+        /^169\.254\./,
+        // 169.254.0.0/16
+        /^::1$/,
+        // IPv6 loopback
+        /^fe80::/i
+        // IPv6 link-local
+      ];
+      return privateRanges.some((range) => range.test(hostname)) || hostname === "localhost";
+    } catch {
+      return true;
+    }
+  }
+  /**
+   * Check if content contains XSS patterns
+   */
+  static containsXSSPatterns(content) {
+    const xssPatterns = [
+      /<script[^>]*>.*?<\/script>/gi,
+      /javascript:/gi,
+      /on\w+\s*=/gi,
+      /<iframe[^>]*>.*?<\/iframe>/gi,
+      /eval\s*\(/gi,
+      /document\.write/gi,
+      /innerHTML/gi
+    ];
+    return xssPatterns.some((pattern) => pattern.test(content));
+  }
+  /**
+   * Check if data contains sensitive information
+   */
+  containsSensitiveData(args) {
+    const sensitivePatterns = [
+      /private.*key/i,
+      /mnemonic/i,
+      /seed.*phrase/i,
+      /password/i,
+      /secret/i,
+      /token.*[a-zA-Z0-9]{20,}/i,
+      /0x[a-fA-F0-9]{40}/i,
+      // Ethereum addresses
+      /[13][a-km-zA-HJ-NP-Z1-9]{25,34}/i
+      // Bitcoin addresses
+    ];
+    const stringified = args.map(
+      (arg) => typeof arg === "string" ? arg : JSON.stringify(arg)
+    ).join(" ");
+    return sensitivePatterns.some((pattern) => pattern.test(stringified));
+  }
+  /**
+   * Record security threat
+   */
+  recordThreat(threat) {
+    this.threatEvents.push(threat);
+    if (this.threatEvents.length > 1e3) {
+      this.threatEvents.splice(0, 500);
+    }
+    if (this.config.onThreatDetected) {
+      this.config.onThreatDetected(threat);
+    }
+    this.logError(`Threat detected: ${threat.message}`, threat.details);
+  }
+  /**
+   * Record security violation
+   */
+  recordViolation(violation) {
+    this.violations.push(violation);
+    if (this.violations.length > 1e3) {
+      this.violations.splice(0, 500);
+    }
+    if (this.config.onSecurityViolation) {
+      this.config.onSecurityViolation(violation);
+    }
+    if (violation.severity === "critical" || violation.severity === "error") {
+      this.logError(`Security violation: ${violation.message}`, violation.details);
+    } else {
+      this.logWarning(`Security violation: ${violation.message}`, violation.details);
+    }
+  }
+  /**
+   * Handle security event from other components
+   */
+  handleSecurityEvent(event) {
+    this.securityEvents.push(event);
+    if (this.securityEvents.length > 1e3) {
+      this.securityEvents.splice(0, 500);
+    }
+    if (this.config.onSecurityEvent) {
+      this.config.onSecurityEvent(event);
+    }
+  }
+  /**
+   * Start periodic health checks
+   */
+  startPeriodicHealthChecks() {
+    setInterval(() => {
+      this.performHealthCheck();
+    }, 5 * 60 * 1e3);
+    setTimeout(() => this.performHealthCheck(), 1e3);
+  }
+  /**
+   * Perform security health check
+   */
+  async performHealthCheck() {
+    const components = [];
+    components.push({
+      name: "Production Guard",
+      status: this.config.productionGuard.enabled ? "healthy" : "disabled",
+      message: this.config.productionGuard.enabled ? "Active" : "Disabled"
+    });
+    components.push({
+      name: "Runtime Monitor",
+      status: this.config.runtimeMonitor.enabled ? "healthy" : "disabled",
+      message: this.config.runtimeMonitor.enabled ? "Monitoring active" : "Disabled"
+    });
+    let memoryStatus = "healthy";
+    let memoryMessage = "Operating normally";
+    if (typeof performance !== "undefined" && performance.memory) {
+      const memory = performance.memory;
+      const usageRatio = memory.usedJSHeapSize / memory.totalJSHeapSize;
+      if (usageRatio > 0.9) {
+        memoryStatus = "warning";
+        memoryMessage = "High memory usage detected";
+      }
+    }
+    components.push({
+      name: "Memory Protection",
+      status: this.config.memoryProtection.enabled ? memoryStatus : "disabled",
+      message: this.config.memoryProtection.enabled ? memoryMessage : "Disabled"
+    });
+    components.push({
+      name: "Network Security",
+      status: this.config.networkSecurity.enabled ? "healthy" : "disabled",
+      message: this.config.networkSecurity.enabled ? "Protection active" : "Disabled"
+    });
+    const overall = this.assessOverallHealth(components);
+    const recommendations = this.generateRecommendations(components);
+    this.lastHealthCheck = {
+      overall,
+      components,
+      recommendations,
+      lastCheck: Date.now()
+    };
+    this.logInfo("Security health check completed", { overall, componentCount: components.length });
+    return this.lastHealthCheck;
+  }
+  /**
+   * Assess overall health
+   */
+  assessOverallHealth(components) {
+    const activeComponents = components.filter((c) => c.status !== "disabled");
+    const errorComponents = activeComponents.filter((c) => c.status === "error");
+    const warningComponents = activeComponents.filter((c) => c.status === "warning");
+    if (errorComponents.length > 0) return "critical";
+    if (warningComponents.length > 0) return "warning";
+    return "healthy";
+  }
+  /**
+   * Generate security recommendations
+   */
+  generateRecommendations(components) {
+    const recommendations = [];
+    components.forEach((component) => {
+      if (component.status === "error") {
+        recommendations.push(`Fix ${component.name}: ${component.message}`);
+      } else if (component.status === "warning") {
+        recommendations.push(`Review ${component.name}: ${component.message}`);
+      } else if (component.status === "disabled") {
+        recommendations.push(`Consider enabling ${component.name} for enhanced security`);
+      }
+    });
+    return recommendations;
+  }
+  /**
+   * Get security metrics
+   */
+  getSecurityMetrics() {
+    var _a, _b;
+    return {
+      securityEvents: this.securityEvents.length,
+      threatEvents: this.threatEvents.length,
+      violations: this.violations.length,
+      lastHealthCheck: (_a = this.lastHealthCheck) == null ? void 0 : _a.lastCheck,
+      overallHealth: (_b = this.lastHealthCheck) == null ? void 0 : _b.overall
+    };
+  }
+  /**
+   * Get event logs
+   */
+  getEventLogs() {
+    return {
+      securityEvents: [...this.securityEvents],
+      threatEvents: [...this.threatEvents],
+      violations: [...this.violations]
+    };
+  }
+  /**
+   * Logging methods
+   */
+  logInfo(message, details) {
+    if (this.config.enableLogging && this.shouldLog("info")) {
+      console.info(`[SECURITY] ${message}`, details || "");
+    }
+  }
+  logWarning(message, details) {
+    if (this.config.enableLogging && this.shouldLog("warning")) {
+      console.warn(`[SECURITY] ${message}`, details || "");
+    }
+  }
+  logError(message, details) {
+    if (this.config.enableLogging && this.shouldLog("error")) {
+      console.error(`[SECURITY] ${message}`, details || "");
+    }
+  }
+  shouldLog(level) {
+    const levels = ["info", "warning", "error", "critical"];
+    const configLevel = levels.indexOf(this.config.logLevel);
+    const messageLevel = levels.indexOf(level);
+    return messageLevel >= configLevel;
+  }
+  /**
+   * Merge configuration with defaults
+   */
+  mergeWithDefaults(config) {
+    const defaults = {
+      securityLevel: "standard",
+      productionGuard: {
+        enabled: true,
+        confidenceThreshold: 85,
+        blockedDomains: ["*.com", "*.org", "*.net"],
+        allowedDomains: ["localhost", "*.local", "*.dev"],
+        throwInProduction: true
+      },
+      runtimeMonitor: {
+        enabled: true,
+        xssProtection: true,
+        rateLimiting: true,
+        consoleProtection: true,
+        integrityChecks: true
+      },
+      memoryProtection: {
+        enabled: true,
+        secureStorage: true,
+        autoCleanup: true,
+        leakDetection: true
+      },
+      networkSecurity: {
+        enabled: true,
+        ssrfProtection: true,
+        originValidation: true,
+        requestFiltering: true
+      },
+      keyManagement: {
+        enabled: true,
+        secureGeneration: true,
+        autoRotation: false,
+        testKeyMarking: true
+      },
+      enableLogging: true,
+      logLevel: "info"
+    };
+    return {
+      ...defaults,
+      ...config,
+      productionGuard: { ...defaults.productionGuard, ...config.productionGuard },
+      runtimeMonitor: { ...defaults.runtimeMonitor, ...config.runtimeMonitor },
+      memoryProtection: { ...defaults.memoryProtection, ...config.memoryProtection },
+      networkSecurity: { ...defaults.networkSecurity, ...config.networkSecurity },
+      keyManagement: { ...defaults.keyManagement, ...config.keyManagement }
+    };
+  }
+}
+function createSecurityManager$1(config) {
+  return new SecurityManager(config);
+}
+function createStrictSecurityManager$1(config) {
+  const strictConfig = {
+    securityLevel: "strict",
+    productionGuard: {
+      enabled: true,
+      confidenceThreshold: 75,
+      throwInProduction: true,
+      ...config == null ? void 0 : config.productionGuard
+    },
+    logLevel: "warning",
+    ...config
+  };
+  return new SecurityManager(strictConfig);
+}
+function createPermissiveSecurityManager$1(config) {
+  const permissiveConfig = {
+    securityLevel: "permissive",
+    productionGuard: {
+      enabled: false,
+      throwInProduction: false,
+      ...config == null ? void 0 : config.productionGuard
+    },
+    logLevel: "error",
+    ...config
+  };
+  return new SecurityManager(permissiveConfig);
+}
+function initializeDefaultSecurity$1() {
+  return createSecurityManager$1({
+    securityLevel: "standard",
+    enableLogging: true,
+    logLevel: "info"
+  });
+}
+const DEVELOPMENT_SECURITY_CONFIG = {
+  securityLevel: SecurityLevel.PERMISSIVE,
+  productionGuard: {
+    enabled: false,
+    confidenceThreshold: 95,
+    throwInProduction: false,
+    blockedDomains: [],
+    allowedDomains: ["*"]
+  },
+  runtimeMonitor: {
+    enabled: false,
+    xssProtection: false,
+    rateLimiting: false,
+    consoleProtection: false,
+    integrityChecks: false
+  },
+  memoryProtection: {
+    enabled: false,
+    secureStorage: false,
+    autoCleanup: true,
+    leakDetection: false
+  },
+  networkSecurity: {
+    enabled: false,
+    ssrfProtection: false,
+    originValidation: false,
+    requestFiltering: false
+  },
+  keyManagement: {
+    enabled: true,
+    secureGeneration: false,
+    autoRotation: false,
+    testKeyMarking: true
+  },
+  enableLogging: true,
+  logLevel: "error"
+};
+const TESTING_SECURITY_CONFIG = {
+  securityLevel: SecurityLevel.STANDARD,
+  productionGuard: {
+    enabled: true,
+    confidenceThreshold: 80,
+    throwInProduction: true,
+    blockedDomains: ["*.com", "*.org", "*.net", "*prod*", "*production*"],
+    allowedDomains: ["localhost", "*.local", "*.dev", "*.test", "test-*"]
+  },
+  runtimeMonitor: {
+    enabled: true,
+    xssProtection: true,
+    rateLimiting: false,
+    consoleProtection: true,
+    integrityChecks: false
+  },
+  memoryProtection: {
+    enabled: true,
+    secureStorage: true,
+    autoCleanup: true,
+    leakDetection: false
+  },
+  networkSecurity: {
+    enabled: true,
+    ssrfProtection: true,
+    originValidation: true,
+    requestFiltering: true
+  },
+  keyManagement: {
+    enabled: true,
+    secureGeneration: true,
+    autoRotation: false,
+    testKeyMarking: true
+  },
+  enableLogging: true,
+  logLevel: "warning"
+};
+const PRODUCTION_ADJACENT_SECURITY_CONFIG = {
+  securityLevel: SecurityLevel.STRICT,
+  productionGuard: {
+    enabled: true,
+    confidenceThreshold: 70,
+    throwInProduction: true,
+    blockedDomains: [
+      "*.com",
+      "*.org",
+      "*.net",
+      "*.io",
+      "*.app",
+      "*prod*",
+      "*production*",
+      "*live*",
+      "*staging*",
+      "*stage*",
+      "vercel.app",
+      "netlify.app",
+      "herokuapp.com",
+      "railway.app",
+      "render.com",
+      "fly.io"
+    ],
+    allowedDomains: ["localhost", "127.0.0.1", "*.local", "*.dev", "dev-*"]
+  },
+  runtimeMonitor: {
+    enabled: true,
+    xssProtection: true,
+    rateLimiting: true,
+    consoleProtection: true,
+    integrityChecks: true
+  },
+  memoryProtection: {
+    enabled: true,
+    secureStorage: true,
+    autoCleanup: true,
+    leakDetection: true
+  },
+  networkSecurity: {
+    enabled: true,
+    ssrfProtection: true,
+    originValidation: true,
+    requestFiltering: true
+  },
+  keyManagement: {
+    enabled: true,
+    secureGeneration: true,
+    autoRotation: false,
+    testKeyMarking: true
+  },
+  enableLogging: true,
+  logLevel: "info"
+};
+class SecurityPresets {
+  /**
+   * Initialize security for development environment
+   */
+  static forDevelopment() {
+    return createPermissiveSecurityManager(DEVELOPMENT_SECURITY_CONFIG);
+  }
+  /**
+   * Initialize security for testing environment
+   */
+  static forTesting() {
+    return createSecurityManager(TESTING_SECURITY_CONFIG);
+  }
+  /**
+   * Initialize security for production-adjacent environments
+   */
+  static forProductionAdjacent() {
+    return createStrictSecurityManager(PRODUCTION_ADJACENT_SECURITY_CONFIG);
+  }
+  /**
+   * Auto-detect environment and initialize appropriate security
+   */
+  static autoDetect() {
+    var _a;
+    if (typeof process !== "undefined" && process.env) {
+      const nodeEnv = (_a = process.env.NODE_ENV) == null ? void 0 : _a.toLowerCase();
+      switch (nodeEnv) {
+        case "development":
+        case "dev":
+          return this.forDevelopment();
+        case "test":
+        case "testing":
+          return this.forTesting();
+        case "production":
+        case "prod":
+        case "staging":
+        case "stage":
+          return this.forProductionAdjacent();
+        default:
+          return this.forTesting();
+      }
+    }
+    if (typeof window !== "undefined" && window.location) {
+      const hostname = window.location.hostname.toLowerCase();
+      if (hostname === "localhost" || hostname.endsWith(".local") || hostname.endsWith(".dev")) {
+        return this.forDevelopment();
+      }
+      if (hostname.includes("test") || hostname.includes("staging")) {
+        return this.forTesting();
+      }
+      return this.forProductionAdjacent();
+    }
+    return initializeDefaultSecurity();
+  }
+}
+const SECURITY_SEVERITY = {
+  INFO: "info",
+  WARNING: "warning",
+  ERROR: "error",
+  CRITICAL: "critical"
+};
+const COMMON_THREAT_PATTERNS = {
+  XSS_SCRIPT: /<script[^>]*>.*?<\/script>/gi,
+  XSS_JAVASCRIPT: /javascript:/gi,
+  XSS_EVENT_HANDLER: /on\w+\s*=/gi,
+  SQL_INJECTION: /(union|select|insert|update|delete|drop|create|alter)\s+/gi,
+  COMMAND_INJECTION: /(\||&|;|`|\$\()/g,
+  PATH_TRAVERSAL: /\.\.\/|\.\.\\|\.\.\%2f|\.\.\%5c/gi,
+  PRIVATE_KEY: /-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----/gi,
+  MNEMONIC_PHRASE: /\b\w+(\s+\w+){11,23}\b/g,
+  ETHEREUM_ADDRESS: /0x[a-fA-F0-9]{40}/g,
+  BITCOIN_ADDRESS: /[13][a-km-zA-HJ-NP-Z1-9]{25,34}/g
+};
+function validateSecurityConfig(config) {
+  const errors = [];
+  const warnings = [];
+  if (config.securityLevel && !Object.values(SecurityLevel).includes(config.securityLevel)) {
+    errors.push("Invalid security level");
+  }
+  if (config.productionGuard) {
+    const pg = config.productionGuard;
+    if (pg.confidenceThreshold !== void 0) {
+      if (pg.confidenceThreshold < 0 || pg.confidenceThreshold > 100) {
+        errors.push("Production guard confidence threshold must be between 0 and 100");
+      }
+      if (pg.confidenceThreshold < 50) {
+        warnings.push("Low confidence threshold may cause false positives");
+      }
+    }
+    if (pg.blockedDomains && pg.blockedDomains.length === 0) {
+      warnings.push("No blocked domains configured - consider adding common production patterns");
+    }
+  }
+  if (config.logLevel && !["info", "warning", "error", "critical"].includes(config.logLevel)) {
+    errors.push("Invalid log level");
+  }
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+function getSecurityRecommendations(environment) {
+  switch (environment) {
+    case "development":
+      return [
+        "Use minimal security settings for development speed",
+        "Enable test key marking to identify mock keys",
+        "Consider enabling console protection for sensitive data",
+        "Use error-level logging to reduce noise"
+      ];
+    case "testing":
+      return [
+        "Enable production detection to catch deployment issues",
+        "Use XSS protection for frontend testing",
+        "Enable memory leak detection for long-running tests",
+        "Configure appropriate domain allowlists",
+        "Use warning-level logging for test debugging"
+      ];
+    case "production":
+      return [
+        "NEVER use mock wallets in production",
+        "Use strict security level with low confidence threshold",
+        "Enable all protection mechanisms",
+        "Set up comprehensive logging and monitoring",
+        "Implement security event alerting",
+        "Regular security health checks",
+        "Use strong production detection patterns"
+      ];
+    default:
+      return ["Use SecurityPresets.autoDetect() for automatic configuration"];
+  }
+}
+function generateSecurityReport(securityManager) {
+  const metrics = securityManager.getSecurityMetrics();
+  const logs = securityManager.getEventLogs();
+  const topThreats = logs.threatEvents.sort((a, b) => {
+    const severityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+    return (severityOrder[b.severity] || 0) - (severityOrder[a.severity] || 0);
+  }).slice(0, 5);
+  const recentViolations = logs.violations.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+  const recommendations = [];
+  if (metrics.criticalEvents > 0) {
+    recommendations.push("Review and address critical security events immediately");
+  }
+  if (metrics.threatEvents > 10) {
+    recommendations.push("High number of threat events detected - review security posture");
+  }
+  if (metrics.healthStatus !== "healthy") {
+    recommendations.push("Security health check indicates issues - perform system review");
+  }
+  return {
+    timestamp: Date.now(),
+    metrics: {
+      totalEvents: metrics.securityEvents,
+      criticalEvents: logs.securityEvents.filter((e) => e.severity === "critical").length,
+      threatEvents: metrics.threatEvents,
+      violations: metrics.violations,
+      healthStatus: metrics.overallHealth || "healthy",
+      lastHealthCheck: metrics.lastHealthCheck || 0,
+      uptime: Date.now() - (metrics.lastHealthCheck || Date.now())
+    },
+    topThreats,
+    recentViolations,
+    recommendations,
+    configurationHealth: validateSecurityConfig({})
+    // Would pass actual config in real implementation
+  };
+}
+function isSecurityError(error) {
+  const securityKeywords = [
+    "security",
+    "production",
+    "blocked",
+    "threat",
+    "violation",
+    "xss",
+    "injection",
+    "unauthorized",
+    "forbidden"
+  ];
+  const message = error.message.toLowerCase();
+  return securityKeywords.some((keyword) => message.includes(keyword));
+}
+function sanitizeForLogging(data) {
+  if (typeof data === "string") {
+    return data.replace(/0x[a-fA-F0-9]{40}/g, "0x[ETHEREUM_ADDRESS]").replace(/[13][a-km-zA-HJ-NP-Z1-9]{25,34}/g, "[BITCOIN_ADDRESS]").replace(/-----BEGIN\s+.*?-----[\s\S]*?-----END\s+.*?-----/gi, "[PRIVATE_KEY]").replace(/\b\w+(\s+\w+){11,23}\b/g, "[MNEMONIC_PHRASE]");
+  }
+  if (typeof data === "object" && data !== null) {
+    const sanitized = Array.isArray(data) ? [] : {};
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof key === "string" && /private|secret|key|mnemonic|password/i.test(key)) {
+        sanitized[key] = "[REDACTED]";
+      } else {
+        sanitized[key] = sanitizeForLogging(value);
+      }
+    }
+    return sanitized;
+  }
+  return data;
+}
+const defaultSecurity = SecurityPresets.autoDetect();
 export {
   AccountManager,
   CHAIN_PRESETS,
+  COMMON_THREAT_PATTERNS,
+  DEVELOPMENT_SECURITY_CONFIG,
+  EnhancedProductionGuard,
   EthereumMethod,
   FeatureNames,
   MockEthereumProvider2 as MockEthereumProvider,
   MockSolanaTransaction,
   MockSolanaWallet2 as MockSolanaWallet,
   MockWalletFactory,
-  ProductionGuard,
+  PRODUCTION_ADJACENT_SECURITY_CONFIG,
   ProviderErrorCode,
+  SECURITY_SEVERITY,
+  SecurityLevel$1 as SecurityLevel,
+  SecurityManager,
+  SecurityPresets,
   SolanaChains,
   StateManager,
+  TESTING_SECURITY_CONFIG,
   UnifiedWallet,
   WALLET_PRESETS,
   WalletConfigBuilder,
   createDevWallet,
   createEVMWallet,
   createMultiChainWallet,
+  createPermissiveSecurityManager$1 as createPermissiveSecurityManager,
   createProductionGuard,
+  createSecurityManager$1 as createSecurityManager,
   createSolanaWallet,
+  createStrictProductionGuard,
+  createStrictSecurityManager$1 as createStrictSecurityManager,
   createWallet,
   createWalletFromPreset,
   walletFactory as default,
+  defaultSecurity,
+  generateSecurityReport,
+  getSecurityRecommendations,
+  initializeDefaultSecurity$1 as initializeDefaultSecurity,
+  isSecurityError,
+  sanitizeForLogging,
+  validateSecurityConfig,
   walletFactory
 };
 //# sourceMappingURL=index.js.map

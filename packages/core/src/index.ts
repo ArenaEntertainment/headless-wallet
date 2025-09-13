@@ -47,15 +47,62 @@ export type {
   StateChangeHandler
 } from './state/state-manager.js';
 
-// Security
+// Security - Enhanced comprehensive security framework
 export {
-  ProductionGuard,
-  createProductionGuard
-} from './security/production-guard.js';
+  // Enhanced Production Guard
+  EnhancedProductionGuard,
+  createProductionGuard,
+  createStrictProductionGuard,
+
+  // Security Manager
+  SecurityManager,
+  createSecurityManager,
+  createStrictSecurityManager,
+  createPermissiveSecurityManager,
+  initializeDefaultSecurity,
+  SecurityLevel,
+  SecurityPresets,
+
+  // Security Configuration Presets
+  DEVELOPMENT_SECURITY_CONFIG,
+  TESTING_SECURITY_CONFIG,
+  PRODUCTION_ADJACENT_SECURITY_CONFIG,
+
+  // Security Utilities
+  SECURITY_SEVERITY,
+  COMMON_THREAT_PATTERNS,
+  validateSecurityConfig,
+  getSecurityRecommendations,
+  generateSecurityReport,
+  isSecurityError,
+  sanitizeForLogging,
+  defaultSecurity,
+
+  // Note: createProductionCheck is available as legacy alias for createProductionGuard
+} from './security/index.js';
+
 export type {
-  ProductionGuardConfig,
-  ProductionCheckResult
-} from './security/production-guard.js';
+  // Security Types
+  ProductionCheckResult,
+  DetectionMethod,
+  EnvironmentInfo,
+  EnhancedProductionGuardConfig,
+  OverrideConfig,
+  SecurityEvent,
+  SecurityManagerConfig,
+  SecurityPolicy,
+  ValidationRule,
+  EnvironmentRestriction,
+  OperationLimit,
+  ThreatPattern,
+  ThreatEvent,
+  SecurityViolation,
+  SecurityHealthCheck,
+  ComponentHealth,
+  SecurityMetrics,
+  SecurityReport,
+  ProductionGuardResult
+} from './security/index.js';
 
 // Re-export types from shared package for convenience
 export type {
@@ -140,6 +187,7 @@ export {
   SolanaChains,
   FeatureNames
 } from '@arenaentertainment/wallet-mock-standards';
+
 
 /**
  * Default factory instance for quick access
