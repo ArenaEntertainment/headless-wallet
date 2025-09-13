@@ -39,7 +39,7 @@ jobs:
         run: pnpm build
 
       - name: Create Release Pull Request or Publish
-        run: npx nx release --verbose
+        run: npx nx release --verbose --first-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
