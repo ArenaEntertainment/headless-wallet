@@ -1,5 +1,6 @@
 import type { Page, BrowserContext } from '@playwright/test';
 import { HeadlessWallet, type Account, type HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
+import type { Chain, Transport } from 'viem';
 import { randomUUID } from 'crypto';
 
 export interface InstallHeadlessWalletOptions extends HeadlessWalletConfig {
@@ -9,47 +10,60 @@ export interface InstallHeadlessWalletOptions extends HeadlessWalletConfig {
 
 // Global wallet storage for Playwright contexts
 const wallets: Map<string, HeadlessWallet> = new Map();
+// Track exposed functions to avoid re-exposure errors
+const exposedFunctions: WeakSet<Page | BrowserContext> = new WeakSet();
 
 export async function installHeadlessWallet(
   target: Page | BrowserContext,
   options: InstallHeadlessWalletOptions
-): Promise<void> {
+): Promise<string> {
   const { debug = false, autoConnect = true, ...walletConfig } = options;
 
-  // Create the real wallet in Node.js context
+  // Create the real wallet in Node.js context with full config including transports
   const wallet = new HeadlessWallet(walletConfig);
   const walletId = randomUUID();
   wallets.set(walletId, wallet);
 
   // Expose bridge function for browser to call back to Node.js wallet
-  await target.exposeFunction('__headlessWalletRequest', async (request: {
+  // Only expose if not already exposed to avoid re-installation errors
+  if (!exposedFunctions.has(target)) {
+    try {
+      await target.exposeFunction('__headlessWalletRequest', async (request: {
     walletId: string;
     method: string;
     params?: any[];
     provider?: 'evm' | 'solana';
-  }) => {
-    const { walletId: reqWalletId, method, params, provider } = request;
-    const targetWallet = wallets.get(reqWalletId);
+      }) => {
+        const { walletId: reqWalletId, method, params, provider } = request;
+        const targetWallet = wallets.get(reqWalletId);
 
-    if (!targetWallet) {
-      throw new Error(`Wallet ${reqWalletId} not found`);
-    }
+        if (!targetWallet) {
+          throw new Error(`Wallet ${reqWalletId} not found`);
+        }
 
-    try {
-      const result = await targetWallet.request({ method, params, provider });
+        try {
+          const result = await targetWallet.request({ method, params, provider });
 
-      if (debug) {
-        console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'RESULT', result);
-      }
+          if (debug) {
+            console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'RESULT', result);
+          }
 
-      return result;
+          return result;
+        } catch (error) {
+          if (debug) {
+            console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'ERROR', error);
+          }
+          throw error;
+        }
+      });
+      exposedFunctions.add(target);
     } catch (error) {
+      // Function already exposed, continue without error
       if (debug) {
-        console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'ERROR', error);
+        console.log('Bridge function already exposed, continuing...');
       }
-      throw error;
     }
-  });
+  }
 
   // Inject providers into browser context
   await target.addInitScript(
@@ -67,7 +81,14 @@ export async function installHeadlessWallet(
             });
           },
           on: () => {}, // Event handling would need more complex bridge
-          removeListener: () => {}
+          removeListener: () => {},
+          disconnect: async () => {
+            return await (window as any).__headlessWalletRequest({
+              walletId,
+              method: 'disconnect',
+              provider: 'evm'
+            });
+          }
         };
 
         (window as any).ethereum = ethereumProvider;
@@ -161,6 +182,8 @@ export async function installHeadlessWallet(
       debug
     }
   );
+
+  return walletId;
 }
 
 // Helper functions for testing
@@ -208,7 +231,24 @@ export async function signMockSolanaMessage(page: Page, message: string): Promis
   }, message);
 }
 
-// Cleanup function to remove wallets from memory
+// Uninstall a specific wallet
+export async function uninstallHeadlessWallet(target: Page | BrowserContext, walletId?: string): Promise<void> {
+  if (walletId) {
+    wallets.delete(walletId);
+  }
+
+  // Remove providers from browser context
+  // Use addInitScript to remove providers since evaluate is not available on BrowserContext
+  await target.addInitScript(() => {
+    delete (window as any).ethereum;
+    if ((window as any).phantom) {
+      delete (window as any).phantom.solana;
+    }
+  });
+}
+
+// Cleanup function to remove all wallets from memory
 export function cleanupHeadlessWallets(): void {
   wallets.clear();
+  // Note: exposedFunctions WeakSet will auto-cleanup when pages/contexts are closed
 }

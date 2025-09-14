@@ -320,6 +320,18 @@ export class EVMWallet {
     this.listeners.get(event)?.forEach(handler => handler(...args));
   }
 
+  // Disconnect functionality
+  disconnect(): void {
+    // Clear current connection state
+    this.emit('disconnect', {
+      code: 4900,
+      message: 'User disconnected'
+    });
+
+    // Emit empty accounts changed to signal disconnection
+    this.emit('accountsChanged', []);
+  }
+
   // Utility methods
   getAccounts(): LocalAccount[] {
     return [...this.accounts];

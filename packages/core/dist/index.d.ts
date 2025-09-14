@@ -44,6 +44,7 @@ export declare class HeadlessWallet {
         }) => Promise<any>;
         on: (event: string, handler: (...args: any[]) => void) => void;
         removeListener: (event: string, handler: (...args: any[]) => void) => void;
+        disconnect: () => void;
     };
     getSolanaProvider(): {
         isPhantom: boolean | undefined;

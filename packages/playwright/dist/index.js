@@ -2,33 +2,47 @@ import { HeadlessWallet } from '@arenaentertainment/headless-wallet';
 import { randomUUID } from 'crypto';
 // Global wallet storage for Playwright contexts
 const wallets = new Map();
+// Track exposed functions to avoid re-exposure errors
+const exposedFunctions = new WeakSet();
 export async function installHeadlessWallet(target, options) {
     const { debug = false, autoConnect = true, ...walletConfig } = options;
-    // Create the real wallet in Node.js context
+    // Create the real wallet in Node.js context with full config including transports
     const wallet = new HeadlessWallet(walletConfig);
     const walletId = randomUUID();
     wallets.set(walletId, wallet);
     // Expose bridge function for browser to call back to Node.js wallet
-    await target.exposeFunction('__headlessWalletRequest', async (request) => {
-        const { walletId: reqWalletId, method, params, provider } = request;
-        const targetWallet = wallets.get(reqWalletId);
-        if (!targetWallet) {
-            throw new Error(`Wallet ${reqWalletId} not found`);
-        }
+    // Only expose if not already exposed to avoid re-installation errors
+    if (!exposedFunctions.has(target)) {
         try {
-            const result = await targetWallet.request({ method, params, provider });
-            if (debug) {
-                console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'RESULT', result);
-            }
-            return result;
+            await target.exposeFunction('__headlessWalletRequest', async (request) => {
+                const { walletId: reqWalletId, method, params, provider } = request;
+                const targetWallet = wallets.get(reqWalletId);
+                if (!targetWallet) {
+                    throw new Error(`Wallet ${reqWalletId} not found`);
+                }
+                try {
+                    const result = await targetWallet.request({ method, params, provider });
+                    if (debug) {
+                        console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'RESULT', result);
+                    }
+                    return result;
+                }
+                catch (error) {
+                    if (debug) {
+                        console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'ERROR', error);
+                    }
+                    throw error;
+                }
+            });
+            exposedFunctions.add(target);
         }
         catch (error) {
+            // Function already exposed, continue without error
             if (debug) {
-                console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'ERROR', error);
+                console.log('Bridge function already exposed, continuing...');
             }
-            throw error;
         }
-    });
+    }
     // Inject providers into browser context
     await target.addInitScript(({ walletId, hasEVM, hasSolana, autoConnect, debug }) => {
         // EVM Provider (window.ethereum)
@@ -44,7 +58,14 @@ export async function installHeadlessWallet(target, options) {
                     });
                 },
                 on: () => { }, // Event handling would need more complex bridge
-                removeListener: () => { }
+                removeListener: () => { },
+                disconnect: async () => {
+                    return await window.__headlessWalletRequest({
+                        walletId,
+                        method: 'disconnect',
+                        provider: 'evm'
+                    });
+                }
             };
             window.ethereum = ethereumProvider;
             // EIP-6963 wallet discovery
@@ -128,6 +149,7 @@ export async function installHeadlessWallet(target, options) {
         autoConnect,
         debug
     });
+    return walletId;
 }
 // Helper functions for testing
 export async function connectHeadlessWallet(page) {
@@ -168,7 +190,22 @@ export async function signMockSolanaMessage(page, message) {
         return window.phantom?.solana?.signMessage(encodedMessage);
     }, message);
 }
-// Cleanup function to remove wallets from memory
+// Uninstall a specific wallet
+export async function uninstallHeadlessWallet(target, walletId) {
+    if (walletId) {
+        wallets.delete(walletId);
+    }
+    // Remove providers from browser context
+    // Use addInitScript to remove providers since evaluate is not available on BrowserContext
+    await target.addInitScript(() => {
+        delete window.ethereum;
+        if (window.phantom) {
+            delete window.phantom.solana;
+        }
+    });
+}
+// Cleanup function to remove all wallets from memory
 export function cleanupHeadlessWallets() {
     wallets.clear();
+    // Note: exposedFunctions WeakSet will auto-cleanup when pages/contexts are closed
 }

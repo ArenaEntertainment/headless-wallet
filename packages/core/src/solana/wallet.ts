@@ -45,10 +45,6 @@ export class SolanaWallet {
     return { publicKey };
   }
 
-  async disconnect(): Promise<void> {
-    this.connected = false;
-    this.emit('disconnect');
-  }
 
   isConnected(): boolean {
     return this.connected;
@@ -155,6 +151,12 @@ export class SolanaWallet {
 
   private emit(event: string, ...args: any[]): void {
     this.listeners.get(event)?.forEach(handler => handler(...args));
+  }
+
+  // Disconnect functionality
+  async disconnect(): Promise<void> {
+    this.connected = false;
+    this.emit('disconnect');
   }
 
   // Utility methods

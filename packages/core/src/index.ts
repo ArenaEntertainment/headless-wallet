@@ -103,6 +103,9 @@ export class HeadlessWallet {
       },
       removeListener: (event: string, handler: (...args: any[]) => void) => {
         this.evmWallet!.removeListener(event, handler);
+      },
+      disconnect: () => {
+        this.evmWallet!.disconnect();
       }
     };
   }
@@ -145,6 +148,18 @@ export class HeadlessWallet {
   // Unified request method (for Playwright bridge)
   async request(args: { method: string; params?: any[]; provider?: 'evm' | 'solana' }): Promise<any> {
     const { method, params, provider } = args;
+
+    // Handle disconnect specially for both providers
+    if (method === 'disconnect') {
+      if (provider === 'evm' && this.evmWallet) {
+        this.evmWallet.disconnect();
+        return null;
+      } else if (provider === 'solana' && this.solanaWallet) {
+        this.solanaWallet.disconnect();
+        return null;
+      }
+      throw new Error(`No ${provider} wallet configured`);
+    }
 
     // Auto-detect provider based on method if not specified
     let targetProvider = provider;

@@ -13,7 +13,8 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@arenaentertainment/headless-wallet": "workspace:*"
+    "@arenaentertainment/headless-wallet": "workspace:*",
+    "viem": "^2.7.8"
   },
   "peerDependencies": {
     "@playwright/test": "^1.45.0"
