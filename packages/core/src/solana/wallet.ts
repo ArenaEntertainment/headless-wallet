@@ -8,9 +8,10 @@ import {
   clusterApiUrl
 } from '@solana/web3.js';
 import * as nacl from 'tweetnacl';
+import { createKeypairFromKey } from './utils.js';
 
 export interface SolanaWalletConfig {
-  secretKeys: Uint8Array[];
+  secretKeys: (string | Uint8Array)[];
   cluster?: 'devnet' | 'testnet' | 'mainnet-beta';
   rpcUrl?: string;
 }
@@ -23,9 +24,9 @@ export class SolanaWallet {
   private connected = false;
 
   constructor(config: SolanaWalletConfig) {
-    // Create real keypairs from secret keys
+    // Create real keypairs from secret keys (supports multiple formats)
     this.keypairs = config.secretKeys.map(secretKey =>
-      Keypair.fromSecretKey(secretKey)
+      createKeypairFromKey(secretKey)
     );
 
     // Set up connection

@@ -79,7 +79,7 @@ export class HeadlessWallet {
     // Create Solana wallet if we have Solana accounts
     if (solanaAccounts.length > 0) {
       const solanaConfig: SolanaWalletConfig = {
-        secretKeys: solanaAccounts.map(acc => acc.privateKey as Uint8Array),
+        secretKeys: solanaAccounts.map(acc => acc.privateKey as string | Uint8Array),
         cluster: config.solana?.cluster,
         rpcUrl: config.solana?.rpcUrl
       };
