@@ -1,3 +1,9 @@
+## 0.2.1 (2025-09-14)
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.3.0
+
 ## 0.2.0 (2025-09-13)
 
 ### 🚀 Features

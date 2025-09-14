@@ -1,3 +1,13 @@
+## 0.3.0 (2025-09-14)
+
+### 🚀 Features
+
+- implement multi-chain account switching with Reown AppKit integration ([15a96b93](https://github.com/ArenaEntertainment/headless-wallet/commit/15a96b93))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.2.0 (2025-09-13)
 
 ### 🚀 Features
