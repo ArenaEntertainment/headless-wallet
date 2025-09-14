@@ -1,3 +1,14 @@
+## 0.5.1 (2025-09-14)
+
+### 🩹 Fixes
+
+- Fix Solana base58 key support and PublicKey serialization ([731eca33](https://github.com/ArenaEntertainment/headless-wallet/commit/731eca33))
+- use bs58 library for proper base58 decoding ([7f9dc06c](https://github.com/ArenaEntertainment/headless-wallet/commit/7f9dc06c))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.5.0 (2025-09-14)
 
 ### 🚀 Features
