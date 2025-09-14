@@ -34,16 +34,24 @@ export class SolanaWallet {
     this.connection = new Connection(rpcUrl, 'confirmed');
   }
 
-  async connect(): Promise<{ publicKey: PublicKey }> {
+  async connect(): Promise<{ publicKey: any }> {
     if (this.keypairs.length === 0) {
       throw new Error('No keypairs available');
     }
 
     this.connected = true;
     const publicKey = this.keypairs[this.currentKeypairIndex].publicKey;
+    const publicKeyString = publicKey.toBase58();
 
-    this.emit('connect', publicKey);
-    return { publicKey };
+    // Create a plain object that can be serialized
+    // This will be enhanced on the browser side with methods
+    const serializablePublicKey = {
+      _bn: publicKey.toBuffer(),
+      _base58: publicKeyString
+    };
+
+    this.emit('connect', serializablePublicKey);
+    return { publicKey: serializablePublicKey };
   }
 
 
@@ -81,17 +89,24 @@ export class SolanaWallet {
     return signedTransactions;
   }
 
-  async signMessage(message: Uint8Array): Promise<{ signature: Uint8Array; publicKey: PublicKey }> {
+  async signMessage(message: Uint8Array): Promise<{ signature: Uint8Array; publicKey: any }> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     const keypair = this.keypairs[this.currentKeypairIndex];
     const signature = nacl.sign.detached(message, keypair.secretKey);
+    const publicKeyString = keypair.publicKey.toBase58();
+
+    // Create a plain object that can be serialized
+    const serializablePublicKey = {
+      _bn: keypair.publicKey.toBuffer(),
+      _base58: publicKeyString
+    };
 
     return {
       signature,
-      publicKey: keypair.publicKey
+      publicKey: serializablePublicKey
     };
   }
 

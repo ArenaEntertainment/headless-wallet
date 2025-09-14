@@ -33,7 +33,7 @@ const TEST_KEYS = {
   jsonArray: '[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,3,161,7,191,243,206,16,190,29,112,221,24,231,75,192,153,103,228,214,48,155,165,13,95,29,220,134,100,18,85,49,184]',
 
   // Base58 string (common format for Solana) - encoding of the 64-byte secret key
-  base58: '2gNkCHHKnmMHb5Q63Xr3Fwnd9xsE6dXBdySzYJdmyY8HGpvNasdaiJ5n8enU5L2Y1vSN9czLeenpuYrCFZVQFUbs',
+  base58: '1GMkH3brNXiNNs1tiFZHu4yZSRrzJwxi5wB9bHFtMikjwpAW9DMZzU2Pqakc5it8X3N5vPmqdN7KF4CCUpmKhq',
 
   // Expected public key for all formats (they should all derive the same public key)
   expectedPublicKey: 'FAe4sisG95oZ42w7buUn5qEE4TAnfTTFPiguZUHmhiF'
@@ -56,7 +56,8 @@ test.describe('Solana String Key Support', () => {
         throw new Error('Solana provider not found');
       }
       const { publicKey } = await window.phantom.solana.connect();
-      return typeof publicKey.toBase58 === 'function' ? publicKey.toBase58() : publicKey.toString();
+      // PublicKey object should have toBase58 method
+      return publicKey.toBase58();
     });
 
     expect(result).toBe(TEST_KEYS.expectedPublicKey);
@@ -77,7 +78,7 @@ test.describe('Solana String Key Support', () => {
         throw new Error('Solana provider not found');
       }
       const { publicKey } = await window.phantom.solana.connect();
-      return typeof publicKey.toBase58 === 'function' ? publicKey.toBase58() : publicKey.toString();
+      return publicKey.toBase58();
     });
 
     expect(result).toBe(TEST_KEYS.expectedPublicKey);
@@ -98,7 +99,7 @@ test.describe('Solana String Key Support', () => {
         throw new Error('Solana provider not found');
       }
       const { publicKey } = await window.phantom.solana.connect();
-      return typeof publicKey.toBase58 === 'function' ? publicKey.toBase58() : publicKey.toString();
+      return publicKey.toBase58();
     });
 
     expect(result).toBe(TEST_KEYS.expectedPublicKey);
@@ -119,7 +120,7 @@ test.describe('Solana String Key Support', () => {
         throw new Error('Solana provider not found');
       }
       const { publicKey } = await window.phantom.solana.connect();
-      return typeof publicKey.toBase58 === 'function' ? publicKey.toBase58() : publicKey.toString();
+      return publicKey.toBase58();
     });
 
     expect(result).toBe(TEST_KEYS.expectedPublicKey);
@@ -140,7 +141,7 @@ test.describe('Solana String Key Support', () => {
         throw new Error('Solana provider not found');
       }
       const { publicKey } = await window.phantom.solana.connect();
-      return typeof publicKey.toBase58 === 'function' ? publicKey.toBase58() : publicKey.toString();
+      return publicKey.toBase58();
     });
 
     expect(result).toBe(TEST_KEYS.expectedPublicKey);
@@ -161,7 +162,7 @@ test.describe('Solana String Key Support', () => {
         throw new Error('Solana provider not found');
       }
       const { publicKey } = await window.phantom.solana.connect();
-      return typeof publicKey.toBase58 === 'function' ? publicKey.toBase58() : publicKey.toString();
+      return publicKey.toBase58();
     });
 
     expect(result).toBe(TEST_KEYS.expectedPublicKey);
@@ -184,7 +185,7 @@ test.describe('Solana String Key Support', () => {
         throw new Error('Solana provider not found');
       }
       const { publicKey } = await window.phantom.solana.connect();
-      return typeof publicKey.toBase58 === 'function' ? publicKey.toBase58() : publicKey.toString();
+      return publicKey.toBase58();
     });
 
     // Should connect with first account
@@ -212,7 +213,7 @@ test.describe('Solana String Key Support', () => {
       const { signature, publicKey } = await window.phantom.solana.signMessage(message);
       return {
         signatureLength: signature.length,
-        publicKey: publicKey.toString()
+        publicKey: publicKey.toBase58()
       };
     });
 

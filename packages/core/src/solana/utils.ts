@@ -1,5 +1,5 @@
 import { Keypair } from '@solana/web3.js';
-import bs58 from 'bs58';
+import * as bs58 from 'bs58';
 
 /**
  * Converts various Solana key formats to Uint8Array
@@ -44,17 +44,19 @@ export function convertSolanaKey(key: string | Uint8Array): Uint8Array {
     } else if (/^[0-9a-fA-F]+$/.test(key) && key.length === 128) {
       // Hex format without prefix (64 bytes = 128 hex chars)
       bytes = hexToBytes(key);
-    } else if (/^[A-Za-z0-9+/]+=*$/.test(key)) {
-      // Base64 format (contains +, /, or = which are not in base58)
-      bytes = base64ToBytes(key);
     } else if (/^[1-9A-HJ-NP-Za-km-z]+$/.test(key)) {
       // Base58 format - uses specific alphabet without 0, O, I, l
       // This is the most common format for Solana keys
+      // Check this BEFORE base64 since base58 is more restrictive
       try {
         bytes = base58ToBytes(key);
       } catch (e: any) {
         throw new Error(`Invalid base58 format: ${e.message || e}`);
       }
+    } else if (/^[A-Za-z0-9+/]+=*$/.test(key)) {
+      // Base64 format (contains +, /, or = which are not in base58)
+      // This must come AFTER base58 check
+      bytes = base64ToBytes(key);
     } else {
       throw new Error(`Invalid Solana secret key format: could not identify format (not JSON array, hex, base64, or base58)`);
     }
@@ -103,10 +105,18 @@ function base64ToBytes(base64: string): Uint8Array {
   }
 }
 
-function base58ToBytes(base58: string): Uint8Array {
+function base58ToBytes(base58String: string): Uint8Array {
   try {
     // Use the bs58 library for proper base58 decoding
-    return bs58.decode(base58);
+    // Handle both ESM and CommonJS imports
+    const bs58Module = (bs58 as any).default || bs58;
+    const decoded = bs58Module.decode(base58String);
+
+    // Ensure it's a Uint8Array
+    if (!(decoded instanceof Uint8Array)) {
+      return new Uint8Array(decoded);
+    }
+    return decoded;
   } catch (e: any) {
     throw new Error(`Invalid base58 string: ${e.message || e}`);
   }
