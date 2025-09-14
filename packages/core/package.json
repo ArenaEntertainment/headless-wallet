@@ -1,6 +1,6 @@
 {
   "name": "@arenaentertainment/headless-wallet",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Universal headless wallet library supporting both EVM and Solana chains",
   "type": "module",
   "main": "./dist/index.js",
