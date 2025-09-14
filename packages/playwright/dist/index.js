@@ -41,7 +41,7 @@ export async function installHeadlessWallet(target, config) {
         }
     }
     // Inject providers into browser context
-    await target.addInitScript(({ walletId, hasEVM, hasSolana, autoConnect, debug }) => {
+    await target.addInitScript(({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }) => {
         // EVM Provider (window.ethereum)
         if (hasEVM) {
             // Event emitter implementation
@@ -49,7 +49,7 @@ export async function installHeadlessWallet(target, config) {
             let isConnected = false;
             let accounts = [];
             const ethereumProvider = {
-                isMetaMask: true,
+                isMetaMask: branding.isMetaMask,
                 request: async (args) => {
                     const result = await window.__headlessWalletRequest({
                         walletId,
@@ -113,9 +113,9 @@ export async function installHeadlessWallet(target, config) {
             // EIP-6963 support
             const info = {
                 uuid: walletId,
-                name: 'Headless Wallet',
-                icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTE0IDI4QzYuMjY4IDI4IDAgMjEuNzMyIDAgMTRTNi4yNjggMCAxNCAwczE0IDYuMjY4IDE0IDE0LTYuMjY4IDE0LTE0IDE0eiIgZmlsbD0iIzA1MkY3MiIvPjwvc3ZnPg==',
-                rdns: 'io.metamask'
+                name: branding.name,
+                icon: branding.icon,
+                rdns: branding.rdns
             };
             const announceProvider = () => {
                 window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
@@ -138,7 +138,7 @@ export async function installHeadlessWallet(target, config) {
             let solanaConnected = false;
             let solanaPublicKey = null;
             const solanaProvider = {
-                isPhantom: true,
+                isPhantom: branding.isPhantom,
                 isConnected: false,
                 publicKey: null,
                 connect: async () => {
@@ -218,6 +218,7 @@ export async function installHeadlessWallet(target, config) {
         walletId,
         hasEVM: wallet.hasEVM(),
         hasSolana: wallet.hasSolana(),
+        branding: wallet.getBranding(),
         autoConnect,
         debug
     });

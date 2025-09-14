@@ -142,6 +142,10 @@ export class HeadlessWallet {
     hasSolana() {
         return !!this.solanaWallet;
     }
+    // Get wallet branding
+    getBranding() {
+        return this.branding;
+    }
     // Account switching methods
     switchEVMAccount(index) {
         if (!this.evmWallet) {

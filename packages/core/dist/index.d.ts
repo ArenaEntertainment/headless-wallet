@@ -77,6 +77,7 @@ export declare class HeadlessWallet {
     }): Promise<any>;
     hasEVM(): boolean;
     hasSolana(): boolean;
+    getBranding(): WalletBranding;
     switchEVMAccount(index: number): void;
     switchSolanaAccount(index: number): void;
     getEVMAccountInfo(): {
