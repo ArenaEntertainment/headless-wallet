@@ -51,6 +51,10 @@
         "createRelease": "github"
       }
     },
-    "releaseTagPattern": "{projectName}-v{version}"
+    "releaseTagPattern": "{projectName}-v{version}",
+    "npm": {
+      "publish": true,
+      "access": "public"
+    }
   }
 }
