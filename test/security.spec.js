@@ -450,9 +450,9 @@ test.describe('Security Testing', () => {
         shouldFail: false
       },
       {
-        name: 'Valid address (zero address)',
+        name: 'Zero address (not in our accounts)',
         address: '0x0000000000000000000000000000000000000000',
-        shouldFail: false
+        shouldFail: true  // Should fail because it's not one of our test accounts
       }
     ];
 

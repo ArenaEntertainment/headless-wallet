@@ -8,17 +8,23 @@ import { Keypair, PublicKey, Transaction, VersionedTransaction } from '@solana/w
 import * as nacl from 'tweetnacl'
 import { registerWallet } from '@wallet-standard/wallet'
 import type { Wallet, WalletAccount } from '@wallet-standard/base'
+import { injectHeadlessWallet, type HeadlessWalletConfig } from '@arenaentertainment/headless-wallet'
 
-// Test accounts - using hardhat test keys for EVM and a generated Solana key
+// Test accounts - using hardhat test keys for EVM and multiple Solana keys for testing
 const TEST_ACCOUNTS = {
   evm: [
-    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
-    '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d'
+    '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',  // Account 0
+    '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',  // Account 1
+    '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a'   // Account 2
   ],
-  solana: {
-    // Generated Solana test account for consistent testing
-    secretKey: new Uint8Array([141,196,137,34,144,18,247,222,228,224,112,55,202,220,93,49,244,240,19,46,249,76,139,247,222,31,248,121,93,21,121,81,89,224,220,231,50,198,164,55,90,7,80,82,149,109,43,91,192,216,216,220,56,87,102,98,191,29,217,200,188,229,164,181])
-  }
+  solana: [
+    // Account 0
+    new Uint8Array([141,196,137,34,144,18,247,222,228,224,112,55,202,220,93,49,244,240,19,46,249,76,139,247,222,31,248,121,93,21,121,81,89,224,220,231,50,198,164,55,90,7,80,82,149,109,43,91,192,216,216,220,56,87,102,98,191,29,217,200,188,229,164,181]),
+    // Account 1
+    new Uint8Array([158,208,18,143,85,204,67,4,69,201,127,1,200,138,155,142,8,183,204,226,198,130,94,174,197,141,97,16,87,87,80,162,109,188,240,101,70,25,226,101,166,167,125,111,203,180,234,15,16,145,224,107,177,81,33,109,211,247,159,172,118,26,91,56]),
+    // Account 2
+    new Uint8Array([245,247,23,4,51,207,216,20,133,135,226,36,96,227,135,77,118,29,98,219,235,37,52,114,147,47,132,107,181,127,159,33,175,204,71,219,133,44,117,114,95,35,93,99,59,84,200,116,201,207,244,34,41,71,80,67,188,99,198,9,9,201,128,25])
+  ]
 }
 
 // Helper function to derive addresses from private keys

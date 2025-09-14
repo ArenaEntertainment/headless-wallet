@@ -231,39 +231,33 @@ test.describe('Network Failures and Recovery', () => {
 
     // Test Solana operations that might involve network calls
     const solanaNetworkTests = [
-      {
-        name: 'Message signing',
-        operation: async () => {
-          const message = new TextEncoder().encode('Network connectivity test');
-          return await window.phantom.solana.signMessage(message);
-        }
-      },
-      {
-        name: 'Connection status',
-        operation: async () => {
-          // Test if wallet is still connected
-          return await window.phantom.solana.connect();
-        }
-      }
+      'Message signing',
+      'Connection status'
     ];
 
-    for (const testCase of solanaNetworkTests) {
-      const result = await page.evaluate(async (test) => {
+    for (const testName of solanaNetworkTests) {
+      const result = await page.evaluate(async (name) => {
         try {
-          const response = await eval(`(${test.operation.toString()})()`);
+          let response;
+          if (name === 'Message signing') {
+            const message = new TextEncoder().encode('Network connectivity test');
+            response = await window.phantom.solana.signMessage(message);
+          } else if (name === 'Connection status') {
+            response = await window.phantom.solana.connect();
+          }
           return {
             success: true,
-            name: test.name,
+            name: name,
             hasResponse: !!response
           };
         } catch (error) {
           return {
             success: false,
-            name: test.name,
+            name: name,
             error: error.message
           };
         }
-      }, testCase);
+      }, testName);
 
       if (result.success) {
         expect(result.hasResponse).toBe(true);
