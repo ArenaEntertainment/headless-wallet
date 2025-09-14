@@ -1,11 +1,12 @@
 import { Keypair } from '@solana/web3.js';
+import bs58 from 'bs58';
 
 /**
  * Converts various Solana key formats to Uint8Array
  * Supports:
  * - Uint8Array (64 bytes) - returns as is
  * - JSON array string - parses array of numbers
- * - Base58 string - decodes from base58
+ * - Base58 string - decodes from base58 (common for Solana)
  * - Hex string (0x prefixed or not) - decodes from hex
  * - Base64 string - decodes from base64
  */
@@ -44,16 +45,18 @@ export function convertSolanaKey(key: string | Uint8Array): Uint8Array {
       // Hex format without prefix (64 bytes = 128 hex chars)
       bytes = hexToBytes(key);
     } else if (/^[A-Za-z0-9+/]+=*$/.test(key)) {
-      // Base64 format
+      // Base64 format (contains +, /, or = which are not in base58)
       bytes = base64ToBytes(key);
-    } else {
-      // Assume base58 format (most common for Solana)
-      // Try to use it directly with Keypair - it might handle base58 internally
+    } else if (/^[1-9A-HJ-NP-Za-km-z]+$/.test(key)) {
+      // Base58 format - uses specific alphabet without 0, O, I, l
+      // This is the most common format for Solana keys
       try {
         bytes = base58ToBytes(key);
-      } catch (e) {
-        throw new Error(`Invalid Solana secret key format: could not decode as JSON array, hex, base64, or base58`);
+      } catch (e: any) {
+        throw new Error(`Invalid base58 format: ${e.message || e}`);
       }
+    } else {
+      throw new Error(`Invalid Solana secret key format: could not identify format (not JSON array, hex, base64, or base58)`);
     }
 
     // Validate length
@@ -100,43 +103,13 @@ function base64ToBytes(base64: string): Uint8Array {
   }
 }
 
-// Base58 alphabet used by Bitcoin and Solana
-const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
 function base58ToBytes(base58: string): Uint8Array {
-  if (!base58 || base58.length === 0) {
-    return new Uint8Array(0);
+  try {
+    // Use the bs58 library for proper base58 decoding
+    return bs58.decode(base58);
+  } catch (e: any) {
+    throw new Error(`Invalid base58 string: ${e.message || e}`);
   }
-
-  const bytes: number[] = [0];
-
-  for (let i = 0; i < base58.length; i++) {
-    const char = base58[i];
-    const value = BASE58_ALPHABET.indexOf(char);
-
-    if (value === -1) {
-      throw new Error(`Invalid base58 character: ${char}`);
-    }
-
-    let carry = value;
-    for (let j = 0; j < bytes.length; j++) {
-      carry += bytes[j] * 58;
-      bytes[j] = carry & 0xff;
-      carry >>= 8;
-    }
-
-    while (carry > 0) {
-      bytes.push(carry & 0xff);
-      carry >>= 8;
-    }
-  }
-
-  // Handle leading zeros
-  for (let i = 0; i < base58.length && base58[i] === '1'; i++) {
-    bytes.push(0);
-  }
-
-  return new Uint8Array(bytes.reverse());
 }
 
 /**
