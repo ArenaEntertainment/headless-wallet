@@ -268,6 +268,47 @@ test('message signing', async ({ page }) => {
 });
 ```
 
+### Multiple Wallet Support
+
+The library supports multiple headless wallets coexisting on the same page, useful for testing wallet selection flows:
+
+```typescript
+test('multiple wallets', async ({ page }) => {
+  // Install first wallet (EIP-6963 only, no window.ethereum)
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: '0xac0974...', type: 'evm' }],
+    branding: { name: 'Wallet A', rdns: 'com.test.walletA' },
+    windowEthereumMode: 'none'  // Only EIP-6963, no window.ethereum
+  });
+
+  // Install second wallet (EIP-6963 only)
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: '0x59c699...', type: 'evm' }],
+    branding: { name: 'Wallet B', rdns: 'com.test.walletB' },
+    windowEthereumMode: 'none'
+  });
+
+  // Both wallets are now discoverable via EIP-6963
+  // Your dApp's wallet selector will see both options
+});
+```
+
+#### Window Ethereum Modes
+
+Control how the wallet handles `window.ethereum`:
+
+- `'replace'` (default): Replace window.ethereum with this wallet
+- `'none'`: Don't set window.ethereum (EIP-6963 only)
+- `'array'`: Use EIP-5749 pattern for multiple wallets
+
+```typescript
+// EIP-5749: Multiple wallets as array
+await installHeadlessWallet(page, {
+  accounts: [...],
+  windowEthereumMode: 'array'  // Adds to window.ethereum array
+});
+```
+
 ## License
 
 MIT

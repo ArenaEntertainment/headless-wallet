@@ -7,7 +7,7 @@ export async function installHeadlessWallet(target, config) {
     const walletId = `wallet-${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const wallet = new HeadlessWallet(config);
     wallets.set(walletId, wallet);
-    const { autoConnect = false, debug = false } = config;
+    const { autoConnect = false, debug = false, windowEthereumMode = 'replace', windowSolanaMode = 'replace' } = config;
     // Only expose if not already exposed to avoid re-installation errors
     if (!exposedFunctions.has(target)) {
         try {
@@ -41,7 +41,7 @@ export async function installHeadlessWallet(target, config) {
         }
     }
     // Define the injection script
-    const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }) => {
+    const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug, windowEthereumMode, windowSolanaMode }) => {
         // EVM Provider (window.ethereum)
         if (hasEVM) {
             // Event emitter implementation
@@ -109,7 +109,43 @@ export async function installHeadlessWallet(target, config) {
                     return result;
                 }
             };
-            window.ethereum = ethereumProvider;
+            // Install provider based on mode
+            if (windowEthereumMode === 'replace') {
+                window.ethereum = ethereumProvider;
+            }
+            else if (windowEthereumMode === 'array') {
+                // EIP-5749: Support multiple wallets via array
+                if (!window.ethereum) {
+                    // No existing provider, create array
+                    window.ethereum = [ethereumProvider];
+                    // Add proxy methods to the array for backward compatibility
+                    Object.assign(window.ethereum, {
+                        request: ethereumProvider.request,
+                        on: ethereumProvider.on,
+                        removeListener: ethereumProvider.removeListener,
+                        disconnect: ethereumProvider.disconnect,
+                        isMetaMask: ethereumProvider.isMetaMask
+                    });
+                }
+                else if (Array.isArray(window.ethereum)) {
+                    // Already an array, add to it
+                    window.ethereum.push(ethereumProvider);
+                }
+                else {
+                    // Single provider exists, convert to array
+                    const existingProvider = window.ethereum;
+                    window.ethereum = [existingProvider, ethereumProvider];
+                    // Keep the existing provider's methods as default
+                    Object.assign(window.ethereum, {
+                        request: existingProvider.request,
+                        on: existingProvider.on,
+                        removeListener: existingProvider.removeListener,
+                        disconnect: existingProvider.disconnect,
+                        isMetaMask: existingProvider.isMetaMask
+                    });
+                }
+            }
+            // If mode is 'none', don't set window.ethereum at all
             // Track provider for cleanup
             if (!window.__headlessWalletProviders) {
                 window.__headlessWalletProviders = new Map();
@@ -216,7 +252,11 @@ export async function installHeadlessWallet(target, config) {
             if (!window.phantom) {
                 window.phantom = {};
             }
-            window.phantom.solana = solanaProvider;
+            // Install Solana provider based on mode
+            if (windowSolanaMode === 'replace') {
+                window.phantom.solana = solanaProvider;
+            }
+            // If mode is 'none', don't set window.phantom.solana
             // Track Solana provider for cleanup
             if (!window.__headlessWalletProviders) {
                 window.__headlessWalletProviders = new Map();
@@ -243,7 +283,9 @@ export async function installHeadlessWallet(target, config) {
         hasSolana: wallet.hasSolana(),
         branding: wallet.getBranding(),
         autoConnect,
-        debug
+        debug,
+        windowEthereumMode,
+        windowSolanaMode
     };
     // Add script for future navigations
     await target.addInitScript(injectionScript, injectionParams);

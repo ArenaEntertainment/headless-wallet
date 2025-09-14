@@ -9,18 +9,38 @@ const wallets = new Map<string, HeadlessWallet>();
 // Track exposed functions to avoid re-exposure errors
 const exposedFunctions: WeakSet<Page | BrowserContext> = new WeakSet();
 
+export interface InstallOptions {
+  autoConnect?: boolean;
+  debug?: boolean;
+  /**
+   * How to handle window.ethereum:
+   * - 'replace': Replace window.ethereum (default, legacy behavior)
+   * - 'none': Don't set window.ethereum at all (only EIP-6963)
+   * - 'array': Use EIP-5749 wallet array pattern
+   */
+  windowEthereumMode?: 'replace' | 'none' | 'array';
+  /**
+   * How to handle window.phantom.solana:
+   * - 'replace': Replace window.phantom.solana (default)
+   * - 'none': Don't set window.phantom.solana
+   */
+  windowSolanaMode?: 'replace' | 'none';
+}
+
 export async function installHeadlessWallet(
   target: Page | BrowserContext,
-  config: HeadlessWalletConfig & {
-    autoConnect?: boolean;
-    debug?: boolean;
-  }
+  config: HeadlessWalletConfig & InstallOptions
 ): Promise<string> {
   const walletId = `wallet-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   const wallet = new HeadlessWallet(config);
   wallets.set(walletId, wallet);
 
-  const { autoConnect = false, debug = false } = config;
+  const {
+    autoConnect = false,
+    debug = false,
+    windowEthereumMode = 'replace',
+    windowSolanaMode = 'replace'
+  } = config;
 
   // Only expose if not already exposed to avoid re-installation errors
   if (!exposedFunctions.has(target)) {
@@ -63,7 +83,7 @@ export async function installHeadlessWallet(
   }
 
   // Define the injection script
-  const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }: any) => {
+  const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug, windowEthereumMode, windowSolanaMode }: any) => {
       // EVM Provider (window.ethereum)
       if (hasEVM) {
         // Event emitter implementation
@@ -137,7 +157,40 @@ export async function installHeadlessWallet(
           }
         };
 
-        (window as any).ethereum = ethereumProvider;
+        // Install provider based on mode
+        if (windowEthereumMode === 'replace') {
+          (window as any).ethereum = ethereumProvider;
+        } else if (windowEthereumMode === 'array') {
+          // EIP-5749: Support multiple wallets via array
+          if (!(window as any).ethereum) {
+            // No existing provider, create array
+            (window as any).ethereum = [ethereumProvider];
+            // Add proxy methods to the array for backward compatibility
+            Object.assign((window as any).ethereum, {
+              request: ethereumProvider.request,
+              on: ethereumProvider.on,
+              removeListener: ethereumProvider.removeListener,
+              disconnect: ethereumProvider.disconnect,
+              isMetaMask: ethereumProvider.isMetaMask
+            });
+          } else if (Array.isArray((window as any).ethereum)) {
+            // Already an array, add to it
+            (window as any).ethereum.push(ethereumProvider);
+          } else {
+            // Single provider exists, convert to array
+            const existingProvider = (window as any).ethereum;
+            (window as any).ethereum = [existingProvider, ethereumProvider];
+            // Keep the existing provider's methods as default
+            Object.assign((window as any).ethereum, {
+              request: existingProvider.request,
+              on: existingProvider.on,
+              removeListener: existingProvider.removeListener,
+              disconnect: existingProvider.disconnect,
+              isMetaMask: existingProvider.isMetaMask
+            });
+          }
+        }
+        // If mode is 'none', don't set window.ethereum at all
 
         // Track provider for cleanup
         if (!(window as any).__headlessWalletProviders) {
@@ -261,7 +314,11 @@ export async function installHeadlessWallet(
         if (!(window as any).phantom) {
           (window as any).phantom = {};
         }
-        (window as any).phantom.solana = solanaProvider;
+        // Install Solana provider based on mode
+        if (windowSolanaMode === 'replace') {
+          (window as any).phantom.solana = solanaProvider;
+        }
+        // If mode is 'none', don't set window.phantom.solana
 
         // Track Solana provider for cleanup
         if (!(window as any).__headlessWalletProviders) {
@@ -292,7 +349,9 @@ export async function installHeadlessWallet(
     hasSolana: wallet.hasSolana(),
     branding: wallet.getBranding(),
     autoConnect,
-    debug
+    debug,
+    windowEthereumMode,
+    windowSolanaMode
   };
 
   // Add script for future navigations
