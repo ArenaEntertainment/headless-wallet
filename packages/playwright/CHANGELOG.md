@@ -1,3 +1,21 @@
+## 0.4.0 (2025-09-14)
+
+### 🚀 Features
+
+- add comprehensive test coverage for new features ([b567bf03](https://github.com/ArenaEntertainment/headless-wallet/commit/b567bf03))
+
+### 🩹 Fixes
+
+- achieve feature parity with wallet-mock and fix critical issues ([#1](https://github.com/ArenaEntertainment/headless-wallet/issues/1), [#2](https://github.com/ArenaEntertainment/headless-wallet/issues/2), [#3](https://github.com/ArenaEntertainment/headless-wallet/issues/3))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.4.3
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.3.2 (2025-09-14)
 
 ### 🧱 Updated Dependencies

@@ -1,3 +1,13 @@
+## 0.4.3 (2025-09-14)
+
+### 🩹 Fixes
+
+- achieve feature parity with wallet-mock and fix critical issues ([#1](https://github.com/ArenaEntertainment/headless-wallet/issues/1), [#2](https://github.com/ArenaEntertainment/headless-wallet/issues/2), [#3](https://github.com/ArenaEntertainment/headless-wallet/issues/3))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.2 (2025-09-14)
 
 This was a version bump only for @arenaentertainment/headless-wallet to align it with other projects, there were no code changes.
