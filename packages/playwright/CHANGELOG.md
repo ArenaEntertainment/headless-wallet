@@ -1,3 +1,17 @@
+## 0.4.2 (2025-09-14)
+
+### 🩹 Fixes
+
+- use wallet branding from core instead of hardcoding in playwright adapter ([aa929afa](https://github.com/ArenaEntertainment/headless-wallet/commit/aa929afa))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.4.5
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.1 (2025-09-14)
 
 ### 🩹 Fixes
