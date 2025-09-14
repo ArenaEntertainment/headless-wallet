@@ -1,3 +1,17 @@
+## 0.4.6 (2025-09-14)
+
+### 🩹 Fixes
+
+- update default wallet icon to have square background ([457d13b6](https://github.com/ArenaEntertainment/headless-wallet/commit/457d13b6))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.4.9
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.5 (2025-09-14)
 
 ### 🧱 Updated Dependencies
