@@ -172,6 +172,38 @@ Unlike other mock libraries that return fake data, this library:
 }
 ```
 
+### RPC Configuration
+
+Configure custom RPC endpoints for both EVM and Solana chains:
+
+```typescript
+{
+  accounts: [...],
+
+  // EVM RPC Configuration
+  evm: {
+    // Option 1: Simple RPC URL
+    rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY',
+
+    // Option 2: Advanced with viem transports (for multiple chains)
+    transports: {
+      1: http('https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY'),
+      137: http('https://polygon-mainnet.g.alchemy.com/v2/YOUR_API_KEY')
+    },
+    defaultChain: mainnet
+  },
+
+  // Solana RPC Configuration
+  solana: {
+    // Custom RPC endpoint
+    rpcUrl: 'https://api.mainnet-beta.solana.com',
+
+    // Or use a predefined cluster
+    cluster: 'mainnet-beta' // 'devnet' | 'testnet' | 'mainnet-beta'
+  }
+}
+```
+
 ### Custom Wallet Branding
 
 Customize how your wallet appears in connection UIs:
