@@ -237,14 +237,23 @@ export async function uninstallHeadlessWallet(target: Page | BrowserContext, wal
     wallets.delete(walletId);
   }
 
-  // Remove providers from browser context
-  // Use addInitScript to remove providers since evaluate is not available on BrowserContext
-  await target.addInitScript(() => {
-    delete (window as any).ethereum;
-    if ((window as any).phantom) {
-      delete (window as any).phantom.solana;
-    }
-  });
+  // For Page, use evaluate to immediately remove providers
+  if ('evaluate' in target) {
+    await target.evaluate(() => {
+      delete (window as any).ethereum;
+      if ((window as any).phantom) {
+        delete (window as any).phantom.solana;
+      }
+    });
+  } else {
+    // For BrowserContext, use addInitScript for future pages
+    await target.addInitScript(() => {
+      delete (window as any).ethereum;
+      if ((window as any).phantom) {
+        delete (window as any).phantom.solana;
+      }
+    });
+  }
 }
 
 // Cleanup function to remove all wallets from memory
