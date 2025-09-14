@@ -49,14 +49,14 @@ export declare class HeadlessWallet {
     getSolanaProvider(): {
         isPhantom: boolean | undefined;
         connect: () => Promise<{
-            publicKey: import("@solana/web3.js").PublicKey;
+            publicKey: any;
         }>;
         disconnect: () => Promise<void>;
         signTransaction: (transaction: any) => Promise<import("@solana/web3.js").Transaction | import("@solana/web3.js").VersionedTransaction>;
         signAllTransactions: (transactions: any[]) => Promise<(import("@solana/web3.js").Transaction | import("@solana/web3.js").VersionedTransaction)[]>;
         signMessage: (message: Uint8Array) => Promise<{
             signature: Uint8Array;
-            publicKey: import("@solana/web3.js").PublicKey;
+            publicKey: any;
         }>;
         signAndSendTransaction: (transaction: any) => Promise<{
             signature: string;

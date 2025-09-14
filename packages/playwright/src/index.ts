@@ -236,6 +236,21 @@ export async function installHeadlessWallet(
 
       // Solana Provider (window.phantom.solana)
       if (hasSolana) {
+        // Helper to create PublicKey-like object from plain data
+        const createPublicKeyObject = (data: any) => {
+          if (!data) return null;
+          // If it already has methods, return as-is
+          if (typeof data.toBase58 === 'function') return data;
+          // Create object with methods from plain data
+          const base58String = data._base58 || data.toString();
+          return {
+            ...data,
+            toBase58: () => base58String,
+            toString: () => base58String,
+            toJSON: () => base58String
+          };
+        };
+
         // Event emitter implementation for Solana
         const solanaListeners: Map<string, Set<(...args: any[]) => void>> = new Map();
         let solanaConnected = false;
@@ -253,14 +268,19 @@ export async function installHeadlessWallet(
             });
 
             if (result && result.publicKey) {
+              // Create PublicKey-like object from plain data
+              const publicKeyObj = createPublicKeyObject(result.publicKey);
+
               solanaConnected = true;
-              solanaPublicKey = result.publicKey;
+              solanaPublicKey = publicKeyObj;
               solanaProvider.isConnected = true;
-              solanaProvider.publicKey = result.publicKey;
+              solanaProvider.publicKey = publicKeyObj;
 
               // Emit connect event
               const handlers = solanaListeners.get('connect') || [];
-              handlers.forEach(handler => handler(result.publicKey));
+              handlers.forEach(handler => handler(publicKeyObj));
+
+              return { publicKey: publicKeyObj };
             }
 
             return result;
@@ -293,12 +313,19 @@ export async function installHeadlessWallet(
             });
           },
           signMessage: async (message: Uint8Array) => {
-            return await (window as any).__headlessWalletRequest({
+            const result = await (window as any).__headlessWalletRequest({
               walletId,
               method: 'signMessage',
               params: [message],
               provider: 'solana'
             });
+
+            // Enhance publicKey with methods if needed
+            if (result && result.publicKey) {
+              result.publicKey = createPublicKeyObject(result.publicKey);
+            }
+
+            return result;
           },
           on: (event: string, handler: (...args: any[]) => void) => {
             if (!solanaListeners.has(event)) {
