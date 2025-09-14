@@ -163,9 +163,28 @@ Unlike other mock libraries that return fake data, this library:
       type: 'evm'
     },
 
-    // Solana account with private key (base58)
+    // Solana account - supports multiple key formats:
+    // Uint8Array (64 bytes)
     {
-      privateKey: '5J2X...[base58 key]',
+      privateKey: new Uint8Array([/* 64 bytes */]),
+      type: 'solana'
+    },
+
+    // Hex string (with or without 0x prefix)
+    {
+      privateKey: '0x0001020304...', // 128 hex chars for 64 bytes
+      type: 'solana'
+    },
+
+    // Base64 string
+    {
+      privateKey: 'AAECAwQFBg...', // base64 encoded 64 bytes
+      type: 'solana'
+    },
+
+    // JSON array string
+    {
+      privateKey: '[0,1,2,3,4,5,...]', // JSON array of 64 numbers
       type: 'solana'
     }
   ]
