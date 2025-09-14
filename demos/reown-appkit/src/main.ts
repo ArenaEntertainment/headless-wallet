@@ -557,6 +557,11 @@ const appKit = createAppKit({
   }
 })
 
+// Store AppKit state globally for use in updateUI
+let currentAppKitState: any = {}
+// Expose to window for debugging
+;(window as any).currentAppKitState = currentAppKitState
+
 // Try to hook into AppKit's disconnect mechanism
 let lastConnectedState = false
 try {
@@ -567,6 +572,11 @@ try {
     const stateHandler = (state: any) => {
       const stateStr = JSON.stringify(state)
       addLog(`🔍 AppKit state change: ${stateStr.substring(0, 100)}...`)
+
+      // Store state globally for updateUI
+      currentAppKitState = state || {}
+      ;(window as any).currentAppKitState = currentAppKitState
+      updateUI()
 
       // Monitor for disconnect attempts by checking if AppKit thinks we're disconnected
       // while our wallet still thinks it's connected
@@ -616,8 +626,19 @@ setInterval(() => {
 
 // UI Functions
 function updateUI() {
-  const isEVMConnected = !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
-  const isSolanaConnected = mockSolanaWallet.connected
+  // Check the active chain from AppKit state
+  const activeChain = currentAppKitState.activeChain || currentAppKitState.selectedNetworkId || ''
+  const isSolanaChain = activeChain.includes('solana')
+  const isEVMChain = activeChain.includes('eip155') || activeChain.includes('0x')
+
+  // Check wallet connection status - use wallet state since AppKit doesn't provide address/isConnected
+  const walletEVMConnected = headlessWallet && !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
+  const walletSolanaConnected = mockSolanaWallet.connected
+
+  // Determine connection status based on both AppKit chain selection and wallet state
+  // When AppKit selects Solana chain, we should show Solana as connected if wallet is connected
+  const isEVMConnected = walletEVMConnected && isEVMChain
+  const isSolanaConnected = walletSolanaConnected && isSolanaChain
 
   // Update connection status
   const statusEl = document.getElementById('connection-status')
@@ -689,19 +710,43 @@ function updateUI() {
     if (btn) btn.disabled = !isEVMConnected
   })
 
-  // Enable/disable Solana buttons (they work independently)
+  // Enable/disable Solana buttons based on AppKit state
   const solanaButtons = ['solana-connect', 'solana-disconnect', 'solana-sign-message', 'solana-send-transaction']
   solanaButtons.forEach(id => {
     const btn = document.getElementById(id) as HTMLButtonElement
     if (btn) {
       if (id === 'solana-connect') {
-        btn.disabled = false // Connect always available
+        btn.disabled = isSolanaConnected // Disable if already connected via AppKit
       } else {
-        btn.disabled = !mockSolanaWallet.connected
+        btn.disabled = !isSolanaConnected // Enable only if connected via AppKit
       }
     }
   })
+
+  // Update Solana result section based on AppKit connection status
+  const solanaResultEl = document.getElementById('solana-result')
+  if (solanaResultEl) {
+    if (isSolanaConnected) {
+      // Use address from AppKit state if it's a Solana address
+      const solanaAddress = currentAppKitState.address || mockSolanaWallet.publicKey?.toBase58() || ''
+      solanaResultEl.innerHTML = `
+        <div class="info-box">
+          <h4>Solana Connected</h4>
+          <div class="code">Public Key: ${solanaAddress}</div>
+        </div>
+      `
+    } else {
+      solanaResultEl.innerHTML = `
+        <div class="info-box">
+          <h4>Solana Disconnected</h4>
+        </div>
+      `
+    }
+  }
 }
+
+// Expose updateUI to window for debugging
+;(window as any).updateUI = updateUI
 
 // Event handlers
 document.addEventListener('DOMContentLoaded', () => {
