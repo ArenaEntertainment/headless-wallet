@@ -1,3 +1,13 @@
+## 0.5.0 (2025-09-14)
+
+### 🚀 Features
+
+- add support for Solana private keys as strings ([#8](https://github.com/ArenaEntertainment/headless-wallet/issues/8))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.9 (2025-09-14)
 
 ### 🎨 Styles
