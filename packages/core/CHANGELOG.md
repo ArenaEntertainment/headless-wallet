@@ -1,3 +1,13 @@
+## 0.4.7 (2025-09-14)
+
+### 🩹 Fixes
+
+- handle hex-encoded messages in personal_sign for ethers v6 compatibility ([#6](https://github.com/ArenaEntertainment/headless-wallet/issues/6))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.6 (2025-09-14)
 
 This was a version bump only for @arenaentertainment/headless-wallet to align it with other projects, there were no code changes.
