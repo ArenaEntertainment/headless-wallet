@@ -1,3 +1,13 @@
+## 0.4.9 (2025-09-14)
+
+### 🎨 Styles
+
+- update default wallet icon to have square background instead of rounded corners
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.8 (2025-09-14)
 
 This was a version bump only for @arenaentertainment/headless-wallet to align it with other projects, there were no code changes.
