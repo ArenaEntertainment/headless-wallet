@@ -616,17 +616,8 @@ setInterval(() => {
 
 // UI Functions
 function updateUI() {
-  // Get connection state from AppKit
-  const providers = appKit.getProviders ? appKit.getProviders() : {}
-  const modalState = appKit.getState ? appKit.getState() : {}
-
-  // Check which providers are connected
-  const evmProvider = providers['eip155']
-  const solanaProvider = providers['solana']
-
-  // Determine connection states from AppKit providers
-  const isEVMConnected = !!evmProvider
-  const isSolanaConnected = !!solanaProvider
+  const isEVMConnected = !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
+  const isSolanaConnected = mockSolanaWallet.connected
 
   // Update connection status
   const statusEl = document.getElementById('connection-status')
@@ -644,50 +635,34 @@ function updateUI() {
   if (accountEl) {
     const sections = []
 
-    if (isEVMConnected && evmProvider) {
-      try {
-        // Get accounts from the EVM provider
-        evmProvider.request({ method: 'eth_accounts' }).then((accounts: string[]) => {
-          if (accounts && accounts.length > 0) {
-            const evmSection = `
-              <h4>EVM Accounts</h4>
-              ${accounts.map((address, i) => `
-                <div class="code">Account ${i + 1}: ${address}</div>
-              `).join('')}
-            `
-            const existingSections = sections.filter(s => !s.includes('EVM Accounts'))
-            existingSections.unshift(evmSection)
-            accountEl.innerHTML = `<div class="wallet-info">${existingSections.join('')}</div>`
-          }
-        }).catch(() => {})
-      } catch (e) {}
+    if (isEVMConnected) {
+      const evmAddresses = getEVMAddresses()
+      sections.push(`
+        <h4>EVM Accounts</h4>
+        ${evmAddresses.map((address, i) => `
+          <div class="code">Account ${i + 1}: ${address}</div>
+        `).join('')}
+      `)
     }
 
-    if (isSolanaConnected && solanaProvider) {
-      try {
-        // Get the public key from Solana provider
-        if (solanaProvider.publicKey) {
-          const solanaPublicKey = solanaProvider.publicKey.toBase58 ?
-            solanaProvider.publicKey.toBase58() :
-            solanaProvider.publicKey.toString()
-          sections.push(`
-            <h4>Solana Account</h4>
-            <div class="code">Public Key: ${solanaPublicKey}</div>
-          `)
-        }
-      } catch (e) {}
+    if (isSolanaConnected) {
+      const solanaPublicKey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana[0]).publicKey.toBase58()
+      sections.push(`
+        <h4>Solana Account</h4>
+        <div class="code">Public Key: ${solanaPublicKey}</div>
+      `)
     }
 
     if (sections.length > 0) {
       accountEl.innerHTML = `<div class="wallet-info">${sections.join('')}</div>`
-    } else if (!isEVMConnected && !isSolanaConnected) {
+    } else {
       accountEl.innerHTML = '<p>Connect your wallet to see account details</p>'
     }
   }
 
   // Update network info
   const networkEl = document.getElementById('network-info')
-  if (networkEl && isEVMConnected && evmProvider) {
+  if (networkEl && isEVMConnected) {
     const chainNames: { [key: string]: string } = {
       '0x1': 'Ethereum Mainnet',
       '0x89': 'Polygon',
@@ -695,18 +670,14 @@ function updateUI() {
       '0xa': 'Optimism'
     }
 
-    // Get chain ID from the provider
-    try {
-      evmProvider.request({ method: 'eth_chainId' }).then((chainId: string) => {
-        networkEl.innerHTML = `
-          <div class="info-box">
-            <h4>Current Network</h4>
-            <div class="code">Chain ID: ${chainId}</div>
-            <div class="code">Network: ${chainNames[chainId] || 'Unknown'}</div>
-          </div>
-        `
-      }).catch(() => {})
-    } catch (e) {}
+    const chainId = headlessWallet['currentChain']
+    networkEl.innerHTML = `
+      <div class="info-box">
+        <h4>Current Network</h4>
+        <div class="code">Chain ID: ${chainId}</div>
+        <div class="code">Network: ${chainNames[chainId] || 'Unknown'}</div>
+      </div>
+    `
   } else if (networkEl) {
     networkEl.innerHTML = '<p>Connect to see network details</p>'
   }
@@ -783,17 +754,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Signing buttons
   document.getElementById('sign-message')?.addEventListener('click', async () => {
     try {
-      const providers = appKit.getProviders ? appKit.getProviders() : {}
-      const evmProvider = providers['eip155']
-
-      if (!evmProvider) {
-        addLog('❌ No EVM provider connected')
-        return
-      }
-
-      const accounts = await evmProvider.request({ method: 'eth_accounts' })
+      const accounts = await headlessWallet.request({ method: 'eth_accounts' })
       const message = 'Hello from Arena Headless Wallet!'
-      const signature = await evmProvider.request({
+      const signature = await headlessWallet.request({
         method: 'personal_sign',
         params: [message, accounts[0]]
       })
@@ -913,16 +876,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('solana-sign-message')?.addEventListener('click', async () => {
     try {
-      const providers = appKit.getProviders ? appKit.getProviders() : {}
-      const solanaProvider = providers['solana']
-
-      if (!solanaProvider) {
-        addLog('❌ No Solana provider connected')
-        return
-      }
-
       const message = new TextEncoder().encode('Hello from Arena Headless Wallet on Solana!')
-      const result = await solanaProvider.signMessage(message)
+      const result = await mockSolanaWallet.signMessage(message)
 
       document.getElementById('solana-result')!.innerHTML = `
         <div class="info-box">
@@ -974,14 +929,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initial UI update
   updateUI()
-
-  // Subscribe to AppKit provider changes to update UI
-  if (appKit.subscribeProviders) {
-    appKit.subscribeProviders((providers) => {
-      addLog('🔄 Provider state changed, updating UI')
-      updateUI()
-    })
-  }
 })
 
 // Listen for wallet events to update UI
