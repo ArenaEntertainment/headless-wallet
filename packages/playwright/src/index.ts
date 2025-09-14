@@ -62,9 +62,8 @@ export async function installHeadlessWallet(
     }
   }
 
-  // Inject providers into browser context
-  await target.addInitScript(
-    ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }) => {
+  // Define the injection script
+  const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }: any) => {
       // EVM Provider (window.ethereum)
       if (hasEVM) {
         // Event emitter implementation
@@ -140,6 +139,12 @@ export async function installHeadlessWallet(
 
         (window as any).ethereum = ethereumProvider;
 
+        // Track provider for cleanup
+        if (!(window as any).__headlessWalletProviders) {
+          (window as any).__headlessWalletProviders = new Map();
+        }
+        (window as any).__headlessWalletProviders.set(walletId, { type: 'ethereum', provider: ethereumProvider });
+
         // EIP-6963 support
         const info = {
           uuid: walletId,
@@ -155,6 +160,15 @@ export async function installHeadlessWallet(
             })
           );
         };
+
+        // Track the listener for cleanup
+        if (!(window as any).__headlessWalletListeners) {
+          (window as any).__headlessWalletListeners = new Map();
+        }
+        (window as any).__headlessWalletListeners.set(walletId, {
+          event: 'eip6963:requestProvider',
+          handler: announceProvider
+        });
 
         announceProvider();
         window.addEventListener('eip6963:requestProvider', announceProvider);
@@ -249,6 +263,16 @@ export async function installHeadlessWallet(
         }
         (window as any).phantom.solana = solanaProvider;
 
+        // Track Solana provider for cleanup
+        if (!(window as any).__headlessWalletProviders) {
+          (window as any).__headlessWalletProviders = new Map();
+        }
+        (window as any).__headlessWalletProviders.set(walletId, {
+          type: 'solana',
+          provider: solanaProvider,
+          ...(window as any).__headlessWalletProviders.get(walletId) // Merge if EVM already exists
+        });
+
         // Auto-connect Solana if requested
         if (autoConnect) {
           setTimeout(() => {
@@ -260,16 +284,28 @@ export async function installHeadlessWallet(
       if (debug) {
         console.log(`Mock wallet ${walletId.substring(0, 8)} injected with EVM:${hasEVM}, Solana:${hasSolana}`);
       }
-    },
-    {
-      walletId,
-      hasEVM: wallet.hasEVM(),
-      hasSolana: wallet.hasSolana(),
-      branding: wallet.getBranding(),
-      autoConnect,
-      debug
+  };
+
+  const injectionParams = {
+    walletId,
+    hasEVM: wallet.hasEVM(),
+    hasSolana: wallet.hasSolana(),
+    branding: wallet.getBranding(),
+    autoConnect,
+    debug
+  };
+
+  // Add script for future navigations
+  await target.addInitScript(injectionScript, injectionParams);
+
+  // Also inject immediately if the page is already loaded
+  if ('evaluate' in target) {
+    try {
+      await target.evaluate(injectionScript, injectionParams);
+    } catch (e) {
+      // Page might not be ready yet, that's OK - the init script will handle it
     }
-  );
+  }
 
   return walletId;
 }
@@ -314,55 +350,111 @@ export async function uninstallHeadlessWallet(target: Page | BrowserContext, wal
 
   // Clear injection by using an empty script
   if ('evaluate' in target) {
-    await target.evaluate(() => {
-    // Remove ethereum provider
-    if ((window as any).ethereum) {
-      delete (window as any).ethereum;
-    }
+    await target.evaluate((targetWalletId) => {
+      // Remove specific wallet if walletId provided, or all wallets
+      const walletsToRemove = targetWalletId ? [targetWalletId] : Array.from((window as any).__headlessWalletProviders?.keys() || []);
 
-    // Remove EIP-6963 listener
-    const listeners = (window as any).__eip6963RequestListeners;
-    if (listeners) {
-      listeners.forEach((listener: any) => {
-        window.removeEventListener('eip6963:requestProvider', listener);
-      });
-      delete (window as any).__eip6963RequestListeners;
-    }
-
-    // Remove Solana provider
-    if ((window as any).phantom?.solana) {
-      delete (window as any).phantom.solana;
-      // Clean up phantom object if empty
-      if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
-        delete (window as any).phantom;
-      }
-    }
-  });
-  } else {
-    await target.addInitScript(() => {
-      // Remove ethereum provider
-      if ((window as any).ethereum) {
-        delete (window as any).ethereum;
-      }
-
-      // Remove EIP-6963 listener
-      const listeners = (window as any).__eip6963RequestListeners;
-      if (listeners) {
-        listeners.forEach((listener: any) => {
-          window.removeEventListener('eip6963:requestProvider', listener);
-        });
-        delete (window as any).__eip6963RequestListeners;
-      }
-
-      // Remove Solana provider
-      if ((window as any).phantom?.solana) {
-        delete (window as any).phantom.solana;
-        // Clean up phantom object if empty
-        if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
-          delete (window as any).phantom;
+      walletsToRemove.forEach((wId) => {
+        // Remove EIP-6963 event listener for this wallet
+        const listenerInfo = (window as any).__headlessWalletListeners?.get(wId);
+        if (listenerInfo) {
+          window.removeEventListener(listenerInfo.event, listenerInfo.handler);
+          (window as any).__headlessWalletListeners.delete(wId);
         }
+
+        // Remove provider references
+        const providerInfo = (window as any).__headlessWalletProviders?.get(wId);
+        if (providerInfo) {
+          // Emit disconnect events before removal
+          if (providerInfo.type === 'ethereum' && providerInfo.provider === (window as any).ethereum) {
+            // Emit disconnect event
+            if (typeof providerInfo.provider.removeListener === 'function') {
+              // Remove all listeners
+              ['connect', 'disconnect', 'accountsChanged', 'chainChanged'].forEach(event => {
+                providerInfo.provider.removeListener(event, () => {});
+              });
+            }
+            delete (window as any).ethereum;
+          }
+
+          if (providerInfo.type === 'solana' && providerInfo.provider === (window as any).phantom?.solana) {
+            delete (window as any).phantom.solana;
+            // Clean up phantom object if empty
+            if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
+              delete (window as any).phantom;
+            }
+          }
+
+          (window as any).__headlessWalletProviders.delete(wId);
+        }
+      });
+
+      // Clean up tracking maps if empty
+      if ((window as any).__headlessWalletListeners?.size === 0) {
+        delete (window as any).__headlessWalletListeners;
       }
-    });
+      if ((window as any).__headlessWalletProviders?.size === 0) {
+        delete (window as any).__headlessWalletProviders;
+      }
+
+      // Don't remove exposed function since it needs to persist for subsequent installations
+
+      // Force refresh EIP-6963 discovery
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+    }, walletId);
+  } else {
+    await target.addInitScript((targetWalletId) => {
+      // Remove specific wallet if walletId provided, or all wallets
+      const walletsToRemove = targetWalletId ? [targetWalletId] : Array.from((window as any).__headlessWalletProviders?.keys() || []);
+
+      walletsToRemove.forEach((wId) => {
+        // Remove EIP-6963 event listener for this wallet
+        const listenerInfo = (window as any).__headlessWalletListeners?.get(wId);
+        if (listenerInfo) {
+          window.removeEventListener(listenerInfo.event, listenerInfo.handler);
+          (window as any).__headlessWalletListeners.delete(wId);
+        }
+
+        // Remove provider references
+        const providerInfo = (window as any).__headlessWalletProviders?.get(wId);
+        if (providerInfo) {
+          // Emit disconnect events before removal
+          if (providerInfo.type === 'ethereum' && providerInfo.provider === (window as any).ethereum) {
+            // Emit disconnect event
+            if (typeof providerInfo.provider.removeListener === 'function') {
+              // Remove all listeners
+              ['connect', 'disconnect', 'accountsChanged', 'chainChanged'].forEach(event => {
+                providerInfo.provider.removeListener(event, () => {});
+              });
+            }
+            delete (window as any).ethereum;
+          }
+
+          if (providerInfo.type === 'solana' && providerInfo.provider === (window as any).phantom?.solana) {
+            delete (window as any).phantom.solana;
+            // Clean up phantom object if empty
+            if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
+              delete (window as any).phantom;
+            }
+          }
+
+          (window as any).__headlessWalletProviders.delete(wId);
+        }
+      });
+
+      // Clean up tracking maps if empty
+      if ((window as any).__headlessWalletListeners?.size === 0) {
+        delete (window as any).__headlessWalletListeners;
+      }
+      if ((window as any).__headlessWalletProviders?.size === 0) {
+        delete (window as any).__headlessWalletProviders;
+      }
+
+      // Don't remove exposed function since it needs to persist for subsequent installations
+
+      // Force refresh EIP-6963 discovery
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+    }, walletId);
   }
 }
 
