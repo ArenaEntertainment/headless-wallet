@@ -111,9 +111,29 @@ export class EVMWallet {
         }
 
         const walletClient = this.createWalletClient(account);
+
+        // Handle both plain text and hex-encoded messages
+        // If message is a hex string (starts with 0x and is valid hex), treat it as raw bytes
+        // This matches wallet-mock behavior and ethers v6 expectations
+        let messageToSign: string | { raw: Hex };
+        if (typeof message === 'string' && message.startsWith('0x')) {
+          // Check if it's a valid hex string
+          const hexRegex = /^0x[0-9a-fA-F]*$/;
+          if (hexRegex.test(message) && message.length % 2 === 0) {
+            // Valid hex - treat as raw bytes
+            messageToSign = { raw: message as Hex };
+          } else {
+            // Starts with 0x but not valid hex - treat as plain text
+            messageToSign = message;
+          }
+        } else {
+          // Plain text or non-string
+          messageToSign = typeof message === 'string' ? message : { raw: message as Hex };
+        }
+
         const signature = await walletClient.signMessage({
           account,
-          message: typeof message === 'string' ? message : { raw: message as Hex }
+          message: messageToSign
         });
         return signature;
       }
