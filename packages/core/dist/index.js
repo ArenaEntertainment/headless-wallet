@@ -127,6 +127,38 @@ export class HeadlessWallet {
     hasSolana() {
         return !!this.solanaWallet;
     }
+    // Account switching methods
+    switchEVMAccount(index) {
+        if (!this.evmWallet) {
+            throw new Error('No EVM wallet configured');
+        }
+        this.evmWallet.switchAccount(index);
+    }
+    switchSolanaAccount(index) {
+        if (!this.solanaWallet) {
+            throw new Error('No Solana wallet configured');
+        }
+        this.solanaWallet.switchAccount(index);
+    }
+    // Get account information
+    getEVMAccountInfo() {
+        if (!this.evmWallet) {
+            return null;
+        }
+        return {
+            currentIndex: this.evmWallet.getCurrentAccountIndex(),
+            accounts: this.evmWallet.getAddresses()
+        };
+    }
+    getSolanaAccountInfo() {
+        if (!this.solanaWallet) {
+            return null;
+        }
+        return {
+            currentIndex: this.solanaWallet.getCurrentKeypairIndex(),
+            accounts: this.solanaWallet.getPublicKeys().map(pk => pk.toString())
+        };
+    }
 }
 // Default wallet icon
 const DEFAULT_WALLET_ICON_SVG = `<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg">

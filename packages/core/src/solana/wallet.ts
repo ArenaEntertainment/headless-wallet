@@ -174,6 +174,10 @@ export class SolanaWallet {
     }
   }
 
+  getCurrentKeypairIndex(): number {
+    return this.currentKeypairIndex;
+  }
+
   getConnection(): Connection {
     return this.connection;
   }

@@ -76,6 +76,16 @@ export declare class HeadlessWallet {
     }): Promise<any>;
     hasEVM(): boolean;
     hasSolana(): boolean;
+    switchEVMAccount(index: number): void;
+    switchSolanaAccount(index: number): void;
+    getEVMAccountInfo(): {
+        currentIndex: number;
+        accounts: string[];
+    } | null;
+    getSolanaAccountInfo(): {
+        currentIndex: number;
+        accounts: string[];
+    } | null;
 }
 export declare function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWallet;
 export declare const injectMockWallet: typeof injectHeadlessWallet;

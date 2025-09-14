@@ -22,6 +22,7 @@ export interface EVMWalletConfig {
 
 export class EVMWallet {
   private accounts: LocalAccount[] = [];
+  private currentAccountIndex: number = 0;
   private currentChain: Chain;
   private transports: Record<number, Transport>;
   private listeners: Map<string, Set<(...args: any[]) => void>> = new Map();
@@ -63,12 +64,13 @@ export class EVMWallet {
     switch (method) {
       case 'eth_requestAccounts':
       case 'eth_accounts':
-        // Return all account addresses
-        const addresses = this.accounts.map(account => account.address);
-        if (addresses.length > 0) {
+        // Return all account addresses with current account first (modern approach)
+        const addresses = this.getAddresses();
+        const reorderedAddresses = [addresses[this.currentAccountIndex], ...addresses.filter((_, i) => i !== this.currentAccountIndex)];
+        if (reorderedAddresses.length > 0) {
           this.emit('connect', { chainId: `0x${this.currentChain.id.toString(16)}` });
         }
-        return addresses;
+        return reorderedAddresses;
 
       case 'eth_chainId':
         return `0x${this.currentChain.id.toString(16)}`;
@@ -333,5 +335,25 @@ export class EVMWallet {
 
   addTransport(chainId: number, transport: Transport): void {
     this.transports[chainId] = transport;
+  }
+
+  // Account switching methods
+  switchAccount(index: number): void {
+    if (index >= 0 && index < this.accounts.length && index !== this.currentAccountIndex) {
+      this.currentAccountIndex = index;
+
+      // Emit accountsChanged with all addresses, current account first
+      const addresses = this.getAddresses();
+      const reorderedAddresses = [addresses[index], ...addresses.filter((_, i) => i !== index)];
+      this.emit('accountsChanged', reorderedAddresses);
+    }
+  }
+
+  getCurrentAccountIndex(): number {
+    return this.currentAccountIndex;
+  }
+
+  getCurrentAccount(): LocalAccount {
+    return this.accounts[this.currentAccountIndex];
   }
 }
