@@ -348,6 +348,8 @@ class ArenaMockSolanaWallet implements Wallet {
     this.isConnected = true
     addLog(`🟣 Solana connected: ${this.keypair.publicKey.toBase58()}`)
     this.emit('connect', this.keypair.publicKey)
+    // Force UI update immediately
+    setTimeout(() => updateUI(), 100)
     return { accounts: this.accounts }
   }
 
@@ -355,6 +357,8 @@ class ArenaMockSolanaWallet implements Wallet {
     this.isConnected = false
     addLog('🟣 Solana disconnected')
     this.emit('disconnect')
+    // Force UI update immediately
+    setTimeout(() => updateUI(), 100)
   }
 
   #on(event: string, listener: Function) {
@@ -612,31 +616,45 @@ setInterval(() => {
 
 // UI Functions
 function updateUI() {
-  const isConnected = !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
+  const isEVMConnected = !headlessWallet['isDisconnected'] && headlessWallet['accounts'].length > 0
+  const isSolanaConnected = mockSolanaWallet.connected
 
   // Update connection status
   const statusEl = document.getElementById('connection-status')
   if (statusEl) {
-    statusEl.innerHTML = `<span class="status ${isConnected ? 'connected' : 'disconnected'}">${isConnected ? 'Connected' : 'Disconnected'}</span>`
+    const evmStatus = isEVMConnected ? 'EVM Connected' : 'EVM Disconnected'
+    const solanaStatus = isSolanaConnected ? 'Solana Connected' : 'Solana Disconnected'
+    statusEl.innerHTML = `
+      <span class="status ${isEVMConnected ? 'connected' : 'disconnected'}">${evmStatus}</span>
+      <span class="status ${isSolanaConnected ? 'connected' : 'disconnected'}" style="margin-left: 10px">${solanaStatus}</span>
+    `
   }
 
   // Update account info
   const accountEl = document.getElementById('account-info')
   if (accountEl) {
-    if (isConnected) {
-      const evmAddresses = getEVMAddresses()
-      const solanaPublicKey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana[0]).publicKey.toBase58()
+    const sections = []
 
-      accountEl.innerHTML = `
-        <div class="wallet-info">
-          <h4>EVM Accounts</h4>
-          ${evmAddresses.map((address, i) => `
-            <div class="code">Account ${i + 1}: ${address}</div>
-          `).join('')}
-          <h4>Solana Account</h4>
-          <div class="code">Public Key: ${solanaPublicKey}</div>
-        </div>
-      `
+    if (isEVMConnected) {
+      const evmAddresses = getEVMAddresses()
+      sections.push(`
+        <h4>EVM Accounts</h4>
+        ${evmAddresses.map((address, i) => `
+          <div class="code">Account ${i + 1}: ${address}</div>
+        `).join('')}
+      `)
+    }
+
+    if (isSolanaConnected) {
+      const solanaPublicKey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana[0]).publicKey.toBase58()
+      sections.push(`
+        <h4>Solana Account</h4>
+        <div class="code">Public Key: ${solanaPublicKey}</div>
+      `)
+    }
+
+    if (sections.length > 0) {
+      accountEl.innerHTML = `<div class="wallet-info">${sections.join('')}</div>`
     } else {
       accountEl.innerHTML = '<p>Connect your wallet to see account details</p>'
     }
@@ -644,7 +662,7 @@ function updateUI() {
 
   // Update network info
   const networkEl = document.getElementById('network-info')
-  if (networkEl && isConnected) {
+  if (networkEl && isEVMConnected) {
     const chainNames: { [key: string]: string } = {
       '0x1': 'Ethereum Mainnet',
       '0x89': 'Polygon',
@@ -664,11 +682,11 @@ function updateUI() {
     networkEl.innerHTML = '<p>Connect to see network details</p>'
   }
 
-  // Enable/disable buttons
+  // Enable/disable EVM buttons
   const buttons = ['sign-message', 'sign-typed-data', 'send-transaction', 'switch-to-polygon', 'switch-to-ethereum', 'get-capabilities']
   buttons.forEach(id => {
     const btn = document.getElementById(id) as HTMLButtonElement
-    if (btn) btn.disabled = !isConnected
+    if (btn) btn.disabled = !isEVMConnected
   })
 
   // Enable/disable Solana buttons (they work independently)
