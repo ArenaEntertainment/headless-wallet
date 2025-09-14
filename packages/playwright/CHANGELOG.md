@@ -1,3 +1,17 @@
+## 0.4.1 (2025-09-14)
+
+### 🩹 Fixes
+
+- implement disconnect functionality with proper state management and event emission ([#4](https://github.com/ArenaEntertainment/headless-wallet/issues/4))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.4.4
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.0 (2025-09-14)
 
 ### 🚀 Features
