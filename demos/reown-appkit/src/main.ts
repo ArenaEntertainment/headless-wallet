@@ -85,7 +85,7 @@ class ArenaHeadlessWallet implements HeadlessWallet {
     this.emit('accountsChanged', [])
 
     // Then emit disconnect event for good measure
-    this.emit('disconnect', { code: 1013, message: 'User disconnected' })
+    this.emit('disconnect', { code: 4900, message: 'User disconnected' })
 
     // Force UI update
     setTimeout(() => updateUI(), 50)
