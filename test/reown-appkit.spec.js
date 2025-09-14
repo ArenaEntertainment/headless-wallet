@@ -196,7 +196,8 @@ test.describe('Reown AppKit Integration Tests', () => {
     // Test personal_sign
     const personalSignResult = await page.evaluate(async () => {
       try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        // Need to request accounts first to connect
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         const message = 'Hello from Reown AppKit integration test!';
         const signature = await window.ethereum.request({
           method: 'personal_sign',

@@ -26,6 +26,7 @@ export class EVMWallet {
   private currentChain: Chain;
   private transports: Record<number, Transport>;
   private listeners: Map<string, Set<(...args: any[]) => void>> = new Map();
+  private isConnected: boolean = false;
 
   constructor(config: EVMWalletConfig) {
     // Create real accounts from private keys
@@ -63,13 +64,24 @@ export class EVMWallet {
 
     switch (method) {
       case 'eth_requestAccounts':
+        // Connect if not connected
+        if (!this.isConnected) {
+          this.isConnected = true;
+          this.emit('connect', { chainId: `0x${this.currentChain.id.toString(16)}` });
+        }
+        // Return all account addresses with current account first (modern approach)
+        const requestAddresses = this.getAddresses();
+        const requestReorderedAddresses = [requestAddresses[this.currentAccountIndex], ...requestAddresses.filter((_, i) => i !== this.currentAccountIndex)];
+        return requestReorderedAddresses;
+
       case 'eth_accounts':
+        // Return empty array if not connected
+        if (!this.isConnected) {
+          return [];
+        }
         // Return all account addresses with current account first (modern approach)
         const addresses = this.getAddresses();
         const reorderedAddresses = [addresses[this.currentAccountIndex], ...addresses.filter((_, i) => i !== this.currentAccountIndex)];
-        if (reorderedAddresses.length > 0) {
-          this.emit('connect', { chainId: `0x${this.currentChain.id.toString(16)}` });
-        }
         return reorderedAddresses;
 
       case 'eth_chainId':
@@ -322,7 +334,10 @@ export class EVMWallet {
 
   // Disconnect functionality
   disconnect(): void {
-    // Clear current connection state
+    // Clear connection state
+    this.isConnected = false;
+
+    // Emit disconnect event
     this.emit('disconnect', {
       code: 4900,
       message: 'User disconnected'

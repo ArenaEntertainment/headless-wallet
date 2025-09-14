@@ -1,0 +1,1 @@
+- Failing tests are not acceptable, ever!

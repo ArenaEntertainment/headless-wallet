@@ -365,7 +365,7 @@ test.describe('Multi-Wallet Scenarios', () => {
     });
 
     expect(eip6963Discovery).toHaveLength(1);
-    expect(eip6963Discovery[0].name).toContain('Arena');
+    expect(eip6963Discovery[0].name).toContain('Headless Wallet');
     console.log('✅ EIP-6963 provider discovery successful');
 
     // Test Solana wallet standard discovery
