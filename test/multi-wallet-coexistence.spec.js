@@ -259,6 +259,7 @@ test.describe('Multi-Wallet Coexistence', () => {
   });
 
   test.skip('should support mixed EVM and Solana wallets', async ({ page }) => {
+    // TODO: Enable this test after Solana key format issue is resolved
     // Install EVM wallet
     await installHeadlessWallet(page, {
       accounts: [
@@ -276,8 +277,8 @@ test.describe('Multi-Wallet Coexistence', () => {
     await installHeadlessWallet(page, {
       accounts: [
         {
-          // Use a hex encoded Solana private key (64 bytes)
-          privateKey: '0x' + '1'.repeat(128), // 64 bytes in hex
+          // Use a hex-encoded Solana private key (64 bytes = 128 hex chars)
+          privateKey: '0x' + '01'.repeat(64), // 64 bytes as hex
           type: 'solana'
         }
       ],
