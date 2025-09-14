@@ -1,3 +1,17 @@
+## 0.4.3 (2025-09-14)
+
+### 🩹 Fixes
+
+- wallet reinstallation with proper cleanup and Solana tests ([#5](https://github.com/ArenaEntertainment/headless-wallet/issues/5))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.4.6
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.4.2 (2025-09-14)
 
 ### 🩹 Fixes
