@@ -1,4 +1,4 @@
-# Arena Wallet Mock + Reown AppKit Demo
+# Arena Headless Wallet + Reown AppKit Demo
 
 This demo showcases the integration between Arena's wallet-mock library and Reown's AppKit, demonstrating how our mock wallet seamlessly integrates with modern Web3 tooling through standard protocols.
 
@@ -75,7 +75,7 @@ User Interface (Demo)
        ↓
    window.ethereum (EIP-1193 Provider)
        ↓
-Arena Wallet (Real Cryptography)
+Arena Headless Wallet (Real Cryptography)
        ↓
      Viem (Blockchain Operations)
 ```

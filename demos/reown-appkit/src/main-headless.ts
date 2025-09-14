@@ -128,7 +128,7 @@ const modal = createAppKit({
   adapters: [ethersAdapter, solanaAdapter],
   networks: [mainnet, arbitrum, polygon, optimism, solana],
   metadata: {
-    name: 'Arena Wallet Test',
+    name: 'Arena Headless Wallet Test',
     description: 'Testing Arena Headless Wallet account switching',
     url: 'https://arena.com',
     icons: ['https://arena.com/icon.png']

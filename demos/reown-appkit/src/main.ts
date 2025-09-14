@@ -33,7 +33,7 @@ function getEVMAddresses() {
 }
 
 // Unified wallet configuration
-const WALLET_NAME = 'Arena Wallet'
+const WALLET_NAME = 'Arena Headless Wallet'
 const WALLET_ICON = 'data:image/svg+xml,<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="1080" height="1080" rx="320" fill="black"/><path d="M203 830.128L470.486 230H607.658L876.001 830.128H730.255L510.78 300.301H565.649L345.316 830.128H203ZM336.743 701.529L373.608 596.078H682.245L719.968 701.529H336.743Z" fill="url(%23paint0_linear_436_3860)"/><defs><linearGradient id="paint0_linear_436_3860" x1="539.5" y1="830.128" x2="539.5" y2="230" gradientUnits="userSpaceOnUse"><stop stop-color="%2307D102"/><stop offset="1" stop-color="%23046B01"/></linearGradient></defs></svg>'
 const WALLET_RDNS = 'com.arena.mock-wallet'
 
@@ -65,7 +65,7 @@ class ArenaHeadlessWallet implements HeadlessWallet {
   public readonly isMetaMask = true
 
   constructor() {
-    addLog('🎮 Arena Wallet created')
+    addLog('🎮 Arena Headless Wallet created')
   }
 
   // Add direct disconnect method that AppKit might call
@@ -464,7 +464,7 @@ class ArenaMockSolanaWallet implements Wallet {
 
 // Create both wallet instances
 const headlessWallet = new ArenaHeadlessWallet()
-const mockSolanaWallet = new ArenaMockSolanaWallet(TEST_ACCOUNTS.solana.secretKey)
+const mockSolanaWallet = new ArenaMockSolanaWallet(TEST_ACCOUNTS.solana[0])
 
 // EIP-6963 wallet discovery for EVM
 function announceEVMWallet() {
@@ -542,8 +542,8 @@ const appKit = createAppKit({
   adapters: [ethersAdapter, solanaAdapter],
   networks: [mainnet, polygon, arbitrum, optimism, solana],
   metadata: {
-    name: 'Arena Wallet Mock + Reown AppKit Demo',
-    description: 'Demo of Arena Wallet with Reown AppKit using ethers',
+    name: 'Arena Headless Wallet + Reown AppKit Demo',
+    description: 'Demo of Arena Headless Wallet with Reown AppKit using ethers',
     url: window.location.origin,
     icons: ['https://avatars.githubusercontent.com/u/37784886']
   },
@@ -625,7 +625,7 @@ function updateUI() {
   if (accountEl) {
     if (isConnected) {
       const evmAddresses = getEVMAddresses()
-      const solanaPublicKey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana.secretKey).publicKey.toBase58()
+      const solanaPublicKey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana[0]).publicKey.toBase58()
 
       accountEl.innerHTML = `
         <div class="wallet-info">
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sign-message')?.addEventListener('click', async () => {
     try {
       const accounts = await headlessWallet.request({ method: 'eth_accounts' })
-      const message = 'Hello from Arena Wallet!'
+      const message = 'Hello from Arena Headless Wallet!'
       const signature = await headlessWallet.request({
         method: 'personal_sign',
         params: [message, accounts[0]]
@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         primaryType: 'TestMessage',
         domain: {
-          name: 'Arena Wallet Test',
+          name: 'Arena Headless Wallet Test',
           version: '1',
           chainId: 1
         },
@@ -858,13 +858,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('solana-sign-message')?.addEventListener('click', async () => {
     try {
-      const message = new TextEncoder().encode('Hello from Arena Wallet on Solana!')
+      const message = new TextEncoder().encode('Hello from Arena Headless Wallet on Solana!')
       const result = await mockSolanaWallet.signMessage(message)
 
       document.getElementById('solana-result')!.innerHTML = `
         <div class="info-box">
           <h4>Solana Message Signed</h4>
-          <div class="code">Message: Hello from Arena Wallet on Solana!</div>
+          <div class="code">Message: Hello from Arena Headless Wallet on Solana!</div>
           <div class="code">Signature: ${Array.from(result.signature, b => b.toString(16).padStart(2, '0')).join('').substring(0, 40)}...</div>
           <div class="code">Public Key: ${result.publicKey.toBase58()}</div>
         </div>
@@ -878,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       // Create a fake transaction for demo purposes
       const { Transaction, SystemProgram, PublicKey } = await import('@solana/web3.js')
-      const fromPubkey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana.secretKey).publicKey
+      const fromPubkey = Keypair.fromSecretKey(TEST_ACCOUNTS.solana[0]).publicKey
       const transaction = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: fromPubkey,
@@ -935,6 +935,6 @@ mockSolanaWallet.on('disconnect', () => {
   updateUI()
 })
 
-addLog('🎮 Arena Wallet Mock + Reown AppKit Demo Initialised')
+addLog('🎮 Arena Headless Wallet + Reown AppKit Demo Initialised')
 addLog('📱 Using ethers adapter for EVM and solana adapter for Solana')
 addLog('🔧 Multi-chain wallet with SAME NAME for both adapters')
