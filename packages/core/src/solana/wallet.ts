@@ -679,7 +679,11 @@ export class SolanaWallet {
   switchAccount(index: number): void {
     if (index >= 0 && index < this.keypairs.length) {
       this.currentKeypairIndex = index;
-      this.emit('accountChanged', this.keypairs[index].publicKey);
+      const newPublicKey = this.keypairs[index].publicKey;
+      // Emit both events for compatibility
+      this.emit('accountChanged', newPublicKey);
+      // AppKit expects 'accountsChanged' with the publicKey as parameter
+      this.emit('accountsChanged', newPublicKey);
     }
   }
 

@@ -183,10 +183,47 @@ async function updateUI() {
       // For display, properly detect if it's a Solana address
       const displayIsSolana = chainId?.toString().includes('solana') || address.length > 42
       const shortAddress = `${address.substring(0, 10)}...${address.substring(address.length - 8)}`
+
+      // Get all accounts for the current chain type
+      let accountsList = ''
+      if (displayIsSolana) {
+        const solanaInfo = wallet.getSolanaAccountInfo()
+        if (solanaInfo) {
+          accountsList = '<div class="accounts-list"><strong>Solana Accounts:</strong><br>'
+          solanaInfo.accounts.forEach((acc, index) => {
+            const isActive = index === solanaInfo.currentIndex
+            const shortAcc = `${acc.substring(0, 10)}...${acc.substring(acc.length - 8)}`
+            accountsList += `<div class="account-item ${isActive ? 'active' : ''}"
+              onclick="window.switchToSolanaAccount(${index})"
+              style="cursor: pointer; padding: 5px; margin: 2px 0; border-radius: 4px; ${isActive ? 'background: #e3f2fd; font-weight: bold;' : 'background: #f5f5f5;'}">
+              ${isActive ? '▶ ' : '  '}${shortAcc}
+            </div>`
+          })
+          accountsList += '</div>'
+        }
+      } else {
+        const evmInfo = wallet.getEVMAccountInfo()
+        if (evmInfo) {
+          accountsList = '<div class="accounts-list"><strong>EVM Accounts:</strong><br>'
+          evmInfo.accounts.forEach((acc, index) => {
+            const isActive = index === evmInfo.currentIndex
+            const shortAcc = `${acc.substring(0, 10)}...${acc.substring(acc.length - 8)}`
+            accountsList += `<div class="account-item ${isActive ? 'active' : ''}"
+              onclick="window.switchToEVMAccount(${index})"
+              style="cursor: pointer; padding: 5px; margin: 2px 0; border-radius: 4px; ${isActive ? 'background: #e3f2fd; font-weight: bold;' : 'background: #f5f5f5;'}">
+              ${isActive ? '▶ ' : '  '}${shortAcc}
+            </div>`
+          })
+          accountsList += '</div>'
+        }
+      }
+
       accountInfo.innerHTML = `
         <div class="wallet-info">
-          <strong>Address:</strong> ${shortAddress}<br>
-          <strong>Chain Type:</strong> ${displayIsSolana ? 'Solana' : 'EVM'}
+          <strong>Current Address:</strong> ${shortAddress}<br>
+          <strong>Chain Type:</strong> ${displayIsSolana ? 'Solana' : 'EVM'}<br>
+          <br>
+          ${accountsList}
         </div>
       `
     } else {
@@ -208,6 +245,19 @@ async function updateUI() {
       networkInfo.innerHTML = '<p>Connect to see network details</p>'
     }
   }
+}
+
+// Make account switching functions globally available
+;(window as any).switchToEVMAccount = async (index: number) => {
+  wallet.switchEVMAccount(index)
+  addLog(`🔄 Switched to EVM account ${index}`)
+  await updateUI()
+}
+
+;(window as any).switchToSolanaAccount = async (index: number) => {
+  wallet.switchSolanaAccount(index)
+  addLog(`🔄 Switched to Solana account ${index}`)
+  await updateUI()
 }
 
 // Setup event listeners
@@ -652,6 +702,19 @@ document.addEventListener('DOMContentLoaded', () => {
   solanaProvider.on('disconnect', () => {
     addLog('🔓 Solana wallet disconnected')
     updateUI()
+  })
+
+  // Listen for Solana account changes
+  solanaProvider.on('accountsChanged', (publicKey: any) => {
+    addLog(`🔄 Solana account changed: ${publicKey?.toString ? publicKey.toString() : publicKey}`)
+    updateUI()
+    // Force AppKit to refresh its state
+    if (appKit.getIsConnectedState()) {
+      // Trigger a state update in AppKit
+      appKit.subscribeState((state) => {
+        // This will cause AppKit to re-read the account
+      })
+    }
   })
 
   // Listen for AppKit events

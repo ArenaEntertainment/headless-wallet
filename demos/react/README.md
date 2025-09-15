@@ -1,6 +1,6 @@
-# Wallet Mock React Demo
+# Arena Headless Wallet React Demo
 
-A comprehensive React application showcasing the wallet-mock library's functionality with modern React patterns, TypeScript, and responsive design.
+A comprehensive React application showcasing the Arena Headless Wallet library's functionality with modern React patterns, TypeScript, and responsive design.
 
 ## Features
 

@@ -1,6 +1,6 @@
-# Wallet Mock Vanilla JavaScript Demo
+# Arena Headless Wallet Vanilla JavaScript Demo
 
-A pure JavaScript implementation showcasing the wallet-mock library's functionality without frameworks or dependencies. Built with modern web standards and TypeScript for type safety.
+A pure JavaScript implementation showcasing the Arena Headless Wallet library's functionality without frameworks or dependencies. Built with modern web standards and TypeScript for type safety.
 
 ## Features
 

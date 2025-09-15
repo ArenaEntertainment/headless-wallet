@@ -424,6 +424,38 @@ test('SPL token balance', async ({ page }) => {
 });
 ```
 
+## Custom Branding
+
+You can customize the wallet's appearance in wallet selection UIs:
+
+```typescript
+{
+  branding: {
+    name: 'My Test Wallet',           // Custom wallet name
+    icon: '<svg>...</svg>',           // Custom SVG icon
+    rdns: 'com.example.wallet',       // Reverse domain notation
+    isMetaMask: true,                 // Pretend to be MetaMask (for compatibility)
+    isPhantom: true                   // Pretend to be Phantom (for compatibility)
+  }
+}
+```
+
+Example with custom branding:
+
+```typescript
+await installHeadlessWallet(page, {
+  accounts: [{ privateKey: '0xac0974...', type: 'evm' }],
+  branding: {
+    name: 'E2E Test Wallet',
+    icon: `<svg width="32" height="32">
+      <circle cx="16" cy="16" r="16" fill="#6366f1"/>
+      <text x="16" y="20" text-anchor="middle" fill="white">TW</text>
+    </svg>`,
+    isMetaMask: true  // For apps that check for MetaMask
+  }
+});
+```
+
 ## License
 
 MIT

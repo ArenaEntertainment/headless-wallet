@@ -12,8 +12,8 @@
         <h3>🎯 What This Demo Shows</h3>
         <ul>
           <li>EIP-6963 wallet discovery - AppKit automatically detects our mock wallet</li>
-          <li>Real cryptographic operations using viem with actual private keys</li>
-          <li>Multi-chain support with EVM (Ethereum, Polygon, Arbitrum, Optimism) and SVM (Solana)</li>
+          <li>Real cryptographic operations using ethers.js with actual private keys</li>
+          <li>Multi-chain support with EVM (Sepolia, Polygon Amoy) and Solana (Devnet)</li>
           <li>Standard wallet operations (connect, sign, send transactions)</li>
           <li>Chain switching functionality</li>
         </ul>
@@ -23,11 +23,8 @@
       <div class="section">
         <h2>🔗 Connection Status</h2>
         <div class="connection-status">
-          <span :class="['status', { connected: evmConnected, disconnected: !evmConnected }]">
-            EVM {{ evmConnected ? 'Connected' : 'Disconnected' }}
-          </span>
-          <span :class="['status', { connected: solanaConnected, disconnected: !solanaConnected }]">
-            Solana {{ solanaConnected ? 'Connected' : 'Disconnected' }}
+          <span :class="['status', isConnected ? 'connected' : 'disconnected']">
+            {{ isConnected ? (activeChain === 'solana' ? 'Solana Connected' : 'EVM Connected') : 'Disconnected' }}
           </span>
         </div>
         <div class="demo-actions">
@@ -40,23 +37,50 @@
       </div>
 
       <!-- Account Information -->
-      <div class="section">
+      <div v-if="isConnected" class="section">
         <h2>👤 Account Information</h2>
-        <div v-if="isConnected" class="wallet-info">
-          <h4>{{ activeChain === 'solana' ? 'Solana Account' : 'EVM Account' }}</h4>
-          <div class="code">{{ formatAddress(address) }}</div>
+        <div class="wallet-info">
+          <h4>{{ activeChain === 'solana' ? 'Solana Accounts' : 'EVM Accounts' }}</h4>
+          <div class="code">Current: {{ formatAddress(address) }}</div>
+
+          <!-- Multiple Accounts Display -->
+          <div v-if="wallet" style="margin-top: 1rem;">
+            <strong>All Accounts (click to switch):</strong>
+
+            <!-- EVM Accounts -->
+            <div v-if="activeChain === 'eip155' && evmAccountInfo">
+              <div
+                v-for="(acc, index) in evmAccountInfo.accounts"
+                :key="index"
+                @click="switchToEVMAccount(index)"
+                :class="['account-item', { active: index === evmAccountInfo.currentIndex }]"
+              >
+                {{ index === evmAccountInfo.currentIndex ? '▶ ' : '  ' }}{{ formatAddress(acc) }}
+              </div>
+            </div>
+
+            <!-- Solana Accounts -->
+            <div v-if="activeChain === 'solana' && solanaAccountInfo">
+              <div
+                v-for="(acc, index) in solanaAccountInfo.accounts"
+                :key="index"
+                @click="switchToSolanaAccount(index)"
+                :class="['account-item', { active: index === solanaAccountInfo.currentIndex }]"
+              >
+                {{ index === solanaAccountInfo.currentIndex ? '▶ ' : '  ' }}{{ formatAddress(acc) }}
+              </div>
+            </div>
+          </div>
         </div>
-        <p v-else>Connect your wallet to see account details</p>
       </div>
 
       <!-- Network Information -->
-      <div class="section">
+      <div v-if="isConnected" class="section">
         <h2>🌐 Network Information</h2>
-        <div v-if="isConnected" class="info-box">
+        <div class="info-box">
           <h4>Active Chain</h4>
           <div class="code">{{ networkName }}</div>
         </div>
-        <p v-else>Connect to see network details</p>
         <div class="demo-actions">
           <button @click="switchToPolygon" :disabled="!isConnected || activeChain !== 'eip155'">
             Switch to Polygon Amoy
@@ -71,52 +95,57 @@
       </div>
 
       <!-- Signing Demo -->
-      <div class="section">
+      <div v-if="isConnected" class="section">
         <h2>✍️ Signing Demo</h2>
         <div class="demo-actions">
           <button @click="signMessage" :disabled="!isConnected">
-            Sign Message
+            {{ activeChain === 'solana' ? 'Sign Solana Message' : 'Sign EVM Message' }}
           </button>
           <button @click="signTypedData" :disabled="!isConnected || activeChain === 'solana'">
-            Sign Typed Data
+            Sign Typed Data (EVM)
           </button>
         </div>
         <div v-if="signature" class="signature-result">
           <h4>Signature Result:</h4>
           <div class="code">{{ signature }}</div>
         </div>
+        <div v-if="capabilities" class="info-box">
+          <h4>Wallet Capabilities:</h4>
+          <div class="code">{{ JSON.stringify(capabilities, null, 2) }}</div>
+        </div>
       </div>
 
       <!-- EVM Transaction Demo -->
-      <div class="section">
+      <div v-if="isConnected && activeChain === 'eip155'" class="section">
         <h2>💸 EVM Transaction Demo</h2>
         <div class="demo-actions">
-          <button @click="sendTransaction" :disabled="!isConnected || activeChain !== 'eip155'">
+          <button @click="sendTransaction" :disabled="!isConnected">
             Send Test Transaction
           </button>
-          <button @click="manualDisconnect">Manual Disconnect Test</button>
+          <button @click="disconnectEVM" :disabled="!isConnected">
+            Disconnect EVM (from wallet UI)
+          </button>
         </div>
-        <div v-if="txHash && activeChain === 'eip155'" class="transaction-result">
-          <h4>Transaction Hash:</h4>
+        <div v-if="txHash" class="tx-result">
+          <h4>✅ Transaction Sent Successfully</h4>
           <div class="code">{{ txHash }}</div>
+          <p>Sent 0 ETH to self (test transaction)</p>
         </div>
       </div>
 
-      <!-- Solana Demo -->
-      <div class="section">
-        <h2>🟣 Solana Demo</h2>
+      <!-- Solana Transaction Demo -->
+      <div v-if="isConnected && activeChain === 'solana'" class="section">
+        <h2>🟣 Solana Transaction Demo</h2>
         <div class="demo-actions">
-          <button @click="connectSolana" :disabled="solanaConnected">Connect Solana</button>
-          <button @click="disconnectSolana" :disabled="!solanaConnected">Disconnect Solana</button>
-          <button @click="signSolanaMessage" :disabled="!solanaConnected">Sign Solana Message</button>
-          <button @click="sendSolanaTransaction" :disabled="!solanaConnected">Send Solana Transaction</button>
-        </div>
-        <div v-if="solanaConnected" class="info-box">
-          <h4>Solana Connected</h4>
-          <div class="code">{{ formatAddress(address) }}</div>
-        </div>
-        <div v-else>
-          <h4>Solana Disconnected</h4>
+          <button @click="signSolanaMessage" :disabled="!isConnected">
+            Sign Solana Message
+          </button>
+          <button @click="sendSolanaTransaction" :disabled="!isConnected">
+            Send Solana Transaction
+          </button>
+          <button @click="disconnectSolana" :disabled="!isConnected">
+            Disconnect Solana (from wallet UI)
+          </button>
         </div>
         <div v-if="solanaResult" class="solana-result">
           <div class="code">{{ solanaResult }}</div>
@@ -160,20 +189,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   useAppKitAccount,
   useAppKitNetwork,
   useAppKitProvider,
   useAppKitState,
   useWalletInfo,
-  useAppKit,
   useDisconnect
 } from '@reown/appkit/vue'
 import { BrowserProvider } from 'ethers'
 import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js'
 
-// AppKit composables - these are already reactive refs
+// AppKit composables
 const account = useAppKitAccount()
 const network = useAppKitNetwork()
 const state = useAppKitState()
@@ -182,52 +210,28 @@ const solanaProvider = useAppKitProvider('solana')
 const walletInfo = useWalletInfo()
 const { disconnect } = useDisconnect()
 
-// Reactive state for our own data
+// Reactive state
 const logs = ref<string[]>(['🎮 Arena Headless Wallet + Reown AppKit Nuxt Demo Initialized', '📡 Waiting for wallet connection...'])
 const signature = ref('')
 const txHash = ref('')
 const solanaResult = ref('')
 const capabilities = ref<any>(null)
+const wallet = ref<any>(null)
+const evmAccountInfo = ref<any>(null)
+const solanaAccountInfo = ref<any>(null)
 
-// Just use the reactive values directly from the composables!
+// Computed properties
 const address = computed(() => account.value?.address || '')
 const isConnected = computed(() => account.value?.isConnected || false)
-const caipAddress = computed(() => account.value?.caipAddress || '')
 const caipNetwork = computed(() => network.value?.caipNetwork)
 const selectedNetworkId = computed(() => state.value?.selectedNetworkId || '')
 const walletProvider = computed(() => evmProvider.value?.walletProvider)
 const solanaWalletProvider = computed(() => solanaProvider.value?.walletProvider)
 
-// Connection states
-const evmConnected = computed(() => isConnected.value && activeChain.value === 'eip155')
-const solanaConnected = computed(() => isConnected.value && activeChain.value === 'solana')
-
-// Watch for connection changes and log them
-watch(isConnected, (newVal, oldVal) => {
-  if (newVal && !oldVal) {
-    addLog(`✅ Wallet connected: ${formatAddress(address.value)}`)
-  } else if (!newVal && oldVal) {
-    addLog('🔌 Wallet disconnected')
-  }
-})
-
-// Watch for network changes
-watch(caipNetwork, (newNetwork, oldNetwork) => {
-  if (newNetwork && oldNetwork && newNetwork.name !== oldNetwork.name && isConnected.value) {
-    addLog(`🌐 Network changed to: ${newNetwork.name}`)
-  }
-})
-
-// Computed properties
 const activeChain = computed(() => {
   const networkId = selectedNetworkId.value
   if (!networkId) return 'eip155'
   return networkId.includes('solana') ? 'solana' : 'eip155'
-})
-
-const connectionStatus = computed(() => {
-  if (!isConnected.value) return 'Disconnected'
-  return activeChain.value === 'solana' ? 'Solana Connected' : 'EVM Connected'
 })
 
 const networkName = computed(() => {
@@ -250,6 +254,31 @@ const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
   }
   return addr
+}
+
+// Update account info
+const updateAccountInfo = () => {
+  if (wallet.value) {
+    evmAccountInfo.value = wallet.value.getEVMAccountInfo()
+    solanaAccountInfo.value = wallet.value.getSolanaAccountInfo()
+  }
+}
+
+// Account switching
+const switchToEVMAccount = (index: number) => {
+  if (wallet.value) {
+    wallet.value.switchEVMAccount(index)
+    addLog(`🔄 Switched to EVM account ${index}`)
+    updateAccountInfo()
+  }
+}
+
+const switchToSolanaAccount = (index: number) => {
+  if (wallet.value) {
+    wallet.value.switchSolanaAccount(index)
+    addLog(`🔄 Switched to Solana account ${index}`)
+    updateAccountInfo()
+  }
 }
 
 // Network switching
@@ -297,22 +326,10 @@ const handleDisconnect = async () => {
   }
 }
 
-// Manual disconnect
-const manualDisconnect = async () => {
-  try {
-    // This would disconnect the wallet
-    addLog('🔌 Manual disconnect triggered')
-  } catch (error) {
-    addLog(`❌ Failed to disconnect: ${error}`)
-  }
-}
-
 // Signing functions
 const signMessage = async () => {
   try {
     signature.value = ''
-    console.log('Signing message - walletProvider:', walletProvider.value)
-    console.log('activeChain:', activeChain.value)
 
     if (activeChain.value === 'solana' && solanaWalletProvider.value) {
       // Solana signing
@@ -327,8 +344,6 @@ const signMessage = async () => {
       const result = await signer.signMessage('Hello from Nuxt + AppKit!')
       signature.value = result
       addLog('✅ EVM message signed')
-    } else {
-      addLog('⚠️ No wallet provider available')
     }
   } catch (error) {
     addLog(`❌ Signing failed: ${error}`)
@@ -374,41 +389,9 @@ const signTypedData = async () => {
 const sendTransaction = async () => {
   try {
     txHash.value = ''
-    addLog('📤 Preparing transaction...')
+    addLog('📤 Preparing EVM transaction...')
 
-    if (activeChain.value === 'solana' && solanaWalletProvider.value) {
-      // Solana transaction
-      try {
-        // Use devnet for testing
-        const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
-        const fromPubkey = new PublicKey(address.value!)
-        const toPubkey = new PublicKey(address.value!) // Send to self for demo
-
-        const transaction = new Transaction().add(
-          SystemProgram.transfer({
-            fromPubkey,
-            toPubkey,
-            lamports: 1000 // 0.000001 SOL
-          })
-        )
-
-        const { blockhash } = await connection.getLatestBlockhash()
-        transaction.recentBlockhash = blockhash
-        transaction.feePayer = fromPubkey
-
-        addLog('📡 Signing and sending Solana transaction...')
-        const signedTx = await solanaWalletProvider.value.signTransaction(transaction)
-        const serialized = signedTx.serialize()
-        const txId = await connection.sendRawTransaction(serialized)
-
-        txHash.value = txId
-        addLog(`✅ Solana transaction sent: ${txId}`)
-      } catch (solanaError: any) {
-        throw solanaError
-      }
-    } else if (walletProvider.value) {
-      // EVM transaction
-      addLog('📤 Sending EVM transaction...')
+    if (walletProvider.value) {
       const provider = new BrowserProvider(walletProvider.value)
       const signer = await provider.getSigner()
 
@@ -419,8 +402,6 @@ const sendTransaction = async () => {
 
       txHash.value = tx.hash
       addLog(`✅ EVM transaction sent: ${tx.hash}`)
-    } else {
-      throw new Error('No wallet provider available')
     }
   } catch (error: any) {
     txHash.value = ''
@@ -428,38 +409,14 @@ const sendTransaction = async () => {
   }
 }
 
-// Solana specific functions
-const connectSolana = async () => {
-  try {
-    // For Solana, we need to use the modal to connect
-    // The network object doesn't have a switchNetwork method directly
-    addLog('🟣 Connecting to Solana...')
-    // Just open the modal and let the user select Solana
-    const { open } = useAppKit()
-    await open({ view: 'Networks' })
-  } catch (error) {
-    addLog(`❌ Failed to connect Solana: ${error}`)
-  }
-}
-
-const disconnectSolana = async () => {
-  try {
-    // Switch back to EVM by opening network selector
-    const { open } = useAppKit()
-    await open({ view: 'Networks' })
-    addLog('🟣 Opening network selector...')
-  } catch (error) {
-    addLog(`❌ Failed to disconnect Solana: ${error}`)
-  }
-}
-
+// Solana functions
 const signSolanaMessage = async () => {
   try {
     if (solanaWalletProvider.value) {
-      const message = new TextEncoder().encode('Hello from Solana!')
+      const message = new TextEncoder().encode('Hello from Nuxt + AppKit on Solana!')
       const result = await solanaWalletProvider.value.signMessage(message)
-      solanaResult.value = `Signed: ${Buffer.from(result.signature).toString('hex').slice(0, 20)}...`
-      addLog('🟣 Solana message signed')
+      solanaResult.value = `Signed: ${Buffer.from(result.signature).toString('hex').substring(0, 20)}...`
+      addLog('✅ Solana message signed')
     }
   } catch (error) {
     addLog(`❌ Solana signing failed: ${error}`)
@@ -468,11 +425,13 @@ const signSolanaMessage = async () => {
 
 const sendSolanaTransaction = async () => {
   try {
+    solanaResult.value = ''
+    addLog('📤 Preparing Solana transaction...')
+
     if (solanaWalletProvider.value && address.value) {
-      // Use devnet for testing
       const connection = new Connection('https://api.devnet.solana.com', 'confirmed')
       const fromPubkey = new PublicKey(address.value)
-      const toPubkey = new PublicKey(address.value) // Send to self for demo
+      const toPubkey = new PublicKey(address.value)
 
       const transaction = new Transaction().add(
         SystemProgram.transfer({
@@ -492,12 +451,61 @@ const sendSolanaTransaction = async () => {
       const txId = await connection.sendRawTransaction(serialized)
 
       solanaResult.value = `Transaction sent: ${txId.substring(0, 20)}...`
-      addLog(`🟣 Solana transaction sent: ${txId}`)
+      addLog(`✅ Solana transaction sent: ${txId}`)
     }
-  } catch (error) {
-    addLog(`❌ Solana transaction failed: ${error}`)
+  } catch (error: any) {
+    solanaResult.value = ''
+    addLog(`❌ Solana transaction failed: ${error.message || error}`)
   }
 }
+
+// Disconnect handlers
+const disconnectEVM = async () => {
+  try {
+    if (walletProvider.value && walletProvider.value.disconnect) {
+      await walletProvider.value.disconnect()
+      addLog('✅ EVM disconnected from wallet UI')
+    }
+  } catch (error) {
+    addLog(`❌ EVM disconnect failed: ${error}`)
+  }
+}
+
+const disconnectSolana = async () => {
+  try {
+    if (solanaWalletProvider.value && solanaWalletProvider.value.disconnect) {
+      await solanaWalletProvider.value.disconnect()
+      addLog('✅ Solana disconnected from wallet UI')
+    }
+  } catch (error) {
+    addLog(`❌ Solana disconnect failed: ${error}`)
+  }
+}
+
+// Watch for connection changes
+watch(isConnected, (newVal, oldVal) => {
+  if (newVal && !oldVal) {
+    addLog(`✅ Wallet connected: ${formatAddress(address.value)}`)
+    updateAccountInfo()
+  } else if (!newVal && oldVal) {
+    addLog('🔌 Wallet disconnected')
+  }
+})
+
+// Watch for network changes
+watch(caipNetwork, (newNetwork, oldNetwork) => {
+  if (newNetwork && oldNetwork && newNetwork.name !== oldNetwork.name && isConnected.value) {
+    addLog(`🌐 Network changed to: ${newNetwork.name}`)
+  }
+})
+
+// Get wallet instance on mount
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    wallet.value = (window as any).__headlessWallet
+    updateAccountInfo()
+  }
+})
 </script>
 
 <style scoped>
@@ -527,7 +535,7 @@ const sendSolanaTransaction = async () => {
 h1 {
   color: #2c3e50;
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   font-size: 2.5rem;
 }
 
@@ -574,21 +582,13 @@ h1 {
 }
 
 .info-box ul {
-  list-style: none;
-  padding-left: 0;
+  list-style: disc;
+  padding-left: 1.5rem;
   color: #495057;
 }
 
 .info-box li {
-  color: #495057;
   margin: 0.5rem 0;
-  padding-left: 1rem;
-}
-
-.info-box li:before {
-  content: "• ";
-  margin-left: -1rem;
-  color: #495057;
 }
 
 .wallet-info {
@@ -628,16 +628,12 @@ h1 {
   color: #721c24;
 }
 
-.status.pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
 .demo-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
   margin: 1rem 0;
+  align-items: center;
 }
 
 .code {
@@ -651,6 +647,26 @@ h1 {
   color: #495057;
 }
 
+.account-item {
+  cursor: pointer;
+  padding: 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  background: #f5f5f5;
+  font-family: monospace;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.account-item:hover {
+  background: #e0e0e0;
+}
+
+.account-item.active {
+  background: #e3f2fd;
+  font-weight: bold;
+}
+
 button {
   background: #007bff;
   color: white;
@@ -659,7 +675,6 @@ button {
   border-radius: 8px;
   cursor: pointer;
   font-size: 1rem;
-  margin: 0.5rem 0.5rem 0.5rem 0;
   transition: all 0.2s;
 }
 
@@ -713,15 +728,27 @@ button:disabled {
 }
 
 .signature-result,
-.transaction-result,
+.tx-result,
 .solana-result {
   margin-top: 1rem;
 }
 
-.signature-result h4,
-.transaction-result h4 {
-  color: #2c3e50;
+.tx-result {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.tx-result h4 {
+  color: #155724;
   margin-bottom: 0.5rem;
+}
+
+.tx-result p {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #155724;
 }
 
 .logs {
@@ -760,8 +787,16 @@ button:disabled {
 }
 
 @media (max-width: 768px) {
-  .demo-container {
+  .container {
     padding: 1rem;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
