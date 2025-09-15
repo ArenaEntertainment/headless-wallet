@@ -62,11 +62,16 @@ export class HeadlessWallet {
     // Set up branding with defaults
     this.branding = {
       name: 'Arena Headless Wallet',
+      icon: getWalletIcon(), // Use default icon
       rdns: 'com.arenaentertainment.headless-wallet',
       isMetaMask: true,
       isPhantom: true,
       ...config.branding
     };
+    // Process the icon through getWalletIcon if provided
+    if (config.branding?.icon) {
+      this.branding.icon = getWalletIcon(config.branding.icon);
+    }
     // Separate accounts by type
     const evmAccounts = config.accounts.filter(acc => acc.type === 'evm');
     const solanaAccounts = config.accounts.filter(acc => acc.type === 'solana');
