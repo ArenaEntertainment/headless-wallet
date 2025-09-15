@@ -10,7 +10,7 @@ test('simple wallet reinstall test', async ({ page }) => {
   const secondWalletAccount = privateKeyToAccount(secondWalletPrivateKey);
   const secondWalletAddress = secondWalletAccount.address;
 
-  await page.goto('http://localhost:5175/');
+  await page.goto('http://localhost:5174/');
 
   console.log('Installing first wallet...');
   const walletId1 = await installHeadlessWallet(page, {

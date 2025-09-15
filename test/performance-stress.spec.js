@@ -27,6 +27,7 @@ const TEST_SOLANA_KEYPAIRS = [
 
 test.describe('Performance and Stress Testing', () => {
   test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await installHeadlessWallet(page, {
       accounts: [
         ...TEST_EVM_KEYS.map(key => ({ privateKey: key, type: 'evm' })),
@@ -40,7 +41,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should handle high-frequency signing requests', async ({ page }) => {
     console.log('🧪 Testing high-frequency signing performance...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -108,7 +108,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should handle concurrent signing operations', async ({ page }) => {
     console.log('🧪 Testing concurrent signing performance...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -163,7 +162,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should handle rapid chain switching performance', async ({ page }) => {
     console.log('🧪 Testing rapid chain switching performance...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -231,7 +229,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should handle large message signing performance', async ({ page }) => {
     console.log('🧪 Testing large message signing performance...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -300,7 +297,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should handle complex EIP-712 signing performance', async ({ page }) => {
     console.log('🧪 Testing complex EIP-712 signing performance...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -426,7 +422,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should handle memory usage during sustained operations', async ({ page }) => {
     console.log('🧪 Testing memory usage during sustained operations...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum && window.phantom?.solana, { timeout: 5000 });
 
     // Connect both wallets
@@ -536,7 +531,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should handle rapid account switching performance', async ({ page }) => {
     console.log('🧪 Testing rapid account switching performance...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet to get all accounts
@@ -604,7 +598,6 @@ test.describe('Performance and Stress Testing', () => {
   test('should maintain performance under load', async ({ page }) => {
     console.log('🧪 Testing performance under load...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum && window.phantom?.solana, { timeout: 5000 });
 
     // Connect both wallets

@@ -247,76 +247,6 @@ Customize how your wallet appears in connection UIs:
 - `isMetaMask`: Whether EVM provider identifies as MetaMask (default: true)
 - `isPhantom`: Whether Solana provider identifies as Phantom (default: true)
 
-## Supported Methods
-
-### EVM Methods (20+)
-
-The wallet supports all standard Ethereum JSON-RPC methods:
-
-#### Account & Connection
-- `eth_requestAccounts` - Request wallet connection
-- `eth_accounts` - Get connected accounts
-- `eth_chainId` - Get current chain ID
-- `wallet_switchEthereumChain` - Switch to different chain
-- `wallet_addEthereumChain` - Add new chain
-- `wallet_requestPermissions` - Request permissions
-- `wallet_getPermissions` - Get current permissions
-- `wallet_getCapabilities` - Get wallet capabilities
-
-#### Signing & Transactions
-- `personal_sign` - Sign personal message
-- `eth_sign` - Sign message (legacy)
-- `eth_signTypedData_v4` - Sign typed structured data
-- `eth_sendTransaction` - Send transaction
-
-#### Blockchain Data
-- `eth_getBalance` - Get account balance
-- `eth_blockNumber` - Get latest block number
-- `eth_getTransactionReceipt` - Get transaction receipt
-- `eth_estimateGas` - Estimate gas for transaction
-- `eth_gasPrice` - Get current gas price
-- `eth_getCode` - Get contract code at address
-- `eth_getLogs` - Query event logs
-
-#### Token Management
-- `wallet_watchAsset` - Add ERC20 token to wallet
-
-### Solana Methods (20+)
-
-The wallet provides comprehensive Solana functionality:
-
-#### Connection & Accounts
-- `connect` - Connect wallet
-- `disconnect` - Disconnect wallet
-- `getPublicKey` - Get current public key
-- `switchAccount` - Switch between accounts
-
-#### Signing & Transactions
-- `signTransaction` - Sign transaction
-- `signAllTransactions` - Sign multiple transactions
-- `signMessage` - Sign arbitrary message
-- `signAndSendTransaction` - Sign and submit transaction
-- `sendTransaction` - Send pre-signed transaction
-- `simulateTransaction` - Test transaction without sending
-
-#### Blockchain Data
-- `getBalance` - Get SOL balance
-- `getBalanceLamports` - Get balance in lamports
-- `getLatestBlockhash` - Get recent blockhash
-- `getAccountInfo` - Get account details
-- `getSignatureStatuses` - Check transaction status
-- `requestAirdrop` - Request test SOL (devnet/testnet)
-
-#### Authentication
-- `signIn` - Sign In with Solana (SIWS)
-
-#### SPL Token Operations
-- `getTokenBalance` - Get SPL token balance
-- `getTokenAccounts` - List all token accounts
-- `transferToken` - Transfer SPL tokens
-- `createTokenAccount` - Create associated token account
-- `getMintInfo` - Get token mint information
-
 ## Testing Examples
 
 ### Test with wagmi
@@ -357,102 +287,112 @@ test('message signing', async ({ page }) => {
 });
 ```
 
-### Test Solana balance and operations
+### Multiple Wallet Support
+
+The library supports multiple headless wallets coexisting on the same page, useful for testing wallet selection flows:
 
 ```typescript
-test('Solana balance check', async ({ page }) => {
+test('multiple wallets', async ({ page }) => {
+  // Install first wallet (EIP-6963 only, no window.ethereum)
   await installHeadlessWallet(page, {
-    accounts: [{ privateKey: solanaKey, type: 'solana' }],
-    solana: { cluster: 'devnet' }
+    accounts: [{ privateKey: '0xac0974...', type: 'evm' }],
+    branding: { name: 'Wallet A', rdns: 'com.test.walletA' },
+    ethereumWindowMode: 'none'  // Only EIP-6963, no window.ethereum
   });
 
-  await page.goto('/app');
-
-  const balance = await page.evaluate(async () => {
-    const wallet = window.phantom?.solana;
-    await wallet.connect();
-    return await wallet.request({ method: 'getBalance' });
+  // Install second wallet (EIP-6963 only)
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: '0x59c699...', type: 'evm' }],
+    branding: { name: 'Wallet B', rdns: 'com.test.walletB' },
+    ethereumWindowMode: 'none'
   });
 
-  expect(balance).toBeGreaterThanOrEqual(0);
+  // Both wallets are now discoverable via EIP-6963
+  // Your dApp's wallet selector will see both options
 });
 ```
 
-### Test EVM gas estimation
+#### Window Injection Configuration
+
+##### EVM: ethereumWindowMode
+
+Control how the wallet handles `window.ethereum`:
+
+- `'replace'` (default): Replace window.ethereum with this wallet
+- `'none'`: Don't set window.ethereum (EIP-6963 only)
+- `'array'`: Use EIP-5749 pattern for multiple wallets
 
 ```typescript
-test('gas estimation', async ({ page }) => {
-  await installHeadlessWallet(page, {
-    accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
-  });
-
-  await page.goto('/app');
-
-  const gasEstimate = await page.evaluate(async () => {
-    return await window.ethereum.request({
-      method: 'eth_estimateGas',
-      params: [{
-        from: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
-        to: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
-        value: '0x1000000000000000'
-      }]
-    });
-  });
-
-  expect(gasEstimate).toMatch(/^0x[0-9a-f]+$/i);
-});
-```
-
-### Test SPL token operations
-
-```typescript
-test('SPL token balance', async ({ page }) => {
-  await installHeadlessWallet(page, {
-    accounts: [{ privateKey: solanaKey, type: 'solana' }],
-    solana: { cluster: 'devnet' }
-  });
-
-  await page.goto('/app');
-
-  const tokenAccounts = await page.evaluate(async () => {
-    const wallet = window.phantom?.solana;
-    await wallet.connect();
-    return await wallet.request({ method: 'getTokenAccounts' });
-  });
-
-  expect(Array.isArray(tokenAccounts)).toBe(true);
-});
-```
-
-## Custom Branding
-
-You can customize the wallet's appearance in wallet selection UIs:
-
-```typescript
-{
-  branding: {
-    name: 'My Test Wallet',           // Custom wallet name
-    icon: '<svg>...</svg>',           // Custom SVG icon
-    rdns: 'com.example.wallet',       // Reverse domain notation
-    isMetaMask: true,                 // Pretend to be MetaMask (for compatibility)
-    isPhantom: true                   // Pretend to be Phantom (for compatibility)
-  }
-}
-```
-
-Example with custom branding:
-
-```typescript
+// EIP-5749: Multiple wallets as array
 await installHeadlessWallet(page, {
-  accounts: [{ privateKey: '0xac0974...', type: 'evm' }],
-  branding: {
-    name: 'E2E Test Wallet',
-    icon: `<svg width="32" height="32">
-      <circle cx="16" cy="16" r="16" fill="#6366f1"/>
-      <text x="16" y="20" text-anchor="middle" fill="white">TW</text>
-    </svg>`,
-    isMetaMask: true  // For apps that check for MetaMask
-  }
+  accounts: [...],
+  ethereumWindowMode: 'array'  // Adds to window.ethereum array
+});
+```
+
+##### Solana: solanaWindowProperty
+
+Configure where the Solana provider is injected in the window:
+
+```typescript
+// Don't inject to window at all (Wallet Standard only)
+await installHeadlessWallet(page, {
+  accounts: [{ privateKey: '[...]', type: 'solana' }],
+  solanaWindowProperty: undefined  // No window injection
+});
+
+// Inject at custom path (e.g., window.phantom.solana)
+await installHeadlessWallet(page, {
+  accounts: [{ privateKey: '[...]', type: 'solana' }],
+  solanaWindowProperty: 'phantom.solana'  // Creates nested property
+});
+
+// Inject at window.solana (common standard location)
+await installHeadlessWallet(page, {
+  accounts: [{ privateKey: '[...]', type: 'solana' }],
+  solanaWindowProperty: 'solana'
+});
+```
+
+Note: Solana wallets are always registered with the Wallet Standard API regardless of window injection settings.
+
+#### Complete Multi-Wallet Example
+
+```typescript
+test('three wallets with different configurations', async ({ page }) => {
+  // Wallet 1: Full compatibility mode
+  await installHeadlessWallet(page, {
+    accounts: [
+      { privateKey: '0xac0974...', type: 'evm' },
+      { privateKey: '[68,27,...]', type: 'solana' }
+    ],
+    branding: { name: 'Arena Wallet', rdns: 'com.arena.wallet' },
+    ethereumWindowMode: 'replace',  // Takes over window.ethereum
+    solanaWindowProperty: 'phantom.solana'  // Legacy Phantom compatibility
+  });
+
+  // Wallet 2: Standards-only mode
+  await installHeadlessWallet(page, {
+    accounts: [
+      { privateKey: '0x59c699...', type: 'evm' },
+      { privateKey: '[109,52,...]', type: 'solana' }
+    ],
+    branding: { name: 'Test Wallet', rdns: 'com.test.wallet' },
+    ethereumWindowMode: 'none',  // EIP-6963 only
+    solanaWindowProperty: undefined  // Wallet Standard only
+  });
+
+  // Wallet 3: Array mode for EVM
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: '0x5de411...', type: 'evm' }],
+    branding: { name: 'Dev Wallet', rdns: 'com.dev.wallet' },
+    ethereumWindowMode: 'array'  // EIP-5749 multi-wallet array
+  });
+
+  // All three wallets are now available through their respective discovery mechanisms
+  await page.goto('/app');
+
+  // Your app's wallet selector will show all three options
 });
 ```
 

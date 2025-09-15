@@ -63,7 +63,7 @@ export default defineNuxtConfig({
   },
 
   devServer: {
-    port: 5176
+    port: 5177
   },
 
   ssr: false, // Client-side only for wallet interactions

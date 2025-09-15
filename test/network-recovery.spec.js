@@ -10,6 +10,7 @@ const TEST_SOLANA_KEYPAIR = new Uint8Array([150, 18, 232, 71, 19, 88, 173, 212, 
 
 test.describe('Network Failures and Recovery', () => {
   test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_PRIVATE_KEY, type: 'evm' },
@@ -23,7 +24,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle network timeout scenarios', async ({ page }) => {
     console.log('🧪 Testing network timeout handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet first
@@ -75,7 +75,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle connection interruption and recovery', async ({ page }) => {
     console.log('🧪 Testing connection interruption and recovery...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -158,7 +157,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle RPC endpoint failures', async ({ page }) => {
     console.log('🧪 Testing RPC endpoint failure handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -221,7 +219,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle Solana network connectivity issues', async ({ page }) => {
     console.log('🧪 Testing Solana network connectivity...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Connect Solana wallet
@@ -271,7 +268,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle chain switching during network issues', async ({ page }) => {
     console.log('🧪 Testing chain switching during network issues...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -344,7 +340,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle concurrent requests during network instability', async ({ page }) => {
     console.log('🧪 Testing concurrent requests during network instability...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -404,7 +399,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle page reload and reconnection', async ({ page }) => {
     console.log('🧪 Testing page reload and reconnection...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet and sign something
@@ -426,6 +420,17 @@ test.describe('Network Failures and Recovery', () => {
 
     // Reload the page
     await page.reload();
+
+    // Reinstall wallet after reload since headless wallet doesn't persist
+    await installHeadlessWallet(page, {
+      accounts: [
+        { privateKey: TEST_PRIVATE_KEY, type: 'evm' },
+        { privateKey: TEST_SOLANA_KEYPAIR, type: 'solana' }
+      ],
+      autoConnect: false,
+      debug: true
+    });
+
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Test wallet functionality after reload
@@ -454,7 +459,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle wallet state persistence across sessions', async ({ page }) => {
     console.log('🧪 Testing wallet state persistence...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect and switch to a specific chain
@@ -524,7 +528,6 @@ test.describe('Network Failures and Recovery', () => {
   test('should handle graceful degradation of features', async ({ page }) => {
     console.log('🧪 Testing graceful feature degradation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet

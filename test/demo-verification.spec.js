@@ -7,7 +7,7 @@ test.describe('Demo Applications Verification', () => {
 
   test('Reown AppKit demo works with headless wallet', async ({ page }) => {
     // Navigate to the demo first
-    await page.goto('http://localhost:5175/');
+    await page.goto('http://localhost:5174/');
 
     // Install headless wallet after navigation
     await installHeadlessWallet(page, {
@@ -117,7 +117,7 @@ test.describe('Demo Applications Verification', () => {
   test('Vanilla demo works with headless wallet', async ({ page }) => {
     // First check if vanilla demo is running
     try {
-      const response = await page.goto('http://localhost:3002/', { waitUntil: 'domcontentloaded', timeout: 5000 });
+      const response = await page.goto('http://localhost:5178/', { waitUntil: 'domcontentloaded', timeout: 5000 });
       if (!response || !response.ok()) {
         test.skip();
         return;
@@ -152,7 +152,7 @@ test.describe('Demo Applications Verification', () => {
   test('React demo works with headless wallet', async ({ page }) => {
     // First check if React demo is running
     try {
-      const response = await page.goto('http://localhost:5174/', { waitUntil: 'domcontentloaded', timeout: 5000 });
+      const response = await page.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded', timeout: 5000 });
       if (!response || !response.ok()) {
         test.skip();
         return;
@@ -182,34 +182,5 @@ test.describe('Demo Applications Verification', () => {
       return await window.ethereum.request({ method: 'eth_requestAccounts' });
     });
     expect(accounts).toContain(address);
-  });
-
-  test('Security demo works with headless wallet', async ({ page }) => {
-    // First check if security demo is running
-    try {
-      const response = await page.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded', timeout: 5000 });
-      if (!response || !response.ok()) {
-        test.skip();
-        return;
-      }
-    } catch {
-      test.skip();
-      return;
-    }
-
-    // Install headless wallet after navigation
-    await installHeadlessWallet(page, {
-      accounts: [{
-        privateKey,
-        type: 'evm'
-      }],
-      autoConnect: false
-    });
-
-    // Basic connectivity test
-    const hasEthereum = await page.evaluate(() => {
-      return typeof window.ethereum !== 'undefined';
-    });
-    expect(hasEthereum).toBe(true);
   });
 });

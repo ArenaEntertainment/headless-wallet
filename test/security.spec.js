@@ -10,6 +10,7 @@ const TEST_SOLANA_KEYPAIR = new Uint8Array([150, 18, 232, 71, 19, 88, 173, 212, 
 
 test.describe('Security Testing', () => {
   test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_PRIVATE_KEY, type: 'evm' },
@@ -23,7 +24,6 @@ test.describe('Security Testing', () => {
   test('should not expose private keys in browser context', async ({ page }) => {
     console.log('🧪 Testing private key exposure protection...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -90,7 +90,6 @@ test.describe('Security Testing', () => {
   test('should validate signature authenticity', async ({ page }) => {
     console.log('🧪 Testing signature authenticity validation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -169,7 +168,6 @@ test.describe('Security Testing', () => {
   test('should prevent signature replay attacks', async ({ page }) => {
     console.log('🧪 Testing signature replay attack prevention...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -222,7 +220,6 @@ test.describe('Security Testing', () => {
   test('should validate EIP-712 domain separation', async ({ page }) => {
     console.log('🧪 Testing EIP-712 domain separation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -335,7 +332,6 @@ test.describe('Security Testing', () => {
   test('should protect against malicious data injection', async ({ page }) => {
     console.log('🧪 Testing protection against malicious data injection...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -414,7 +410,6 @@ test.describe('Security Testing', () => {
   test('should validate address parameters', async ({ page }) => {
     console.log('🧪 Testing address parameter validation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -499,7 +494,6 @@ test.describe('Security Testing', () => {
   test('should handle Solana security validations', async ({ page }) => {
     console.log('🧪 Testing Solana security validations...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Connect Solana wallet
@@ -585,7 +579,6 @@ test.describe('Security Testing', () => {
   test('should prevent cross-chain signature confusion', async ({ page }) => {
     console.log('🧪 Testing cross-chain signature confusion prevention...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum && window.phantom?.solana, { timeout: 5000 });
 
     // Connect both wallets
@@ -643,7 +636,6 @@ test.describe('Security Testing', () => {
   test('should validate wallet provider authenticity', async ({ page }) => {
     console.log('🧪 Testing wallet provider authenticity...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum && window.phantom?.solana, { timeout: 5000 });
 
     // Test wallet provider authenticity markers
@@ -701,7 +693,6 @@ test.describe('Security Testing', () => {
   test('should handle secure random number generation', async ({ page }) => {
     console.log('🧪 Testing secure random number generation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -770,7 +761,6 @@ test.describe('Security Testing', () => {
   test('should prevent timing attacks on signature operations', async ({ page }) => {
     console.log('🧪 Testing timing attack resistance...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet

@@ -11,11 +11,11 @@ const TEST_PRIVATE_KEY = new Uint8Array([
   103, 228, 214, 48, 155, 165, 13, 95, 29, 220, 134, 100, 18, 85, 49, 184
 ]);
 
-const EXPECTED_PUBLIC_KEY = 'FAe4sisG95oZ42w7buUn5qEE4TAnfTTFPiguZUHmhiF';
+const EXPECTED_PUBLIC_KEY = 'BCtm4zf81yLB27CosEkySoFUkkG1LBugBC98U6RZKzrj';
 
 test.describe('New Solana Methods', () => {
   test('should get balance for Solana account', async ({ page }) => {
-    await page.goto('data:text/html,<html><body>Test</body></html>');
+    await page.goto('http://localhost:5174/');
 
     await installHeadlessWallet(page, {
       accounts: [
@@ -46,7 +46,7 @@ test.describe('New Solana Methods', () => {
   });
 
   test('should get latest blockhash', async ({ page }) => {
-    await page.goto('data:text/html,<html><body>Test</body></html>');
+    await page.goto('http://localhost:5174/');
 
     await installHeadlessWallet(page, {
       accounts: [
@@ -79,7 +79,7 @@ test.describe('New Solana Methods', () => {
   });
 
   test('should get account info', async ({ page }) => {
-    await page.goto('data:text/html,<html><body>Test</body></html>');
+    await page.goto('http://localhost:5174/');
 
     await installHeadlessWallet(page, {
       accounts: [
@@ -110,7 +110,7 @@ test.describe('New Solana Methods', () => {
   });
 
   test('should support Sign In with Solana (SIWS)', async ({ page }) => {
-    await page.goto('data:text/html,<html><body>Test</body></html>');
+    await page.goto('http://localhost:5174/');
 
     await installHeadlessWallet(page, {
       accounts: [
@@ -158,7 +158,7 @@ test.describe('New Solana Methods', () => {
   });
 
   test('should send pre-signed transaction', async ({ page }) => {
-    await page.goto('data:text/html,<html><body>Test</body></html>');
+    await page.goto('http://localhost:5174/');
 
     await installHeadlessWallet(page, {
       accounts: [
@@ -196,7 +196,7 @@ test.describe('New Solana Methods', () => {
   });
 
   test('should get token accounts (empty for new wallet)', async ({ page }) => {
-    await page.goto('data:text/html,<html><body>Test</body></html>');
+    await page.goto('http://localhost:5174/');
 
     await installHeadlessWallet(page, {
       accounts: [

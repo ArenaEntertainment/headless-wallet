@@ -3,7 +3,10 @@ import { installHeadlessWallet, uninstallHeadlessWallet } from '@arenaentertainm
 
 test.describe('Wallet Disconnect Functionality', () => {
   test('EVM disconnect should clear wallet state and emit events', async ({ page }) => {
-    // Install wallet with EVM account
+    // Navigate first
+    await page.goto('http://localhost:5174/');
+
+    // Install wallet with EVM account (replaces window.ethereum)
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
@@ -12,8 +15,6 @@ test.describe('Wallet Disconnect Functionality', () => {
       autoConnect: false,
       debug: true
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Set up event listeners
     await page.evaluate(() => {
@@ -72,6 +73,9 @@ test.describe('Wallet Disconnect Functionality', () => {
   });
 
   test('EVM reconnection should work after disconnect', async ({ page }) => {
+    // Navigate first
+    await page.goto('http://localhost:5174/');
+
     // Install wallet
     await installHeadlessWallet(page, {
       accounts: [{
@@ -80,8 +84,6 @@ test.describe('Wallet Disconnect Functionality', () => {
       }],
       autoConnect: false
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Initial connection
     await page.evaluate(async () => {
@@ -135,7 +137,7 @@ test.describe('Wallet Disconnect Functionality', () => {
       debug: true
     });
 
-    await page.goto('http://localhost:5175/');
+    await page.goto('http://localhost:5174/');
 
     // Set up event listener
     await page.evaluate(() => {
@@ -191,6 +193,9 @@ test.describe('Wallet Disconnect Functionality', () => {
   });
 
   test('Solana reconnection should work after disconnect', async ({ page }) => {
+    // Navigate first
+    await page.goto('http://localhost:5174/');
+
     // Generate Solana test key
     const secretKey = new Uint8Array([
       208, 175, 150, 242, 88, 34, 108, 88, 177, 16, 168, 75,
@@ -201,7 +206,7 @@ test.describe('Wallet Disconnect Functionality', () => {
       249, 157, 62, 80
     ]);
 
-    // Install wallet
+    // Install wallet (replaces window.phantom.solana)
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey: secretKey,
@@ -209,8 +214,6 @@ test.describe('Wallet Disconnect Functionality', () => {
       }],
       autoConnect: false
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Initial connection
     const firstConnect = await page.evaluate(async () => {
@@ -248,7 +251,10 @@ test.describe('Wallet Disconnect Functionality', () => {
   });
 
   test('Multiple disconnects should be idempotent', async ({ page }) => {
-    // Install wallet
+    // Navigate first
+    await page.goto('http://localhost:5174/');
+
+    // Install wallet (replaces window.ethereum)
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
@@ -256,8 +262,6 @@ test.describe('Wallet Disconnect Functionality', () => {
       }],
       autoConnect: false
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Connect
     await page.evaluate(async () => {

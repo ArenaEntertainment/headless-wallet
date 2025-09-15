@@ -3,11 +3,11 @@ import { resolve } from 'path'
 
 export default defineConfig({
   server: {
-    port: 3002,
+    port: 5178,
     host: true
   },
   preview: {
-    port: 3002,
+    port: 5178,
     host: true
   },
   resolve: {
