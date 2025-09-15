@@ -14,13 +14,33 @@ export async function installHeadlessWallet(
   config: HeadlessWalletConfig & {
     autoConnect?: boolean;
     debug?: boolean;
+    /**
+     * How to handle window.ethereum:
+     * - 'replace': Replace window.ethereum (default)
+     * - 'none': Don't set window.ethereum (EIP-6963 only)
+     * - 'array': Use EIP-5749 pattern for multiple wallets
+     */
+    ethereumWindowMode?: 'replace' | 'none' | 'array';
+    /**
+     * Where to inject Solana provider in window:
+     * - undefined: Don't inject (default, Wallet Standard only)
+     * - 'phantom.solana': Legacy compatibility at window.phantom.solana
+     * - 'solana': Direct window.solana
+     * - Any string: Custom property path (e.g., 'app.wallets.solana')
+     */
+    solanaWindowProperty?: string;
   }
 ): Promise<string> {
   const walletId = `wallet-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   const wallet = new HeadlessWallet(config);
   wallets.set(walletId, wallet);
 
-  const { autoConnect = false, debug = false } = config;
+  const {
+    autoConnect = false,
+    debug = false,
+    ethereumWindowMode = 'replace',
+    solanaWindowProperty
+  } = config;
 
   // Only expose if not already exposed to avoid re-installation errors
   if (!exposedFunctions.has(target)) {
@@ -63,7 +83,7 @@ export async function installHeadlessWallet(
   }
 
   // Define the injection script
-  const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }: any) => {
+  const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug, ethereumWindowMode, solanaWindowProperty }: any) => {
       // EVM Provider (window.ethereum)
       if (hasEVM) {
         // Event emitter implementation
@@ -137,7 +157,40 @@ export async function installHeadlessWallet(
           }
         };
 
-        (window as any).ethereum = ethereumProvider;
+        // Handle window.ethereum based on mode
+        if (ethereumWindowMode === 'replace') {
+          (window as any).ethereum = ethereumProvider;
+        } else if (ethereumWindowMode === 'array') {
+          // EIP-5749: Support multiple wallets via array
+          if (!(window as any).ethereum) {
+            // No existing provider, create array
+            (window as any).ethereum = [ethereumProvider];
+            // Add proxy methods to the array for backward compatibility
+            Object.assign((window as any).ethereum, {
+              request: ethereumProvider.request,
+              on: ethereumProvider.on,
+              removeListener: ethereumProvider.removeListener,
+              disconnect: ethereumProvider.disconnect,
+              isMetaMask: ethereumProvider.isMetaMask
+            });
+          } else if (Array.isArray((window as any).ethereum)) {
+            // Already an array, add to it
+            (window as any).ethereum.push(ethereumProvider);
+          } else {
+            // Single provider exists, convert to array
+            const existingProvider = (window as any).ethereum;
+            (window as any).ethereum = [existingProvider, ethereumProvider];
+            // Keep the existing provider's methods as default
+            Object.assign((window as any).ethereum, {
+              request: existingProvider.request,
+              on: existingProvider.on,
+              removeListener: existingProvider.removeListener,
+              disconnect: existingProvider.disconnect,
+              isMetaMask: existingProvider.isMetaMask
+            });
+          }
+        }
+        // ethereumWindowMode === 'none': Don't set window.ethereum at all
 
         // Track provider for cleanup
         if (!(window as any).__headlessWalletProviders) {
@@ -299,10 +352,26 @@ export async function installHeadlessWallet(
           }
         };
 
-        if (!(window as any).phantom) {
-          (window as any).phantom = {};
+        // Handle Solana window injection based on solanaWindowProperty
+        if (solanaWindowProperty) {
+          // Helper to set nested property
+          const setNestedProperty = (obj: any, path: string, value: any) => {
+            const parts = path.split('.');
+            const last = parts.pop();
+            for (const part of parts) {
+              if (!obj[part]) {
+                obj[part] = {};
+              }
+              obj = obj[part];
+            }
+            if (last) {
+              obj[last] = value;
+            }
+          };
+
+          setNestedProperty(window, solanaWindowProperty, solanaProvider);
         }
-        (window as any).phantom.solana = solanaProvider;
+        // If solanaWindowProperty is undefined, don't inject (Wallet Standard only)
 
         // Track Solana provider for cleanup
         if (!(window as any).__headlessWalletProviders) {
@@ -333,7 +402,9 @@ export async function installHeadlessWallet(
     hasSolana: wallet.hasSolana(),
     branding: wallet.getBranding(),
     autoConnect,
-    debug
+    debug,
+    ethereumWindowMode,
+    solanaWindowProperty
   };
 
   // Only inject via evaluate, don't use addInitScript to avoid persistence issues

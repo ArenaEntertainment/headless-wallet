@@ -337,7 +337,18 @@ function getWalletIcon(customIcon?: string): string {
 }
 
 // Browser injection function (for Vue/React plugins)
-export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWallet {
+export function injectHeadlessWallet(
+  config: (HeadlessWalletConfig & {
+    /**
+     * Where to inject Solana provider in window:
+     * - undefined: Don't inject (default, Wallet Standard only)
+     * - 'phantom.solana': Legacy compatibility at window.phantom.solana
+     * - 'solana': Direct window.solana
+     * - Any string: Custom property path (e.g., 'app.wallets.solana')
+     */
+    solanaWindowProperty?: string;
+  })
+): HeadlessWallet {
   if (typeof window === 'undefined') {
     throw new Error('injectHeadlessWallet can only be used in browser environment');
   }
@@ -347,6 +358,7 @@ export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWall
   }
 
   const wallet = new HeadlessWallet(config);
+  const { solanaWindowProperty = 'phantom.solana' } = config; // Default to legacy for backward compatibility
 
   // Inject EVM provider
   if (wallet.hasEVM()) {
@@ -377,14 +389,29 @@ export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWall
     window.addEventListener('eip6963:requestProvider', announceProvider);
   }
 
-  // Inject Solana provider
-  if (wallet.hasSolana()) {
-    if (!(window as any).phantom) {
-      (window as any).phantom = {};
+  // Helper to set nested property
+  const setNestedProperty = (obj: any, path: string, value: any) => {
+    const parts = path.split('.');
+    const last = parts.pop();
+    for (const part of parts) {
+      if (!obj[part]) {
+        obj[part] = {};
+      }
+      obj = obj[part];
     }
-    (window as any).phantom.solana = wallet.getSolanaProvider();
+    if (last) {
+      obj[last] = value;
+    }
+  };
 
-    // Use the new Solana Wallet Standard implementation
+  // Inject Solana provider (if configured)
+  if (wallet.hasSolana()) {
+    // Optionally inject into window property
+    if (solanaWindowProperty) {
+      setNestedProperty(window as any, solanaWindowProperty, wallet.getSolanaProvider());
+    }
+
+    // Always register with Wallet Standard
     const solanaWalletStandard = wallet.getSolanaWalletStandard();
 
     if (solanaWalletStandard) {

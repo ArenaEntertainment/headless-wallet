@@ -17,6 +17,7 @@ const TEST_SOLANA_KEYPAIR = new Uint8Array([150, 18, 232, 71, 19, 88, 173, 212, 
 
 test.describe('Event Handling', () => {
   test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await installHeadlessWallet(page, {
       accounts: [
         ...TEST_EVM_KEYS.map(key => ({ privateKey: key, type: 'evm' })),
@@ -30,7 +31,6 @@ test.describe('Event Handling', () => {
   test('should emit accountsChanged events on EVM', async ({ page }) => {
     console.log('🧪 Testing EVM accountsChanged events...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Set up event listener
@@ -93,7 +93,6 @@ test.describe('Event Handling', () => {
   test('should emit chainChanged events on EVM', async ({ page }) => {
     console.log('🧪 Testing EVM chainChanged events...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Set up event listener for chain changes
@@ -151,7 +150,6 @@ test.describe('Event Handling', () => {
   test('should handle multiple event listeners', async ({ page }) => {
     console.log('🧪 Testing multiple event listeners...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Set up multiple event listeners
@@ -252,7 +250,6 @@ test.describe('Event Handling', () => {
   test('should handle Solana connection events', async ({ page }) => {
     console.log('🧪 Testing Solana connection events...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Set up Solana event listeners
@@ -318,7 +315,6 @@ test.describe('Event Handling', () => {
   test('should handle event listener errors gracefully', async ({ page }) => {
     console.log('🧪 Testing event listener error handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Set up event listeners with intentional errors
@@ -374,7 +370,6 @@ test.describe('Event Handling', () => {
   test('should handle rapid event triggering', async ({ page }) => {
     console.log('🧪 Testing rapid event triggering...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Set up event listener for rapid events
@@ -440,7 +435,6 @@ test.describe('Event Handling', () => {
   test('should handle custom event types', async ({ page }) => {
     console.log('🧪 Testing custom event types...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Test listening to various event types that might be supported
@@ -515,7 +509,6 @@ test.describe('Event Handling', () => {
   test('should handle event listener memory management', async ({ page }) => {
     console.log('🧪 Testing event listener memory management...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Create and remove many event listeners to test memory management

@@ -9,6 +9,7 @@ const TEST_SOLANA_KEYPAIR = new Uint8Array([150, 18, 232, 71, 19, 88, 173, 212, 
 
 test.describe('Error Handling and Edge Cases', () => {
   test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_PRIVATE_KEY, type: 'evm' },
@@ -22,7 +23,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle invalid method calls gracefully', async ({ page }) => {
     console.log('🧪 Testing invalid method calls...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Test invalid EVM method
@@ -56,7 +56,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle malformed parameters gracefully', async ({ page }) => {
     console.log('🧪 Testing malformed parameters...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Test personal_sign with invalid parameters
@@ -95,7 +94,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle disconnected state properly', async ({ page }) => {
     console.log('🧪 Testing disconnected state handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Test Solana operations before connection
@@ -136,7 +134,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle concurrent requests properly', async ({ page }) => {
     console.log('🧪 Testing concurrent request handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect first
@@ -173,7 +170,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle large data payloads', async ({ page }) => {
     console.log('🧪 Testing large data payload handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -203,7 +199,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle rapid chain switching', async ({ page }) => {
     console.log('🧪 Testing rapid chain switching...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Rapidly switch between multiple chains
@@ -240,7 +235,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle invalid transaction data', async ({ page }) => {
     console.log('🧪 Testing invalid transaction data handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Connect Solana wallet
@@ -267,7 +261,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle memory pressure gracefully', async ({ page }) => {
     console.log('🧪 Testing memory pressure handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -307,7 +300,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle unicode and special characters in messages', async ({ page }) => {
     console.log('🧪 Testing unicode and special character handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -337,7 +329,6 @@ test.describe('Error Handling and Edge Cases', () => {
   test('should handle null and undefined parameters', async ({ page }) => {
     console.log('🧪 Testing null and undefined parameter handling...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Test with null parameters

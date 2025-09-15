@@ -11,6 +11,7 @@ const EXPECTED_SOLANA_ADDRESS = '5CBcq9wWe4ZrcnZBHGjgKu8mKxi2dAiugtLoXRZFEWNm';
 
 test.describe('Transaction Testing', () => {
   test.beforeEach(async ({ page }) => {
+    await page.goto('http://localhost:5174');
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_PRIVATE_KEY, type: 'evm' },
@@ -24,7 +25,6 @@ test.describe('Transaction Testing', () => {
   test('should handle EIP-712 typed data signing', async ({ page }) => {
     console.log('🧪 Testing EIP-712 typed data signing...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -150,7 +150,6 @@ test.describe('Transaction Testing', () => {
   test('should handle Ethereum transaction signing', async ({ page }) => {
     console.log('🧪 Testing Ethereum transaction signing...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -202,7 +201,6 @@ test.describe('Transaction Testing', () => {
   test('should handle Solana transaction signing', async ({ page }) => {
     console.log('🧪 Testing Solana transaction signing...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Connect Solana wallet
@@ -256,7 +254,6 @@ test.describe('Transaction Testing', () => {
   test('should handle batch Solana transaction signing', async ({ page }) => {
     console.log('🧪 Testing batch Solana transaction signing...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Connect Solana wallet
@@ -313,7 +310,6 @@ test.describe('Transaction Testing', () => {
   test('should handle sign and send transactions', async ({ page }) => {
     console.log('🧪 Testing sign and send transaction...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Connect Solana wallet
@@ -367,7 +363,6 @@ test.describe('Transaction Testing', () => {
   test('should validate transaction parameters', async ({ page }) => {
     console.log('🧪 Testing transaction parameter validation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -428,7 +423,6 @@ test.describe('Transaction Testing', () => {
   test('should handle gas estimation requests', async ({ page }) => {
     console.log('🧪 Testing gas estimation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -473,7 +467,6 @@ test.describe('Transaction Testing', () => {
   test('should handle transaction simulation', async ({ page }) => {
     console.log('🧪 Testing transaction simulation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
     // Connect Solana wallet
@@ -520,7 +513,6 @@ test.describe('Transaction Testing', () => {
   test('should handle different signature types', async ({ page }) => {
     console.log('🧪 Testing different signature types...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet
@@ -588,7 +580,6 @@ test.describe('Transaction Testing', () => {
   test('should handle transaction receipt simulation', async ({ page }) => {
     console.log('🧪 Testing transaction receipt simulation...');
 
-    await page.goto('http://localhost:5174');
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
     // Connect wallet

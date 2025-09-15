@@ -1,8 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { installHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
+import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
+
+// Valid Solana test keypair (64 bytes: 32 byte seed + 32 byte public key)
+const TEST_SOLANA_KEYPAIR = new Uint8Array([150, 18, 232, 71, 19, 88, 173, 212, 93, 227, 95, 201, 208, 119, 27, 27, 245, 79, 54, 171, 84, 233, 119, 172, 239, 210, 13, 114, 170, 228, 78, 156, 62, 76, 36, 99, 206, 146, 119, 196, 167, 136, 71, 9, 222, 59, 121, 131, 46, 18, 184, 70, 143, 146, 22, 124, 117, 219, 17, 3, 13, 161, 209, 234]);
 
 test.describe('Multi-Wallet Coexistence', () => {
   test('should allow multiple wallets via EIP-6963 only', async ({ page }) => {
+    // Navigate to a page first
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     // Install first wallet without setting window.ethereum
     const wallet1Id = await installHeadlessWallet(page, {
       accounts: [
@@ -12,7 +18,7 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Test Wallet 1',
         rdns: 'com.test.wallet1'
       },
-      windowEthereumMode: 'none',
+      ethereumWindowMode: 'none',
       autoConnect: false
     });
 
@@ -25,11 +31,9 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Test Wallet 2',
         rdns: 'com.test.wallet2'
       },
-      windowEthereumMode: 'none',
+      ethereumWindowMode: 'none',
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     // Check that window.ethereum is not set
     const hasWindowEthereum = await page.evaluate(() => {
@@ -71,6 +75,9 @@ test.describe('Multi-Wallet Coexistence', () => {
   });
 
   test('should support EIP-5749 wallet arrays', async ({ page }) => {
+    // Navigate to a page first
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     // Install first wallet normally
     await installHeadlessWallet(page, {
       accounts: [
@@ -80,7 +87,7 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Primary Wallet',
         isMetaMask: true
       },
-      windowEthereumMode: 'replace',
+      ethereumWindowMode: 'replace',
       autoConnect: false
     });
 
@@ -93,11 +100,9 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Secondary Wallet',
         isMetaMask: false
       },
-      windowEthereumMode: 'array',
+      ethereumWindowMode: 'array',
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     // Check that window.ethereum is now an array
     const ethereumInfo = await page.evaluate(() => {
@@ -121,6 +126,9 @@ test.describe('Multi-Wallet Coexistence', () => {
   });
 
   test('should allow connecting to different wallets', async ({ page }) => {
+    // Navigate to a page first
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     // Install two wallets
     await installHeadlessWallet(page, {
       accounts: [
@@ -130,7 +138,7 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Wallet A',
         rdns: 'com.test.walletA'
       },
-      windowEthereumMode: 'none',
+      ethereumWindowMode: 'none',
       autoConnect: false
     });
 
@@ -142,11 +150,9 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Wallet B',
         rdns: 'com.test.walletB'
       },
-      windowEthereumMode: 'none',
+      ethereumWindowMode: 'none',
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     // Connect to each wallet via EIP-6963
     const connections = await page.evaluate(() => {
@@ -186,6 +192,9 @@ test.describe('Multi-Wallet Coexistence', () => {
   });
 
   test('should handle wallet uninstall without affecting others', async ({ page }) => {
+    // Navigate to a page first
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     // Install two wallets
     const wallet1Id = await installHeadlessWallet(page, {
       accounts: [
@@ -195,7 +204,7 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Wallet 1',
         rdns: 'com.test.wallet1'
       },
-      windowEthereumMode: 'none',
+      ethereumWindowMode: 'none',
       autoConnect: false
     });
 
@@ -207,11 +216,9 @@ test.describe('Multi-Wallet Coexistence', () => {
         name: 'Wallet 2',
         rdns: 'com.test.wallet2'
       },
-      windowEthereumMode: 'none',
+      ethereumWindowMode: 'none',
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     // Verify both wallets are available
     let wallets = await page.evaluate(() => {
@@ -258,8 +265,10 @@ test.describe('Multi-Wallet Coexistence', () => {
     expect(wallets).toContain('Wallet 2');
   });
 
-  test.skip('should support mixed EVM and Solana wallets', async ({ page }) => {
-    // TODO: Enable this test after Solana key format issue is resolved
+  test('should support mixed EVM and Solana wallets', async ({ page }) => {
+    // Navigate to a page first
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     // Install EVM wallet
     await installHeadlessWallet(page, {
       accounts: [
@@ -268,8 +277,8 @@ test.describe('Multi-Wallet Coexistence', () => {
       branding: {
         name: 'EVM Wallet'
       },
-      windowEthereumMode: 'replace',
-      windowSolanaMode: 'none',
+      ethereumWindowMode: 'replace',
+      solanaWindowProperty: undefined,
       autoConnect: false
     });
 
@@ -277,20 +286,17 @@ test.describe('Multi-Wallet Coexistence', () => {
     await installHeadlessWallet(page, {
       accounts: [
         {
-          // Use a hex-encoded Solana private key (64 bytes = 128 hex chars)
-          privateKey: '0x' + '01'.repeat(64), // 64 bytes as hex
+          privateKey: TEST_SOLANA_KEYPAIR,
           type: 'solana'
         }
       ],
       branding: {
         name: 'Solana Wallet'
       },
-      windowEthereumMode: 'none',
-      windowSolanaMode: 'replace',
+      ethereumWindowMode: 'none',
+      solanaWindowProperty: 'phantom.solana',
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     // Check both providers exist
     const providers = await page.evaluate(() => {

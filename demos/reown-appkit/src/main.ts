@@ -29,18 +29,20 @@ function addLog(message: string) {
   }
 }
 
-// Configure and inject the headless wallet
-const walletConfig: HeadlessWalletConfig = {
+// Install multiple wallets to demonstrate multi-wallet support
+const wallets: ReturnType<typeof injectHeadlessWallet>[] = []
+
+// Wallet 1: Arena Wallet (first EVM and Solana account)
+const wallet1Config: HeadlessWalletConfig = {
   accounts: [
-    ...TEST_ACCOUNTS.evm.map(privateKey => ({
-      privateKey,
-      type: 'evm' as const
-    })),
-    ...TEST_ACCOUNTS.solana.map(secretKey => ({
-      privateKey: secretKey,
-      type: 'solana' as const
-    }))
+    { privateKey: TEST_ACCOUNTS.evm[0], type: 'evm' as const },
+    { privateKey: TEST_ACCOUNTS.solana[0], type: 'solana' as const }
   ],
+  branding: {
+    name: 'Arena Wallet',
+    rdns: 'com.arena.wallet',
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="%234A90E2"/><text x="16" y="20" text-anchor="middle" fill="white" font-family="Arial" font-size="16">A</text></svg>'
+  },
   evm: {
     rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com'
   },
@@ -49,10 +51,68 @@ const walletConfig: HeadlessWalletConfig = {
     rpcUrl: 'https://api.devnet.solana.com'
   }
 }
+const wallet1 = injectHeadlessWallet({
+  ...wallet1Config,
+  solanaWindowProperty: 'phantom.solana'
+})
+wallets.push(wallet1)
+addLog('🎮 Arena Wallet injected')
 
-// Inject the wallet into the browser
-const wallet = injectHeadlessWallet(walletConfig)
-addLog('🎮 Arena Headless Wallet injected')
+// Wallet 2: Test Wallet (second EVM and Solana account)
+const wallet2Config: HeadlessWalletConfig = {
+  accounts: [
+    { privateKey: TEST_ACCOUNTS.evm[1], type: 'evm' as const },
+    { privateKey: TEST_ACCOUNTS.solana[1], type: 'solana' as const }
+  ],
+  branding: {
+    name: 'Test Wallet',
+    rdns: 'com.test.wallet',
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="%2342E24A"/><text x="16" y="20" text-anchor="middle" fill="white" font-family="Arial" font-size="16">T</text></svg>'
+  },
+  evm: {
+    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com'
+  },
+  solana: {
+    cluster: 'devnet',
+    rpcUrl: 'https://api.devnet.solana.com'
+  }
+}
+const wallet2 = injectHeadlessWallet({
+  ...wallet2Config,
+  solanaWindowProperty: 'solana'
+})
+wallets.push(wallet2)
+addLog('🧪 Test Wallet injected')
+
+// Wallet 3: Dev Wallet (third EVM and Solana account)
+const wallet3Config: HeadlessWalletConfig = {
+  accounts: [
+    { privateKey: TEST_ACCOUNTS.evm[2], type: 'evm' as const },
+    { privateKey: TEST_ACCOUNTS.solana[2], type: 'solana' as const }
+  ],
+  branding: {
+    name: 'Dev Wallet',
+    rdns: 'com.dev.wallet',
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="%23E24A42"/><text x="16" y="20" text-anchor="middle" fill="white" font-family="Arial" font-size="16">D</text></svg>'
+  },
+  evm: {
+    rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com'
+  },
+  solana: {
+    cluster: 'devnet',
+    rpcUrl: 'https://api.devnet.solana.com'
+  }
+}
+const wallet3 = injectHeadlessWallet({
+  ...wallet3Config,
+  solanaWindowProperty: undefined // No window injection, EIP-6963 only
+})
+wallets.push(wallet3)
+addLog('🔧 Dev Wallet injected')
+
+// Use the first wallet as the main wallet for direct access
+const wallet = wallets[0]
+addLog(`📊 Total wallets injected: ${wallets.length}`)
 
 // Get the providers for direct access
 const evmProvider = wallet.getEthereumProvider()
@@ -98,45 +158,7 @@ async function updateUI() {
                         false
   const isEVMChain = !isSolanaChain
 
-  // Update EVM status
-  const evmStatus = document.getElementById('evm-status')
-  if (evmStatus) {
-    if (wallet.hasEVM()) {
-      const accountInfo = wallet.getEVMAccountInfo()
-      if (accountInfo && accountInfo.accounts.length > 0) {
-        evmStatus.innerHTML = `Connected: ${accountInfo.accounts[accountInfo.currentIndex].substring(0, 10)}... (${accountInfo.accounts.length} accounts)`
-      } else {
-        evmStatus.innerHTML = 'Not connected'
-      }
-    } else {
-      evmStatus.innerHTML = 'No EVM wallet'
-    }
-  }
-
-  // Update Solana status
-  const solanaStatus = document.getElementById('solana-status')
-  if (solanaStatus) {
-    if (wallet.hasSolana()) {
-      const accountInfo = wallet.getSolanaAccountInfo()
-      if (accountInfo && accountInfo.accounts.length > 0) {
-        solanaStatus.innerHTML = `Connected: ${accountInfo.accounts[accountInfo.currentIndex].substring(0, 10)}... (${accountInfo.accounts.length} accounts)`
-      } else {
-        solanaStatus.innerHTML = 'Not connected'
-      }
-    } else {
-      solanaStatus.innerHTML = 'No Solana wallet'
-    }
-  }
-
-  // Update AppKit connection status
-  const appKitStatus = document.getElementById('appkit-status')
-  if (appKitStatus) {
-    if (isConnected && address) {
-      appKitStatus.innerHTML = `Connected: ${address.substring(0, 10)}... on ${chainId || 'unknown chain'}`
-    } else {
-      appKitStatus.innerHTML = 'Not connected'
-    }
-  }
+  // Note: We have 3 wallets installed that can be selected via AppKit modal
 
   // Enable/disable EVM buttons based on connection state
   const evmButtons = ['sign-message', 'sign-typed-data', 'send-transaction', 'switch-to-polygon',
@@ -173,50 +195,12 @@ async function updateUI() {
   const accountInfo = document.getElementById('account-info')
   if (accountInfo) {
     if (isConnected && address) {
-      // For display, properly detect if it's a Solana address
-      const displayIsSolana = chainId?.toString().includes('solana') || address.length > 42
       const shortAddress = `${address.substring(0, 10)}...${address.substring(address.length - 8)}`
-
-      // Get all accounts for the current chain type
-      let accountsList = ''
-      if (displayIsSolana) {
-        const solanaInfo = wallet.getSolanaAccountInfo()
-        if (solanaInfo) {
-          accountsList = '<div class="accounts-list"><strong>Solana Accounts:</strong><br>'
-          solanaInfo.accounts.forEach((acc, index) => {
-            const isActive = index === solanaInfo.currentIndex
-            const shortAcc = `${acc.substring(0, 10)}...${acc.substring(acc.length - 8)}`
-            accountsList += `<div class="account-item ${isActive ? 'active' : ''}"
-              onclick="window.switchToSolanaAccount(${index})"
-              style="cursor: pointer; padding: 5px; margin: 2px 0; border-radius: 4px; ${isActive ? 'background: #e3f2fd; font-weight: bold;' : 'background: #f5f5f5;'}">
-              ${isActive ? '▶ ' : '  '}${shortAcc}
-            </div>`
-          })
-          accountsList += '</div>'
-        }
-      } else {
-        const evmInfo = wallet.getEVMAccountInfo()
-        if (evmInfo) {
-          accountsList = '<div class="accounts-list"><strong>EVM Accounts:</strong><br>'
-          evmInfo.accounts.forEach((acc, index) => {
-            const isActive = index === evmInfo.currentIndex
-            const shortAcc = `${acc.substring(0, 10)}...${acc.substring(acc.length - 8)}`
-            accountsList += `<div class="account-item ${isActive ? 'active' : ''}"
-              onclick="window.switchToEVMAccount(${index})"
-              style="cursor: pointer; padding: 5px; margin: 2px 0; border-radius: 4px; ${isActive ? 'background: #e3f2fd; font-weight: bold;' : 'background: #f5f5f5;'}">
-              ${isActive ? '▶ ' : '  '}${shortAcc}
-            </div>`
-          })
-          accountsList += '</div>'
-        }
-      }
-
       accountInfo.innerHTML = `
         <div class="wallet-info">
-          <strong>Current Address:</strong> ${shortAddress}<br>
-          <strong>Chain Type:</strong> ${displayIsSolana ? 'Solana' : 'EVM'}<br>
-          <br>
-          ${accountsList}
+          <strong>Address:</strong> ${shortAddress}<br>
+          <strong>Chain Type:</strong> ${isSolanaChain ? 'Solana' : 'EVM'}<br>
+          <strong>Network:</strong> ${chainId || 'Unknown'}
         </div>
       `
     } else {
@@ -227,11 +211,13 @@ async function updateUI() {
   // Update network information display
   const networkInfo = document.getElementById('network-info')
   if (networkInfo) {
-    if (isConnected) {
-      const networkName = chainId || 'Unknown Network'
+    if (isConnected && caipNetwork) {
+      const networkName = caipNetwork.name || chainId || 'Unknown Network'
       networkInfo.innerHTML = `
         <div class="info-box">
-          <strong>Current Network:</strong> ${networkName}
+          <strong>Current Network:</strong> ${networkName}<br>
+          <strong>Chain ID:</strong> ${chainId || 'N/A'}<br>
+          <strong>Namespace:</strong> ${caipNetwork.chainNamespace || 'evm'}
         </div>
       `
     } else {
@@ -255,84 +241,6 @@ async function updateUI() {
 
 // Setup event listeners
 document.addEventListener('DOMContentLoaded', () => {
-  // EVM direct wallet buttons
-  document.getElementById('evm-connect')?.addEventListener('click', async () => {
-    try {
-      const accounts = await evmProvider.request({ method: 'eth_requestAccounts' })
-      addLog(`✅ EVM connected: ${accounts.join(', ')}`)
-      updateUI()
-    } catch (error) {
-      addLog(`❌ EVM connect failed: ${error}`)
-    }
-  })
-
-  document.getElementById('evm-disconnect')?.addEventListener('click', async () => {
-    try {
-      await evmProvider.disconnect()
-      addLog('✅ EVM disconnected')
-      updateUI()
-    } catch (error) {
-      addLog(`❌ EVM disconnect failed: ${error}`)
-    }
-  })
-
-  // Solana direct wallet buttons
-  document.getElementById('solana-connect')?.addEventListener('click', async () => {
-    try {
-      const result = await solanaProvider.connect()
-      addLog(`✅ Solana connected: ${result.publicKey.toString()}`)
-      updateUI()
-    } catch (error) {
-      addLog(`❌ Solana connect failed: ${error}`)
-    }
-  })
-
-  document.getElementById('solana-disconnect')?.addEventListener('click', async () => {
-    try {
-      await solanaProvider.disconnect()
-      addLog('✅ Solana disconnected')
-      updateUI()
-    } catch (error) {
-      addLog(`❌ Solana disconnect failed: ${error}`)
-    }
-  })
-
-  // AppKit buttons
-  document.getElementById('appkit-connect')?.addEventListener('click', () => {
-    addLog('🔗 Opening AppKit modal...')
-    appKit.open()
-  })
-
-  document.getElementById('appkit-disconnect')?.addEventListener('click', async () => {
-    try {
-      await appKit.disconnect()
-      addLog('✅ AppKit disconnected')
-      updateUI()
-    } catch (error) {
-      addLog(`❌ AppKit disconnect failed: ${error}`)
-    }
-  })
-
-  // Switch account buttons
-  document.getElementById('switch-evm-account')?.addEventListener('click', () => {
-    const accountInfo = wallet.getEVMAccountInfo()
-    if (accountInfo) {
-      const nextIndex = (accountInfo.currentIndex + 1) % accountInfo.accounts.length
-      wallet.switchEVMAccount(nextIndex)
-      addLog(`🔄 Switched to EVM account ${nextIndex}: ${accountInfo.accounts[nextIndex]}`)
-      updateUI()
-    }
-  })
-
-  document.getElementById('switch-solana-account')?.addEventListener('click', () => {
-    const accountInfo = wallet.getSolanaAccountInfo()
-    if (accountInfo) {
-      const nextIndex = (accountInfo.currentIndex + 1) % accountInfo.accounts.length
-      wallet.switchSolanaAccount(nextIndex)
-      addLog(`🔄 Switched to Solana account ${nextIndex}: ${accountInfo.accounts[nextIndex]}`)
-      updateUI()
-    }
-  })
 
   // Test signing buttons
   document.getElementById('sign-message')?.addEventListener('click', async () => {
@@ -493,7 +401,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })
 
-  // AppKit disconnect button
+  // AppKit disconnect button (only one needed)
   document.getElementById('appkit-disconnect')?.addEventListener('click', async () => {
     try {
       await appKit.disconnect()
@@ -721,9 +629,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Subscribe to connection state changes
   // Note: subscribeAccount doesn't exist, we'll rely on subscribeState for updates
 
+  // Clear logs button
+  document.getElementById('clear-logs')?.addEventListener('click', () => {
+    const logs = document.getElementById('logs')
+    if (logs) {
+      logs.innerHTML = '<div>🎮 Logs cleared</div>'
+    }
+  })
+
   // Initial UI update
   updateUI()
   addLog('🎮 Arena Headless Wallet + Reown AppKit Demo ready')
+  addLog('📦 3 wallets available: Arena Wallet, Test Wallet, Dev Wallet')
+  addLog('🔗 Click the Connect button to see them in AppKit modal!')
 
   // Make updateUI globally available for debugging
   ;(window as any).updateUI = updateUI

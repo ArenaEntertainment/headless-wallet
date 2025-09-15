@@ -7,6 +7,8 @@ test.describe('Ethers v6 Signature Compatibility', () => {
     const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const address = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
+    await page.goto('http://localhost:5174/');
+
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey,
@@ -14,8 +16,6 @@ test.describe('Ethers v6 Signature Compatibility', () => {
       }],
       autoConnect: false
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Connect wallet
     await page.evaluate(async () => {
@@ -111,6 +111,8 @@ test.describe('Ethers v6 Signature Compatibility', () => {
     const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const address = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
+    await page.goto('http://localhost:5174/');
+
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey,
@@ -118,8 +120,6 @@ test.describe('Ethers v6 Signature Compatibility', () => {
       }],
       autoConnect: false
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Connect wallet
     await page.evaluate(async () => {

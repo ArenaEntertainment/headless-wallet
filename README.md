@@ -297,14 +297,14 @@ test('multiple wallets', async ({ page }) => {
   await installHeadlessWallet(page, {
     accounts: [{ privateKey: '0xac0974...', type: 'evm' }],
     branding: { name: 'Wallet A', rdns: 'com.test.walletA' },
-    windowEthereumMode: 'none'  // Only EIP-6963, no window.ethereum
+    ethereumWindowMode: 'none'  // Only EIP-6963, no window.ethereum
   });
 
   // Install second wallet (EIP-6963 only)
   await installHeadlessWallet(page, {
     accounts: [{ privateKey: '0x59c699...', type: 'evm' }],
     branding: { name: 'Wallet B', rdns: 'com.test.walletB' },
-    windowEthereumMode: 'none'
+    ethereumWindowMode: 'none'
   });
 
   // Both wallets are now discoverable via EIP-6963
@@ -312,7 +312,9 @@ test('multiple wallets', async ({ page }) => {
 });
 ```
 
-#### Window Ethereum Modes
+#### Window Injection Configuration
+
+##### EVM: ethereumWindowMode
 
 Control how the wallet handles `window.ethereum`:
 
@@ -324,7 +326,73 @@ Control how the wallet handles `window.ethereum`:
 // EIP-5749: Multiple wallets as array
 await installHeadlessWallet(page, {
   accounts: [...],
-  windowEthereumMode: 'array'  // Adds to window.ethereum array
+  ethereumWindowMode: 'array'  // Adds to window.ethereum array
+});
+```
+
+##### Solana: solanaWindowProperty
+
+Configure where the Solana provider is injected in the window:
+
+```typescript
+// Don't inject to window at all (Wallet Standard only)
+await installHeadlessWallet(page, {
+  accounts: [{ privateKey: '[...]', type: 'solana' }],
+  solanaWindowProperty: undefined  // No window injection
+});
+
+// Inject at custom path (e.g., window.phantom.solana)
+await installHeadlessWallet(page, {
+  accounts: [{ privateKey: '[...]', type: 'solana' }],
+  solanaWindowProperty: 'phantom.solana'  // Creates nested property
+});
+
+// Inject at window.solana (common standard location)
+await installHeadlessWallet(page, {
+  accounts: [{ privateKey: '[...]', type: 'solana' }],
+  solanaWindowProperty: 'solana'
+});
+```
+
+Note: Solana wallets are always registered with the Wallet Standard API regardless of window injection settings.
+
+#### Complete Multi-Wallet Example
+
+```typescript
+test('three wallets with different configurations', async ({ page }) => {
+  // Wallet 1: Full compatibility mode
+  await installHeadlessWallet(page, {
+    accounts: [
+      { privateKey: '0xac0974...', type: 'evm' },
+      { privateKey: '[68,27,...]', type: 'solana' }
+    ],
+    branding: { name: 'Arena Wallet', rdns: 'com.arena.wallet' },
+    ethereumWindowMode: 'replace',  // Takes over window.ethereum
+    solanaWindowProperty: 'phantom.solana'  // Legacy Phantom compatibility
+  });
+
+  // Wallet 2: Standards-only mode
+  await installHeadlessWallet(page, {
+    accounts: [
+      { privateKey: '0x59c699...', type: 'evm' },
+      { privateKey: '[109,52,...]', type: 'solana' }
+    ],
+    branding: { name: 'Test Wallet', rdns: 'com.test.wallet' },
+    ethereumWindowMode: 'none',  // EIP-6963 only
+    solanaWindowProperty: undefined  // Wallet Standard only
+  });
+
+  // Wallet 3: Array mode for EVM
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: '0x5de411...', type: 'evm' }],
+    branding: { name: 'Dev Wallet', rdns: 'com.dev.wallet' },
+    ethereumWindowMode: 'array'  // EIP-5749 multi-wallet array
+  });
+
+  // All three wallets are now available through their respective discovery mechanisms
+  await page.goto('/app');
+
+  // Your app's wallet selector will show all three options
 });
 ```
 
