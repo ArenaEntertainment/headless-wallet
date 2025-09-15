@@ -8,7 +8,7 @@
     "demos/*"
   ],
   "scripts": {
-    "build": "nx run-many --target=build --projects=@arenaentertainment/headless-wallet,@arenaentertainment/headless-wallet-react,@arenaentertainment/headless-wallet-vue,@arenaentertainment/headless-wallet-playwright",
+    "build": "nx run-many --target=build --projects='@arenaentertainment/headless-wallet*'",
     "dev": "pnpm -r dev",
     "demo": "cd demos/vanilla && pnpm dev",
     "release": "nx release",
