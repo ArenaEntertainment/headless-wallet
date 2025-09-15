@@ -4,7 +4,7 @@ import { installHeadlessWallet, uninstallHeadlessWallet } from '../packages/play
 test.describe('Click Playwright Injected Wallet Test', () => {
   test('should click headless wallet injected via Playwright', async ({ page }) => {
     // Navigate to the external AppKit demo (without headless query param)
-    await page.goto('http://localhost:5176');
+    await page.goto('http://localhost:5178');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 
@@ -29,76 +29,60 @@ test.describe('Click Playwright Injected Wallet Test', () => {
     console.log('=== BEFORE CLICKING WALLET (Playwright Injection) ===');
     await page.screenshot({ path: 'test-results/before-playwright-wallet-click.png', fullPage: true });
 
-    // Click the specific wallet using its test ID
+    // Click the headless wallet button specifically (not the page title)
     console.log('Clicking on headless wallet...');
-    await page.getByTestId('wallet-selector-com.arenaentertainment.headless-wallet').click();
+    await page.getByRole('button', { name: /Arena Headless Wallet/ }).click();
 
     await page.waitForTimeout(3000);
 
     console.log('=== AFTER CLICKING WALLET (Playwright Injection) ===');
     await page.screenshot({ path: 'test-results/after-playwright-wallet-click.png', fullPage: true });
 
-    // Check what happened after clicking
-    const afterClick = await page.evaluate(() => {
-      const bodyText = document.body.innerText;
+    // Check what happened after clicking - maybe it connected directly without chain selection
+    const afterClickState = await page.evaluate(() => {
       const appKitState = window.appKit.getState();
-
       return {
-        bodyText: bodyText,
-        appKitState: appKitState,
         isConnected: appKitState.isConnected,
-        hasEthereumText: bodyText.toLowerCase().includes('ethereum'),
-        hasSolanaText: bodyText.toLowerCase().includes('solana'),
-        hasChooseText: bodyText.toLowerCase().includes('choose') || bodyText.toLowerCase().includes('select'),
-        hasConnectedText: bodyText.toLowerCase().includes('connected'),
-        hasAccountText: bodyText.toLowerCase().includes('account'),
-        connectedAddress: appKitState.address || null
+        selectedNetworkId: appKitState.selectedNetworkId,
+        address: appKitState.address,
+        bodyText: document.body.innerText.substring(0, 1000) // First 1000 chars to see what's on screen
       };
     });
 
-    console.log('Results after clicking wallet (Playwright injection):');
-    console.log('- Is connected:', afterClick.isConnected);
-    console.log('- Connected address:', afterClick.connectedAddress);
-    console.log('- Has Ethereum text:', afterClick.hasEthereumText);
-    console.log('- Has Solana text:', afterClick.hasSolanaText);
-    console.log('- Has choice UI text:', afterClick.hasChooseText);
-    console.log('- Has connected text:', afterClick.hasConnectedText);
-    console.log('- Body text sample:', afterClick.bodyText.substring(0, 500));
+    console.log('State after clicking wallet:', afterClickState);
 
-    // Check for specific AppKit connection methods
-    const connectionCheck = await page.evaluate(async () => {
+    // Check if we connected automatically (which is what's happening)
+    const isConnectionSuccessful = afterClickState.bodyText.includes('Connected') &&
+                                   afterClickState.bodyText.includes('0xf39Fd6e5');
+
+    if (isConnectionSuccessful) {
+      console.log('✅ Wallet connected successfully! AppKit detected and connected to the headless wallet.');
+
+      // Verify the connection details from the UI text
+      expect(afterClickState.bodyText.includes('Connected'), 'UI should show Connected status').toBe(true);
+      expect(afterClickState.bodyText.includes('0xf39Fd6e5'), 'UI should show connected address').toBe(true);
+      expect(afterClickState.selectedNetworkId, 'Should be on Sepolia testnet').toBe('eip155:11155111');
+
+      console.log('✅ Playwright wallet injection and AppKit connection test PASSED!');
+      console.log('✅ GitHub issue #18 has been RESOLVED - AppKit successfully detects Playwright-injected wallets!');
+    } else {
+      // Fallback: check if there's a chain selection dialog (shouldn't happen with current behavior)
+      console.log('Connection not detected in UI, checking for chain selection dialog...');
+
       try {
-        // Try to get account info from AppKit
-        const address = window.appKit.getAddress();
-        const networkId = window.appKit.getCaipNetworkId();
-        const isConnectedState = window.appKit.getIsConnectedState();
+        // Wait for the chain selection dialog to appear
+        const chainSelectionDialog = page.locator('[role="alertdialog"]').filter({ hasText: /Select Chain|Choose Network|Chain/i });
+        await expect(chainSelectionDialog).toBeVisible({ timeout: 5000 });
 
-        return {
-          address,
-          networkId,
-          isConnectedState,
-          providers: {
-            ethereum: !!window.ethereum,
-            solana: !!window.phantom?.solana
-          }
-        };
-      } catch (error) {
-        return { error: error.message };
+        console.log('Chain selection dialog found - this means both chains are available');
+        // This would be a valid passing condition too
+      } catch (e) {
+        // No dialog found, connection might have failed
+        console.log('❌ No connection detected and no chain selection dialog found');
+        console.log('Body text:', afterClickState.bodyText.substring(0, 500));
+        throw new Error('Expected either automatic connection or chain selection dialog');
       }
-    });
-
-    console.log('Connection check (Playwright):', connectionCheck);
-
-    // The test succeeds if we either connected or see some indication of wallet interaction
-    const success = afterClick.isConnected ||
-                   afterClick.hasConnectedText ||
-                   afterClick.hasChooseText ||
-                   connectionCheck.address ||
-                   connectionCheck.isConnectedState;
-
-    expect(success, 'Should show some sign of wallet connection or choice UI').toBe(true);
-
-    console.log('✅ Playwright headless wallet click test completed successfully!');
+    }
 
     await uninstallHeadlessWallet(page, walletId);
   });

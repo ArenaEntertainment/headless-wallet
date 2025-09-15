@@ -48,6 +48,27 @@ export async function installHeadlessWallet(
           return targetWallet.hasSolana();
         case 'getBranding':
           return targetWallet.getBranding();
+        case 'getSolanaWalletStandard':
+          // Serialize the SolanaWalletStandard to avoid private member serialization issues
+          const walletStandard = targetWallet.getSolanaWalletStandard();
+          if (!walletStandard) return null;
+
+          return {
+            version: walletStandard.version,
+            name: walletStandard.name,
+            icon: walletStandard.icon,
+            chains: walletStandard.chains,
+            accounts: walletStandard.accounts,
+            features: Object.fromEntries(
+              Object.entries(walletStandard.features).map(([key, feature]) => [
+                key,
+                {
+                  version: feature.version,
+                  // Don't serialize methods, we'll recreate them in the browser
+                }
+              ])
+            )
+          };
         default:
           throw new Error(`Unknown action: ${action}`);
       }
@@ -192,42 +213,82 @@ export async function installHeadlessWallet(
         if (!window.phantom) window.phantom = {};
         window.phantom.solana = solanaProvider;
 
-        // Wallet Standard registration (matching core/src/index.ts:387-410)
-        // This matches the exact pattern from the core package
-        const walletStandard = {
-          version: '1.0.0',
-          name: branding.name || 'Arena Headless Wallet',
-          icon: branding.icon,
-          chains: ['solana:mainnet', 'solana:devnet', 'solana:testnet'],
-          accounts: [],
-          features: {
-            'standard:connect': {
-              version: '1.0.0',
-              connect: solanaProvider.connect
-            },
-            'standard:disconnect': {
-              version: '1.0.0',
-              disconnect: solanaProvider.disconnect
-            },
-            'standard:events': {
-              version: '1.0.0',
-              on: () => {},
-              off: () => {}
+        // Get the proper Solana Wallet Standard from the core package via bridge
+        const solanaWalletStandard = await window.__headlessWalletBridge({
+          walletId,
+          action: 'getSolanaWalletStandard'
+        });
+
+        if (solanaWalletStandard) {
+          // Recreate the wallet standard object with working features that use the bridge
+          const reconstructedWalletStandard = {
+            ...solanaWalletStandard,
+            features: {
+              'standard:connect': {
+                version: '1.0.0',
+                connect: solanaProvider.connect
+              },
+              'standard:disconnect': {
+                version: '1.0.0',
+                disconnect: solanaProvider.disconnect
+              },
+              'standard:events': {
+                version: '1.0.0',
+                on: () => {},
+                off: () => {}
+              },
+              // Add any other features from the serialized data
+              ...Object.fromEntries(
+                Object.entries(solanaWalletStandard.features).map(([key, feature]) => [
+                  key,
+                  {
+                    version: feature.version,
+                    // For now, use placeholder functions - could extend bridge for specific features
+                    ...(key.includes('signMessage') && {
+                      signMessage: (message) => window.__headlessWalletBridge({
+                        walletId,
+                        action: 'request',
+                        data: { method: 'signMessage', params: [message], provider: 'solana' }
+                      })
+                    }),
+                    ...(key.includes('signTransaction') && {
+                      signTransaction: (transaction) => window.__headlessWalletBridge({
+                        walletId,
+                        action: 'request',
+                        data: { method: 'signTransaction', params: [transaction], provider: 'solana' }
+                      })
+                    })
+                  }
+                ])
+              )
             }
-          }
-        };
+          };
 
-        // Register via Wallet Standard event (matching core)
-        const registerWallet = (callback) => {
-          if (typeof callback === 'function') {
-            callback(walletStandard);
+          // Register using proper wallet-standard registration (matching core behavior)
+          try {
+            // Try to use the wallet-standard package if available
+            if (window.registerWalletStandard) {
+              window.registerWalletStandard(reconstructedWalletStandard);
+              console.log('✅ Solana wallet registered with wallet-standard');
+            } else {
+              console.log('⚠️  wallet-standard registerWalletStandard not available, using event fallback');
+            }
+          } catch (error) {
+            console.error('Failed to register Solana wallet:', error);
           }
-          return walletStandard;
-        };
 
-        window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', {
-          detail: registerWallet
-        }));
+          // Always dispatch the event for compatibility (matching core behavior)
+          const registerWallet = (callback) => {
+            if (typeof callback === 'function') {
+              callback(reconstructedWalletStandard);
+            }
+            return reconstructedWalletStandard;
+          };
+
+          window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', {
+            detail: registerWallet
+          }));
+        }
       }
 
       // Auto-connect if requested
@@ -245,12 +306,23 @@ export async function installHeadlessWallet(
       if (debug) {
         console.log('[Headless Wallet] Successfully injected wallet', walletId);
       }
+
+      // Force AppKit to rescan for wallets by dispatching EIP-6963 request event
+      // This is critical when injecting after AppKit has already initialized
+      setTimeout(() => {
+        if (debug) {
+          console.log('[Headless Wallet] Triggering wallet rescan for AppKit...');
+        }
+        window.dispatchEvent(new CustomEvent('eip6963:requestProvider'));
+      }, 100);
     })();
   `;
 
   if ('evaluate' in target) {
+    // For Page objects, use evaluate to inject after the bridge is ready
     await target.evaluate(injectionScript);
   } else {
+    // For BrowserContext objects, use addInitScript since we can't evaluate on context
     await target.addInitScript(injectionScript);
   }
 
