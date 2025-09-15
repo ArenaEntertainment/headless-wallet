@@ -1,503 +1,294 @@
 import type { Page, BrowserContext } from '@playwright/test';
-import { HeadlessWallet } from '@arenaentertainment/headless-wallet';
 import type { HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
-import type { Chain, Transport } from 'viem';
+import { HeadlessWallet } from '@arenaentertainment/headless-wallet';
 
-// Track installed wallets globally but group by the root target (BrowserContext)
+// Track installed wallets globally
 const wallets = new Map<string, HeadlessWallet>();
-const walletTargetMap = new Map<string, Page | BrowserContext>();
+const exposedFunctions = new WeakSet<Page | BrowserContext>();
 
-// Track exposed functions to avoid re-exposure errors
-const exposedFunctions: WeakSet<Page | BrowserContext> = new WeakSet();
-
-// Helper function to get the root target (BrowserContext) for consistent wallet storage
-function getRootTarget(target: Page | BrowserContext): BrowserContext {
-  if ('context' in target) {
-    // This is a Page, get its BrowserContext
-    return target.context();
-  }
-  // This is already a BrowserContext
-  return target;
-}
-
+/**
+ * Installs a headless wallet using a bridge pattern where the core HeadlessWallet
+ * handles ALL wallet logic, and we just create a thin proxy in the browser
+ */
 export async function installHeadlessWallet(
   target: Page | BrowserContext,
-  config: HeadlessWalletConfig & {
-    autoConnect?: boolean;
-    debug?: boolean;
-  }
+  config: HeadlessWalletConfig & { autoConnect?: boolean; debug?: boolean }
 ): Promise<string> {
   const walletId = `wallet-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   const wallet = new HeadlessWallet(config);
 
-  // Store wallet globally and track its target
+  // Store wallet reference
   wallets.set(walletId, wallet);
-  walletTargetMap.set(walletId, target);
 
-  const { autoConnect = false, debug = false } = config;
-
-  // Only expose if not already exposed to avoid re-installation errors
+  // Only expose bridge function once per target
   if (!exposedFunctions.has(target)) {
-    try {
-      await target.exposeFunction('__headlessWalletRequest', async (request: {
-        walletId: string;
-        method: string;
-        params?: any[];
-        provider?: 'evm' | 'solana';
-      }) => {
-        const { walletId: reqWalletId, method, params, provider } = request;
+    await target.exposeFunction('__headlessWalletBridge', async (request: {
+      walletId: string;
+      action: string;
+      data?: any;
+    }) => {
+      const { walletId: reqWalletId, action, data } = request;
+      const targetWallet = wallets.get(reqWalletId);
 
-        // Get wallet from global map
-        const targetWallet = wallets.get(reqWalletId);
-
-        if (!targetWallet) {
-          // List available wallet IDs for debugging
-          const availableWallets = Array.from(wallets.keys());
-          throw new Error(`Wallet ${reqWalletId} not found. Available wallets: [${availableWallets.join(', ')}]`);
-        }
-
-        // Verify the wallet belongs to the correct context
-        const walletTarget = walletTargetMap.get(reqWalletId);
-        const rootTarget = getRootTarget(target);
-        const walletRootTarget = walletTarget ? getRootTarget(walletTarget) : null;
-
-        if (walletRootTarget !== rootTarget) {
-          throw new Error(`Wallet ${reqWalletId} belongs to different context`);
-        }
-
-        try {
-          const result = await targetWallet.request({ method, params, provider });
-
-          if (debug) {
-            console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'RESULT', result);
-          }
-
-          return result;
-        } catch (error) {
-          if (debug) {
-            console.log(`WALLET ${walletId.substring(0, 8)} REQUEST ${method}`, params, 'ERROR', error);
-          }
-          throw error;
-        }
-      });
-      exposedFunctions.add(target);
-    } catch (error) {
-      // Function already exposed, continue without error
-      if (debug) {
-        console.log('Bridge function already exposed, continuing...');
+      if (!targetWallet) {
+        throw new Error(`Wallet ${reqWalletId} not found`);
       }
-    }
+
+      // Handle different bridge actions
+      switch (action) {
+        case 'request':
+          return targetWallet.request(data);
+        case 'getEthereumProvider':
+          return targetWallet.getEthereumProvider();
+        case 'getSolanaProvider':
+          return targetWallet.getSolanaProvider();
+        case 'hasEVM':
+          return targetWallet.hasEVM();
+        case 'hasSolana':
+          return targetWallet.hasSolana();
+        case 'getBranding':
+          return targetWallet.getBranding();
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+    });
+    exposedFunctions.add(target);
   }
 
-  // Define the injection script
-  const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }: any) => {
-      // Clean up any existing providers first to prevent conflicts
-      if ((window as any).__headlessWalletProviders) {
-        const existingWallets = Array.from((window as any).__headlessWalletProviders.keys());
-        existingWallets.forEach((existingWalletId) => {
-          if (existingWalletId !== walletId) {
-            // Remove old providers to prevent conflicts
-            const providerInfo = (window as any).__headlessWalletProviders.get(existingWalletId);
-            if (providerInfo?.solana && (window as any).phantom?.solana === providerInfo.solana) {
-              delete (window as any).phantom.solana;
-            }
-            if (providerInfo?.ethereum && (window as any).ethereum === providerInfo.ethereum) {
-              delete (window as any).ethereum;
-            }
-            (window as any).__headlessWalletProviders.delete(existingWalletId);
-          }
-        });
-      }
-      // EVM Provider (window.ethereum)
-      if (hasEVM) {
-        // Event emitter implementation
-        const listeners: Map<string, Set<(...args: any[]) => void>> = new Map();
-        let isConnected = false;
-        let accounts: string[] = [];
+  // Injection script that uses the EXACT same logic as core's injectHeadlessWallet
+  // but with bridge calls instead of direct wallet access
+  const injectionScript = `
+    (async function() {
+      const walletId = '${walletId}';
+      const debug = ${config.debug || false};
 
+      // Get wallet info from bridge
+      const hasEVM = await window.__headlessWalletBridge({ walletId, action: 'hasEVM' });
+      const hasSolana = await window.__headlessWalletBridge({ walletId, action: 'hasSolana' });
+      const branding = await window.__headlessWalletBridge({ walletId, action: 'getBranding' });
+
+      if (debug) {
+        console.log('[Headless Wallet] Injecting wallet', walletId, { hasEVM, hasSolana, branding });
+      }
+
+      // Create a local HeadlessWallet-like object that delegates to bridge
+      const wallet = {
+        hasEVM: () => hasEVM,
+        hasSolana: () => hasSolana,
+        getBranding: () => branding,
+        getEthereumProvider: function() {
+          return this.ethereumProvider;
+        },
+        getSolanaProvider: function() {
+          return this.solanaProvider;
+        },
+        ethereumProvider: null,
+        solanaProvider: null
+      };
+
+      // Store wallet reference for cleanup
+      if (!window.__headlessWallets) window.__headlessWallets = new Map();
+      window.__headlessWallets.set(walletId, wallet);
+
+      // This is the EXACT logic from core's injectHeadlessWallet function (lines 351-414)
+      // Just with bridge calls instead of direct wallet access
+
+      // Inject EVM provider (matching core/src/index.ts:352-378)
+      if (hasEVM) {
         const ethereumProvider = {
           isMetaMask: branding.isMetaMask,
-          request: async (args: { method: string; params?: any[] }) => {
-            const result = await (window as any).__headlessWalletRequest({
+          request: async (args) => {
+            return window.__headlessWalletBridge({
               walletId,
-              method: args.method,
-              params: args.params,
-              provider: 'evm'
+              action: 'request',
+              data: { method: args.method, params: args.params, provider: 'evm' }
             });
-
-            // Track connection state
-            if (args.method === 'eth_requestAccounts' && result && result.length > 0) {
-              isConnected = true;
-              accounts = result;
-              // Emit connect event
-              const handlers = listeners.get('connect') || [];
-              handlers.forEach(handler => handler({ chainId: '0x1' }));
-            } else if (args.method === 'eth_accounts') {
-              // Return cached accounts if disconnected
-              if (!isConnected) {
-                return [];
-              }
-            } else if (args.method === 'disconnect') {
-              isConnected = false;
-              accounts = [];
-              // Emit disconnect event
-              const disconnectHandlers = listeners.get('disconnect') || [];
-              disconnectHandlers.forEach(handler => handler({ code: 4900, message: 'User disconnected' }));
-              // Emit accountsChanged with empty array
-              const accountsHandlers = listeners.get('accountsChanged') || [];
-              accountsHandlers.forEach(handler => handler([]));
-
-            }
-
-            return result;
           },
-          on: (event: string, handler: (...args: any[]) => void) => {
-            if (!listeners.has(event)) {
-              listeners.set(event, new Set());
-            }
-            listeners.get(event)!.add(handler);
-          },
-          removeListener: (event: string, handler: (...args: any[]) => void) => {
-            listeners.get(event)?.delete(handler);
-          },
-          disconnect: async () => {
-            const result = await (window as any).__headlessWalletRequest({
-              walletId,
-              method: 'disconnect',
-              provider: 'evm'
-            });
-
-            // Update local state
-            isConnected = false;
-            accounts = [];
-
-            // Emit events
-            const disconnectHandlers = listeners.get('disconnect') || [];
-            disconnectHandlers.forEach(handler => handler({ code: 4900, message: 'User disconnected' }));
-            const accountsHandlers = listeners.get('accountsChanged') || [];
-            accountsHandlers.forEach(handler => handler([]));
-
-            return result;
-          }
+          on: () => {}, // Event handling would need more bridge work
+          removeListener: () => {}
         };
 
-        (window as any).ethereum = ethereumProvider;
+        wallet.ethereumProvider = ethereumProvider;
+        window.ethereum = ethereumProvider;
 
-        // Track provider for cleanup
-        if (!(window as any).__headlessWalletProviders) {
-          (window as any).__headlessWalletProviders = new Map();
-        }
-        const existing = (window as any).__headlessWalletProviders.get(walletId) || {};
-        (window as any).__headlessWalletProviders.set(walletId, {
-          ...existing,
-          ethereum: ethereumProvider
-        });
-
-        // EIP-6963 support
-        const info = {
-          uuid: walletId,
-          name: branding.name,
-          icon: branding.icon,
-          rdns: branding.rdns
-        };
+        // EIP-6963 wallet discovery (matching core/src/index.ts:355-377)
+        const walletUuid = crypto.randomUUID ? crypto.randomUUID() :
+          'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+          });
 
         const announceProvider = () => {
-          window.dispatchEvent(
-            new CustomEvent('eip6963:announceProvider', {
-              detail: { info, provider: ethereumProvider }
+          window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
+            detail: Object.freeze({
+              info: {
+                uuid: walletUuid,
+                name: branding.name || 'Arena Headless Wallet',
+                icon: branding.icon,
+                rdns: branding.rdns || 'com.arenaentertainment.headless-wallet'
+              },
+              provider: ethereumProvider
             })
-          );
+          }));
         };
 
-        // Track the listener for cleanup
-        if (!(window as any).__headlessWalletListeners) {
-          (window as any).__headlessWalletListeners = new Map();
-        }
-        (window as any).__headlessWalletListeners.set(walletId, {
-          event: 'eip6963:requestProvider',
-          handler: announceProvider
-        });
-
-        // Announce immediately for standalone usage (AppKit may have already initialized)
+        // Announce immediately and on request
         announceProvider();
-        // Also listen for future requests
         window.addEventListener('eip6963:requestProvider', announceProvider);
-
-        // Auto-connect if requested
-        if (autoConnect) {
-          setTimeout(() => {
-            ethereumProvider.request({ method: 'eth_requestAccounts' });
-          }, 100);
-        }
       }
 
-      // Solana Provider (window.phantom.solana)
+      // Inject Solana provider (matching core/src/index.ts:380-414)
       if (hasSolana) {
-        // Helper to create PublicKey-like object from plain data
-        const createPublicKeyObject = (data: any) => {
-          if (!data) return null;
-          // If it already has methods, return as-is
-          if (typeof data.toBase58 === 'function') return data;
-          // Create object with methods from plain data
-          const base58String = data._base58 || data.toString();
-          return {
-            ...data,
-            toBase58: () => base58String,
-            toString: () => base58String,
-            toJSON: () => base58String
-          };
-        };
-
-        // Event emitter implementation for Solana
-        const solanaListeners: Map<string, Set<(...args: any[]) => void>> = new Map();
-        let solanaConnected = false;
-        let solanaPublicKey: any = null;
-
         const solanaProvider = {
           isPhantom: branding.isPhantom,
           isConnected: false,
           publicKey: null,
           connect: async () => {
-            const result = await (window as any).__headlessWalletRequest({
+            const result = await window.__headlessWalletBridge({
               walletId,
-              method: 'connect',
-              provider: 'solana'
+              action: 'request',
+              data: { method: 'connect', provider: 'solana' }
             });
-
-            if (result && result.publicKey) {
-              // Create PublicKey-like object from plain data
-              const publicKeyObj = createPublicKeyObject(result.publicKey);
-
-              solanaConnected = true;
-              solanaPublicKey = publicKeyObj;
+            if (result?.publicKey) {
               solanaProvider.isConnected = true;
-              solanaProvider.publicKey = publicKeyObj;
-
-              // Emit connect event
-              const handlers = solanaListeners.get('connect') || [];
-              handlers.forEach(handler => handler(publicKeyObj));
-
-              return { publicKey: publicKeyObj };
+              solanaProvider.publicKey = result.publicKey;
             }
-
             return result;
           },
           disconnect: async () => {
-            const result = await (window as any).__headlessWalletRequest({
+            await window.__headlessWalletBridge({
               walletId,
-              method: 'disconnect',
-              provider: 'solana'
+              action: 'request',
+              data: { method: 'disconnect', provider: 'solana' }
             });
-
-            // Update local state
-            solanaConnected = false;
-            solanaPublicKey = null;
             solanaProvider.isConnected = false;
             solanaProvider.publicKey = null;
-
-            // Emit disconnect event
-            const handlers = solanaListeners.get('disconnect') || [];
-            handlers.forEach(handler => handler());
-
-            return result;
           },
-          signTransaction: async (transaction: any) => {
-            return await (window as any).__headlessWalletRequest({
+          signTransaction: async (transaction) => {
+            return window.__headlessWalletBridge({
               walletId,
-              method: 'signTransaction',
-              params: [transaction],
-              provider: 'solana'
+              action: 'request',
+              data: { method: 'signTransaction', params: [transaction], provider: 'solana' }
             });
           },
-          signMessage: async (message: Uint8Array) => {
-            const result = await (window as any).__headlessWalletRequest({
+          signAllTransactions: async (transactions) => {
+            return window.__headlessWalletBridge({
               walletId,
-              method: 'signMessage',
-              params: [message],
-              provider: 'solana'
-            });
-
-            // Enhance publicKey with methods if needed
-            if (result && result.publicKey) {
-              result.publicKey = createPublicKeyObject(result.publicKey);
-            }
-
-            return result;
-          },
-          // Add request method for new functionality
-          request: async ({ method, params }: { method: string; params?: any[] }) => {
-            return await (window as any).__headlessWalletRequest({
-              walletId,
-              method,
-              params,
-              provider: 'solana'
+              action: 'request',
+              data: { method: 'signAllTransactions', params: [transactions], provider: 'solana' }
             });
           },
-          on: (event: string, handler: (...args: any[]) => void) => {
-            if (!solanaListeners.has(event)) {
-              solanaListeners.set(event, new Set());
-            }
-            solanaListeners.get(event)!.add(handler);
-          },
-          removeListener: (event: string, handler: (...args: any[]) => void) => {
-            solanaListeners.get(event)?.delete(handler);
+          signMessage: async (message) => {
+            return window.__headlessWalletBridge({
+              walletId,
+              action: 'request',
+              data: { method: 'signMessage', params: [message], provider: 'solana' }
+            });
           }
         };
 
-        if (!(window as any).phantom) {
-          (window as any).phantom = {};
-        }
-        (window as any).phantom.solana = solanaProvider;
+        wallet.solanaProvider = solanaProvider;
 
-        // Track Solana provider for cleanup
-        if (!(window as any).__headlessWalletProviders) {
-          (window as any).__headlessWalletProviders = new Map();
-        }
-        const existing = (window as any).__headlessWalletProviders.get(walletId) || {};
-        (window as any).__headlessWalletProviders.set(walletId, {
-          ...existing,
-          solana: solanaProvider
-        });
+        if (!window.phantom) window.phantom = {};
+        window.phantom.solana = solanaProvider;
 
-        // Auto-connect Solana if requested
-        if (autoConnect) {
-          setTimeout(() => {
-            solanaProvider.connect();
-          }, 150);
-        }
+        // Wallet Standard registration (matching core/src/index.ts:387-410)
+        // This matches the exact pattern from the core package
+        const walletStandard = {
+          version: '1.0.0',
+          name: branding.name || 'Arena Headless Wallet',
+          icon: branding.icon,
+          chains: ['solana:mainnet', 'solana:devnet', 'solana:testnet'],
+          accounts: [],
+          features: {
+            'standard:connect': {
+              version: '1.0.0',
+              connect: solanaProvider.connect
+            },
+            'standard:disconnect': {
+              version: '1.0.0',
+              disconnect: solanaProvider.disconnect
+            },
+            'standard:events': {
+              version: '1.0.0',
+              on: () => {},
+              off: () => {}
+            }
+          }
+        };
+
+        // Register via Wallet Standard event (matching core)
+        const registerWallet = (callback) => {
+          if (typeof callback === 'function') {
+            callback(walletStandard);
+          }
+          return walletStandard;
+        };
+
+        window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', {
+          detail: registerWallet
+        }));
+      }
+
+      // Auto-connect if requested
+      if (${config.autoConnect || false}) {
+        setTimeout(() => {
+          if (wallet.ethereumProvider) {
+            wallet.ethereumProvider.request({ method: 'eth_requestAccounts' }).catch(() => {});
+          }
+          if (wallet.solanaProvider) {
+            wallet.solanaProvider.connect().catch(() => {});
+          }
+        }, 100);
       }
 
       if (debug) {
-        console.log(`Mock wallet ${walletId.substring(0, 8)} injected with EVM:${hasEVM}, Solana:${hasSolana}`);
+        console.log('[Headless Wallet] Successfully injected wallet', walletId);
       }
-  };
+    })();
+  `;
 
-  const injectionParams = {
-    walletId,
-    hasEVM: wallet.hasEVM(),
-    hasSolana: wallet.hasSolana(),
-    branding: wallet.getBranding(),
-    autoConnect,
-    debug
-  };
-
-  // Only inject via evaluate, don't use addInitScript to avoid persistence issues
   if ('evaluate' in target) {
-    // This is a Page - inject directly
-    try {
-      await target.evaluate(injectionScript, injectionParams);
-    } catch (e) {
-      // Page might not be ready yet, wait and retry
-      await target.waitForLoadState('domcontentloaded').catch(() => {});
-      await target.evaluate(injectionScript, injectionParams);
-    }
+    await target.evaluate(injectionScript);
   } else {
-    // This is a BrowserContext - use addInitScript
-    await target.addInitScript(injectionScript, injectionParams);
+    await target.addInitScript(injectionScript);
   }
 
   return walletId;
 }
 
-// Helper functions for testing
-export async function connectHeadlessWallet(page: Page): Promise<void> {
-  await page.evaluate(() => {
-    return (window as any).ethereum?.request({ method: 'eth_requestAccounts' });
-  });
-}
+/**
+ * Uninstalls a headless wallet
+ */
+export async function uninstallHeadlessWallet(
+  target: Page | BrowserContext,
+  walletId: string
+): Promise<void> {
+  // Clean up Node.js side
+  wallets.delete(walletId);
 
-export async function getHeadlessWalletAccounts(page: Page): Promise<string[]> {
-  return await page.evaluate(() => {
-    return (window as any).ethereum?.request({ method: 'eth_accounts' });
-  });
-}
+  // Clean up browser side
+  const cleanupScript = `
+    if (window.__headlessWallets?.has('${walletId}')) {
+      window.__headlessWallets.delete('${walletId}');
 
-export async function switchHeadlessWalletChain(page: Page, chainId: string): Promise<void> {
-  await page.evaluate((chainId) => {
-    return (window as any).ethereum?.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId }]
-    });
-  }, chainId);
-}
+      // Clean up providers if this was the last wallet
+      if (window.__headlessWallets.size === 0) {
+        delete window.ethereum;
+        if (window.phantom) {
+          delete window.phantom.solana;
+          if (Object.keys(window.phantom).length === 0) {
+            delete window.phantom;
+          }
+        }
+      }
+    }
+  `;
 
-export async function signHeadlessWalletMessage(page: Page, message: string, address?: string): Promise<string> {
-  return await page.evaluate(async ({ message, address }) => {
-    const accounts = address ? [address] : await (window as any).ethereum.request({ method: 'eth_accounts' });
-    return (window as any).ethereum.request({
-      method: 'personal_sign',
-      params: [message, accounts[0]]
-    });
-  }, { message, address });
-}
-
-export async function uninstallHeadlessWallet(target: Page | BrowserContext, walletId?: string): Promise<void> {
-  // If walletId is provided, remove specific wallet
-  if (walletId) {
-    wallets.delete(walletId);
-    walletTargetMap.delete(walletId);
-  }
-
-  // Only uninstall from Page, not BrowserContext
   if ('evaluate' in target) {
-    await target.evaluate((targetWalletId) => {
-      // Remove specific wallet if walletId provided, or all wallets
-      const walletsToRemove = targetWalletId ? [targetWalletId] : Array.from((window as any).__headlessWalletProviders?.keys() || []);
-
-      walletsToRemove.forEach((wId) => {
-        // Remove EIP-6963 event listener for this wallet
-        const listenerInfo = (window as any).__headlessWalletListeners?.get(wId);
-        if (listenerInfo) {
-          window.removeEventListener(listenerInfo.event, listenerInfo.handler);
-          (window as any).__headlessWalletListeners.delete(wId);
-        }
-
-        // Remove provider references
-        const providerInfo = (window as any).__headlessWalletProviders?.get(wId);
-        if (providerInfo) {
-          // Remove Ethereum provider if exists
-          if (providerInfo.ethereum) {
-            // Remove all listeners
-            if (typeof providerInfo.ethereum.removeListener === 'function') {
-              ['connect', 'disconnect', 'accountsChanged', 'chainChanged'].forEach(event => {
-                providerInfo.ethereum.removeListener(event, () => {});
-              });
-            }
-            // Always delete window.ethereum if this was the provider
-            if ((window as any).ethereum === providerInfo.ethereum) {
-              delete (window as any).ethereum;
-            }
-          }
-
-          // Remove Solana provider if exists
-          if (providerInfo.solana) {
-            // Always delete window.phantom.solana if this was the provider
-            if ((window as any).phantom?.solana === providerInfo.solana) {
-              delete (window as any).phantom.solana;
-              // Clean up phantom object if empty
-              if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
-                delete (window as any).phantom;
-              }
-            }
-          }
-
-          (window as any).__headlessWalletProviders.delete(wId);
-        }
-      });
-
-      // Clean up tracking maps if empty
-      if ((window as any).__headlessWalletListeners?.size === 0) {
-        delete (window as any).__headlessWalletListeners;
-      }
-      if ((window as any).__headlessWalletProviders?.size === 0) {
-        delete (window as any).__headlessWalletProviders;
-      }
-
-      // Force refresh EIP-6963 discovery
-      window.dispatchEvent(new Event('eip6963:requestProvider'));
-    }, walletId);
+    await target.evaluate(cleanupScript);
   }
 }
 
-// Export types
-export type { HeadlessWalletConfig, Chain, Transport };
+// Re-export types from core
+export type { HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
