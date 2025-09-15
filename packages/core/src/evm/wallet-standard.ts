@@ -515,16 +515,26 @@ export class EVMWalletStandard {
   }
 
   #getDefaultIcon(): string {
-    return `data:image/svg+xml;base64,${Buffer.from(`<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="32" height="32" rx="8" fill="#1a1a1a"/>
-      <path d="M8 24L14.5 8H17.5L24 24H19.5L16 14H16L12.5 24H8Z" fill="url(#gradient)"/>
+    const svg = `<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1080" height="1080" fill="black"/>
+      <path d="M203 830.128L470.486 230H607.658L876.001 830.128H730.255L510.78 300.301H565.649L345.316 830.128H203ZM336.743 701.529L373.608 596.078H682.245L719.968 701.529H336.743Z" fill="url(#paint0_linear_436_3860)"/>
       <defs>
-        <linearGradient id="gradient" x1="16" y1="24" x2="16" y2="8">
+        <linearGradient id="paint0_linear_436_3860" x1="539.5" y1="830.128" x2="539.5" y2="230" gradientUnits="userSpaceOnUse">
           <stop stop-color="#07D102"/>
           <stop offset="1" stop-color="#046B01"/>
         </linearGradient>
       </defs>
-    </svg>`).toString('base64')}`;
+    </svg>`;
+
+    // Use browser-compatible base64 encoding
+    if (typeof btoa !== 'undefined') {
+      return `data:image/svg+xml;base64,${btoa(svg)}`;
+    } else if (typeof Buffer !== 'undefined') {
+      return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+    }
+
+    // Fallback to URL-encoded SVG if base64 encoding is not available
+    return `data:image/svg+xml,${encodeURIComponent(svg)}`;
   }
 
   #generateUUID(): string {

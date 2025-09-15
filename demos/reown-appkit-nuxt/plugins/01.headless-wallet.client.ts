@@ -29,13 +29,6 @@ export default defineNuxtPlugin((nuxtApp) => {
         type: 'solana' as const
       }))
     ],
-    branding: {
-      name: 'Arena Headless Wallet',
-      icon: 'data:image/svg+xml,<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="1080" height="1080" rx="320" fill="black"/><path d="M203 830.128L470.486 230H607.658L876.001 830.128H730.255L510.78 300.301H565.649L345.316 830.128H203ZM336.743 701.529L373.608 596.078H682.245L719.968 701.529H336.743Z" fill="url(%23paint0_linear_436_3860)"/><defs><linearGradient id="paint0_linear_436_3860" x1="539.5" y1="830.128" x2="539.5" y2="230" gradientUnits="userSpaceOnUse"><stop stop-color="%2307D102"/><stop offset="1" stop-color="%23046B01"/></linearGradient></defs></svg>',
-      rdns: 'com.arenaentertainment.headless-wallet',
-      isMetaMask: true,
-      isPhantom: true
-    },
     evm: {
       rpcUrl: 'https://ethereum-sepolia-rpc.publicnode.com'
     },
