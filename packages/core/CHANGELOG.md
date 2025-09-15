@@ -1,3 +1,14 @@
+## 0.6.1 (2025-09-15)
+
+### 🩹 Fixes
+
+- ensure default wallet icon is always set ([746c556e](https://github.com/ArenaEntertainment/headless-wallet/commit/746c556e))
+- remove hardcoded branding from demos and fix icon encoding ([86932a1f](https://github.com/ArenaEntertainment/headless-wallet/commit/86932a1f))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.6.0 (2025-09-15)
 
 ### 🚀 Features
