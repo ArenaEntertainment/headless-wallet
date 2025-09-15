@@ -31,3 +31,5 @@ coverage/
 
 # Examples and temporary files
 examples/
+
+.playwright-mcp/
