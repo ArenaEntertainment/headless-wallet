@@ -1,3 +1,36 @@
+## 0.6.1 (2025-09-15)
+
+### 🩹 Fixes
+
+- ensure default wallet icon is always set ([746c556e](https://github.com/ArenaEntertainment/headless-wallet/commit/746c556e))
+- remove hardcoded branding from demos and fix icon encoding ([86932a1f](https://github.com/ArenaEntertainment/headless-wallet/commit/86932a1f))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
+## 0.6.0 (2025-09-15)
+
+### 🚀 Features
+
+- standardize Reown AppKit demos UI and clean up documentation ([d52491b1](https://github.com/ArenaEntertainment/headless-wallet/commit/d52491b1))
+- Switch all demos to use testnets and remove mock transaction fallbacks ([e94c5668](https://github.com/ArenaEntertainment/headless-wallet/commit/e94c5668))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
+## 0.5.1 (2025-09-14)
+
+### 🩹 Fixes
+
+- Fix Solana base58 key support and PublicKey serialization ([731eca33](https://github.com/ArenaEntertainment/headless-wallet/commit/731eca33))
+- use bs58 library for proper base58 decoding ([7f9dc06c](https://github.com/ArenaEntertainment/headless-wallet/commit/7f9dc06c))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.5.0 (2025-09-14)
 
 ### 🚀 Features
@@ -60,7 +93,7 @@ This was a version bump only for @arenaentertainment/headless-wallet to align it
 
 ### 🩹 Fixes
 
-- achieve feature parity with wallet-mock and fix critical issues ([#1](https://github.com/ArenaEntertainment/headless-wallet/issues/1), [#2](https://github.com/ArenaEntertainment/headless-wallet/issues/2), [#3](https://github.com/ArenaEntertainment/headless-wallet/issues/3))
+- achieve feature parity with previous wallet-mock library and fix critical issues ([#1](https://github.com/ArenaEntertainment/headless-wallet/issues/1), [#2](https://github.com/ArenaEntertainment/headless-wallet/issues/2), [#3](https://github.com/ArenaEntertainment/headless-wallet/issues/3))
 
 ### ❤️ Thank You
 

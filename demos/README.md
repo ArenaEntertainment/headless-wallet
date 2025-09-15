@@ -1,6 +1,6 @@
-# Wallet Mock Demos
+# Arena Headless Wallet Demos
 
-This directory contains comprehensive demo applications showcasing the wallet-mock library's functionality across different frameworks and use cases.
+This directory contains comprehensive demo applications showcasing the Arena Headless Wallet library's functionality across different frameworks and use cases.
 
 ## Available Demos
 
@@ -33,6 +33,13 @@ This directory contains comprehensive demo applications showcasing the wallet-mo
 - **Features**: Security policies, environment detection, threat simulation
 - **Tech Stack**: React, TypeScript, Security monitoring
 - **Run**: `npm run dev:security`
+
+### 🔗 Reown AppKit Demos
+- **Vanilla JS** (`/reown-appkit`): Pure JavaScript integration with AppKit
+- **React** (`/reown-appkit-react`): React + TypeScript AppKit integration
+- **Nuxt** (`/reown-appkit-nuxt`): Nuxt 3 + Vue composition API integration
+- **Features**: Multi-chain support, wallet discovery via EIP-6963, real transactions
+- **Run**: `npm run dev:reown-appkit`, `npm run dev:reown-appkit-react`, `npm run dev:reown-appkit-nuxt`
 
 ## Quick Start
 
@@ -107,13 +114,14 @@ Each demo application includes:
 
 ```
 demos/
-├── react/           # React 18 + hooks demo
-├── vue/            # Vue 3 + composition API demo
-├── vanilla/        # Pure JavaScript demo
-├── playwright/     # E2E testing demo
-├── security/       # Security features demo
-├── shared/         # Shared utilities (if needed)
-└── docs/           # Demo documentation
+├── react/                # React 18 + hooks demo
+├── vue/                 # Vue 3 + composition API demo
+├── vanilla/             # Pure JavaScript demo
+├── playwright/          # E2E testing demo
+├── security/            # Security features demo
+├── reown-appkit/        # Vanilla JS + Reown AppKit
+├── reown-appkit-react/  # React + Reown AppKit
+└── reown-appkit-nuxt/   # Nuxt 3 + Reown AppKit
 ```
 
 ## Development Guidelines

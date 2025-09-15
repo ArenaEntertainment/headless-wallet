@@ -1,6 +1,6 @@
 # Arena Headless Wallet + Reown AppKit Demo
 
-This demo showcases the integration between Arena's wallet-mock library and Reown's AppKit, demonstrating how our mock wallet seamlessly integrates with modern Web3 tooling through standard protocols.
+This demo showcases the integration between Arena's Headless Wallet library and Reown's AppKit, demonstrating how our mock wallet seamlessly integrates with modern Web3 tooling through standard protocols.
 
 ## 🎯 What This Demo Demonstrates
 

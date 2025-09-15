@@ -1,3 +1,33 @@
+## 0.5.1 (2025-09-15)
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.6.1
+
+## 0.5.0 (2025-09-15)
+
+### 🚀 Features
+
+- Switch all demos to use testnets and remove mock transaction fallbacks ([e94c5668](https://github.com/ArenaEntertainment/headless-wallet/commit/e94c5668))
+
+### 🩹 Fixes
+
+- add proper ESM exports configuration for Vue and React packages ([0c68d3e6](https://github.com/ArenaEntertainment/headless-wallet/commit/0c68d3e6))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.6.0
+
+### ❤️ Thank You
+
+- Chris Kitch
+
+## 0.4.1 (2025-09-14)
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.5.1
+
 ## 0.4.0 (2025-09-14)
 
 ### 🧱 Updated Dependencies

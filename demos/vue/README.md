@@ -1,6 +1,6 @@
-# Wallet Mock Vue Demo
+# Arena Headless Wallet Vue Demo
 
-A comprehensive Vue.js application showcasing the wallet-mock library's functionality with Vue 3 Composition API, TypeScript, and responsive design.
+A comprehensive Vue.js application showcasing the Arena Headless Wallet library's functionality with Vue 3 Composition API, TypeScript, and responsive design.
 
 ## Features
 

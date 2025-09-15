@@ -1,6 +1,10 @@
 import { EVMWallet, type EVMWalletConfig } from './evm/wallet.js';
 import { SolanaWallet, type SolanaWalletConfig } from './solana/wallet.js';
+import { EVMWalletStandard } from './evm/wallet-standard.js';
+import { SolanaWalletStandard } from './solana/wallet-standard.js';
 import type { Chain, Transport } from 'viem';
+import { registerWallet as registerWalletStandard } from '@wallet-standard/wallet';
+import type { Wallet } from '@wallet-standard/base';
 // Browser-compatible UUID generation
 function generateUUID(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -49,18 +53,25 @@ export interface HeadlessWalletConfig {
 
 export class HeadlessWallet {
   private evmWallet?: EVMWallet;
+  private evmWalletStandard?: EVMWalletStandard;
   private solanaWallet?: SolanaWallet;
+  private solanaWalletStandard?: SolanaWalletStandard;
   private branding: WalletBranding;
 
   constructor(config: HeadlessWalletConfig) {
     // Set up branding with defaults
     this.branding = {
       name: 'Arena Headless Wallet',
+      icon: getWalletIcon(), // Use default icon
       rdns: 'com.arenaentertainment.headless-wallet',
       isMetaMask: true,
       isPhantom: true,
       ...config.branding
     };
+    // Process the icon through getWalletIcon if provided
+    if (config.branding?.icon) {
+      this.branding.icon = getWalletIcon(config.branding.icon);
+    }
     // Separate accounts by type
     const evmAccounts = config.accounts.filter(acc => acc.type === 'evm');
     const solanaAccounts = config.accounts.filter(acc => acc.type === 'solana');
@@ -74,6 +85,11 @@ export class HeadlessWallet {
         rpcUrl: config.evm?.rpcUrl
       };
       this.evmWallet = new EVMWallet(evmConfig);
+      this.evmWalletStandard = new EVMWalletStandard(this.evmWallet, {
+        name: this.branding.name,
+        icon: this.branding.icon,
+        rdns: this.branding.rdns
+      });
     }
 
     // Create Solana wallet if we have Solana accounts
@@ -84,6 +100,12 @@ export class HeadlessWallet {
         rpcUrl: config.solana?.rpcUrl
       };
       this.solanaWallet = new SolanaWallet(solanaConfig);
+      const walletIcon = this.branding.icon || DEFAULT_WALLET_ICON_SVG;
+      this.solanaWalletStandard = new SolanaWalletStandard(
+        this.solanaWallet,
+        this.branding.name || 'Arena Headless Wallet',
+        walletIcon
+      );
     }
   }
 
@@ -93,20 +115,28 @@ export class HeadlessWallet {
       throw new Error('No EVM accounts configured');
     }
 
+    // Return the enhanced EVM wallet standard provider
     return {
       isMetaMask: this.branding.isMetaMask,
       request: (args: { method: string; params?: any[] }) => {
-        return this.evmWallet!.request(args);
+        return this.evmWalletStandard!.request(args);
       },
       on: (event: string, handler: (...args: any[]) => void) => {
-        this.evmWallet!.on(event, handler);
+        this.evmWalletStandard!.on(event, handler);
       },
       removeListener: (event: string, handler: (...args: any[]) => void) => {
-        this.evmWallet!.removeListener(event, handler);
+        this.evmWalletStandard!.removeListener(event, handler);
       },
       disconnect: () => {
         this.evmWallet!.disconnect();
-      }
+      },
+      // Additional properties for EIP-6963
+      _wallet: this.evmWalletStandard,
+      // EIP-6963 properties
+      uuid: this.evmWalletStandard?.uuid,
+      name: this.evmWalletStandard?.name,
+      icon: this.evmWalletStandard?.icon,
+      rdns: this.evmWalletStandard?.rdns
     };
   }
 
@@ -116,8 +146,24 @@ export class HeadlessWallet {
       throw new Error('No Solana accounts configured');
     }
 
-    return {
+    // Create a provider object that properly exposes isConnected and publicKey
+    const provider = {
       isPhantom: this.branding.isPhantom,
+      get isConnected() {
+        return self.solanaWallet?.isConnected() || false;
+      },
+      get publicKey() {
+        const pk = self.solanaWallet?.getPublicKey();
+        if (!pk) return null;
+        // Create a serializable version that mimics Solana's PublicKey
+        return {
+          _bn: pk.toBuffer(),
+          toString: () => pk.toBase58(),
+          toBase58: () => pk.toBase58(),
+          toBytes: () => pk.toBytes(),
+          toBuffer: () => pk.toBuffer()
+        };
+      },
       connect: () => this.solanaWallet!.connect(),
       disconnect: () => this.solanaWallet!.disconnect(),
       signTransaction: (transaction: any) => this.solanaWallet!.signTransaction(transaction),
@@ -134,6 +180,9 @@ export class HeadlessWallet {
         this.solanaWallet!.removeListener(event, handler);
       }
     };
+
+    const self = this;
+    return provider;
   }
 
   // Direct wallet access for advanced use cases
@@ -143,6 +192,14 @@ export class HeadlessWallet {
 
   getSolanaWallet(): SolanaWallet | undefined {
     return this.solanaWallet;
+  }
+
+  getSolanaWalletStandard(): SolanaWalletStandard | undefined {
+    return this.solanaWalletStandard;
+  }
+
+  getEVMWalletStandard(): EVMWalletStandard | undefined {
+    return this.evmWalletStandard;
   }
 
   // Unified request method (for Playwright bridge)
@@ -327,38 +384,30 @@ export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWall
     }
     (window as any).phantom.solana = wallet.getSolanaProvider();
 
-    // Solana Wallet Standard registration (simplified)
-    const solanaWalletName = config.branding?.name ? `${config.branding.name} (Solana)` : 'Arena Headless Wallet (Solana)';
-    const solanaWalletIcon = getWalletIcon(config.branding?.icon);
+    // Use the new Solana Wallet Standard implementation
+    const solanaWalletStandard = wallet.getSolanaWalletStandard();
 
-    window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', {
-      detail: {
-        wallet: {
-          version: '1.0.0',
-          name: solanaWalletName,
-          icon: solanaWalletIcon,
-          chains: ['solana:mainnet', 'solana:devnet', 'solana:testnet'],
-          features: {
-            'standard:connect': {
-              version: '1.0.0',
-              connect: wallet.getSolanaProvider().connect
-            },
-            'standard:disconnect': {
-              version: '1.0.0',
-              disconnect: wallet.getSolanaProvider().disconnect
-            },
-            'solana:signTransaction': {
-              version: '1.0.0',
-              signTransaction: wallet.getSolanaProvider().signTransaction
-            },
-            'solana:signMessage': {
-              version: '1.0.0',
-              signMessage: wallet.getSolanaProvider().signMessage
-            }
-          }
-        }
+    if (solanaWalletStandard) {
+      // Register using the official wallet-standard package
+      try {
+        registerWalletStandard(solanaWalletStandard as unknown as Wallet);
+        console.log('✅ Solana wallet registered with wallet-standard');
+      } catch (error) {
+        console.error('Failed to register Solana wallet:', error);
       }
-    }));
+
+      // Also dispatch event for compatibility
+      const registerWallet = (callback?: any) => {
+        if (typeof callback === 'function') {
+          callback(solanaWalletStandard);
+        }
+        return solanaWalletStandard;
+      };
+
+      window.dispatchEvent(new CustomEvent('wallet-standard:register-wallet', {
+        detail: registerWallet
+      }));
+    }
   }
 
   return wallet;
@@ -372,3 +421,7 @@ export type MockWalletConfig = HeadlessWalletConfig;
 // Export wallet classes for advanced usage
 export { EVMWallet, SolanaWallet };
 export type { EVMWalletConfig, SolanaWalletConfig };
+
+// Export wallet standard implementations
+export { EVMWalletStandard } from './evm/wallet-standard.js';
+export { SolanaWalletStandard } from './solana/wallet-standard.js';

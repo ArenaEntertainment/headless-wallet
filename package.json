@@ -8,7 +8,7 @@
     "demos/*"
   ],
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "nx run-many --target=build --projects='@arenaentertainment/headless-wallet*'",
     "dev": "pnpm -r dev",
     "demo": "cd demos/vanilla && pnpm dev",
     "release": "nx release",

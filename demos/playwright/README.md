@@ -1,6 +1,6 @@
-# Wallet Mock Playwright Demo
+# Arena Headless Wallet Playwright Demo
 
-End-to-end testing showcase demonstrating automated wallet testing with Playwright and the wallet-mock library.
+End-to-end testing showcase demonstrating automated wallet testing with Playwright and the Arena Headless Wallet library.
 
 ## Features
 

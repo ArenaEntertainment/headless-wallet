@@ -1,5 +1,5 @@
 import React from 'react'
-import { useWallet, useAccount, useChain } from '@arenaentertainment/wallet-mock-react'
+import { useWallet, useAccount, useChain } from '@arenaentertainment/headless-wallet-react'
 import {
   Wallet,
   Users,

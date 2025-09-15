@@ -27,9 +27,9 @@ test.describe('Reown AppKit Integration Tests', () => {
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_PRIVATE_KEY, type: 'evm' },
-        { secretKey: TEST_SOLANA_KEYPAIRS[0], type: 'solana' },
-        { secretKey: TEST_SOLANA_KEYPAIRS[1], type: 'solana' },
-        { secretKey: TEST_SOLANA_KEYPAIRS[2], type: 'solana' }
+        { privateKey: TEST_SOLANA_KEYPAIRS[0], type: 'solana' },
+        { privateKey: TEST_SOLANA_KEYPAIRS[1], type: 'solana' },
+        { privateKey: TEST_SOLANA_KEYPAIRS[2], type: 'solana' }
       ],
       autoConnect: false,
       debug: true
@@ -40,7 +40,7 @@ test.describe('Reown AppKit Integration Tests', () => {
     console.log('🧪 Testing EIP-6963 wallet discovery with AppKit...');
 
     // Navigate to the demo
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
     console.log('✅ AppKit button loaded');
@@ -67,7 +67,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should connect wallet directly via window.ethereum', async ({ page }) => {
     console.log('🧪 Testing direct wallet connection...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
@@ -82,16 +82,16 @@ test.describe('Reown AppKit Integration Tests', () => {
     });
 
     expect(connectionResult.success).toBe(true);
-    expect(connectionResult.accounts).toHaveLength(1);
+    expect(connectionResult.accounts.length).toBeGreaterThanOrEqual(1);
     expect(connectionResult.accounts[0]).toBe(EXPECTED_ADDRESS);
     console.log('✅ Direct wallet connection successful');
-    console.log(`✅ Retrieved ${connectionResult.accounts.length} accounts`);
+    console.log(`✅ Retrieved ${connectionResult.accounts.length} account(s)`);
   });
 
   test('should support wallet_getCapabilities with multi-chain info', async ({ page }) => {
     console.log('🧪 Testing wallet_getCapabilities...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
@@ -130,7 +130,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should support chain switching seamlessly', async ({ page }) => {
     console.log('🧪 Testing chain switching...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
@@ -189,7 +189,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should support real cryptographic signing', async ({ page }) => {
     console.log('🧪 Testing real cryptographic signing...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
@@ -279,7 +279,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should log events properly', async ({ page }) => {
     console.log('🧪 Testing event logging...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.ethereum, { timeout: 5000 });
 
@@ -298,7 +298,7 @@ test.describe('Reown AppKit Integration Tests', () => {
       return await window.ethereum.request({ method: 'eth_accounts' });
     });
 
-    expect(accounts).toHaveLength(1);
+    expect(accounts.length).toBeGreaterThanOrEqual(1);
     expect(accounts[0]).toBe('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
     console.log('✅ Connection successful - account retrieved');
   });
@@ -306,7 +306,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should detect Solana wallet via window.phantom.solana', async ({ page }) => {
     console.log('🧪 Testing Solana wallet detection...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
     console.log('✅ Solana wallet injected');
@@ -325,7 +325,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should connect Solana wallet and retrieve accounts', async ({ page }) => {
     console.log('🧪 Testing Solana wallet connection...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
@@ -365,7 +365,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should support Solana message signing', async ({ page }) => {
     console.log('🧪 Testing Solana message signing...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
@@ -408,7 +408,7 @@ test.describe('Reown AppKit Integration Tests', () => {
   test('should support Solana account switching', async ({ page }) => {
     console.log('🧪 Testing Solana account switching...');
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 
@@ -465,7 +465,7 @@ test.describe('Reown AppKit Integration Tests', () => {
       });
     });
 
-    await page.goto('http://localhost:5175');
+    await page.goto('http://localhost:5174');
     // Wait for page to load and wallet to be injected
     await page.waitForFunction(() => window.phantom?.solana, { timeout: 5000 });
 

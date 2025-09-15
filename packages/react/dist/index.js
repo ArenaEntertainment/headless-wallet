@@ -1,5 +1,4 @@
 import { Fragment as _Fragment, jsx as _jsx } from "react/jsx-runtime";
-import { useEffect } from 'react';
 import { injectHeadlessWallet } from '@arenaentertainment/headless-wallet';
 /**
  * HeadlessWalletProvider - Injects mock wallet providers into the browser
@@ -27,10 +26,9 @@ import { injectHeadlessWallet } from '@arenaentertainment/headless-wallet';
  * ```
  */
 export function HeadlessWalletProvider({ children, enabled = process.env.NODE_ENV === 'development', accounts = [], ...walletConfig }) {
-    useEffect(() => {
-        if (!enabled) {
-            return;
-        }
+    // Inject immediately when component is created (not in useEffect)
+    // This ensures the wallet is available before AppKit or other wallet libraries initialize
+    if (enabled && typeof window !== 'undefined') {
         try {
             // Simply inject the mock wallet providers into the browser
             // This sets up window.ethereum (and window.phantom.solana if configured)
@@ -46,6 +44,6 @@ export function HeadlessWalletProvider({ children, enabled = process.env.NODE_EN
         catch (error) {
             console.warn('Failed to inject mock wallet:', error);
         }
-    }, [enabled, accounts, walletConfig]);
+    }
     return _jsx(_Fragment, { children: children });
 }

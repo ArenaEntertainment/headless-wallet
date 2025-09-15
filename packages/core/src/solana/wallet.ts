@@ -5,8 +5,27 @@ import {
   Transaction,
   VersionedTransaction,
   sendAndConfirmTransaction,
-  clusterApiUrl
+  sendAndConfirmRawTransaction,
+  clusterApiUrl,
+  LAMPORTS_PER_SOL,
+  SimulateTransactionConfig,
+  RpcResponseAndContext,
+  SimulatedTransactionResponse,
+  SignatureStatus,
+  TransactionSignature,
+  SystemProgram
 } from '@solana/web3.js';
+import {
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  createTransferInstruction,
+  getMint,
+  getAccount,
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  TokenAccountNotFoundError,
+  TokenInvalidAccountOwnerError
+} from '@solana/spl-token';
 import * as nacl from 'tweetnacl';
 import { createKeypairFromKey } from './utils.js';
 
@@ -58,6 +77,7 @@ export class SolanaWallet {
   isConnected(): boolean {
     return this.connected;
   }
+
 
   async signTransaction(transaction: Transaction | VersionedTransaction): Promise<Transaction | VersionedTransaction> {
     if (!this.connected) {
@@ -125,6 +145,426 @@ export class SolanaWallet {
     return { signature };
   }
 
+  // Send a pre-signed transaction
+  async sendTransaction(transaction: Transaction | VersionedTransaction): Promise<{ signature: string }> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Transaction should already be signed
+    const serialized = transaction.serialize();
+    const signature = await sendAndConfirmRawTransaction(
+      this.connection,
+      Buffer.from(serialized)
+    );
+
+    return { signature };
+  }
+
+  // Get balance for current account or specified public key
+  async getBalance(publicKey?: PublicKey | string): Promise<number> {
+    const pubKey = publicKey
+      ? (typeof publicKey === 'string' ? new PublicKey(publicKey) : publicKey)
+      : this.keypairs[this.currentKeypairIndex]?.publicKey;
+
+    if (!pubKey) {
+      throw new Error('No public key available');
+    }
+
+    const balance = await this.connection.getBalance(pubKey);
+    return balance / LAMPORTS_PER_SOL; // Return balance in SOL
+  }
+
+  // Get balance in lamports
+  async getBalanceLamports(publicKey?: PublicKey | string): Promise<number> {
+    const pubKey = publicKey
+      ? (typeof publicKey === 'string' ? new PublicKey(publicKey) : publicKey)
+      : this.keypairs[this.currentKeypairIndex]?.publicKey;
+
+    if (!pubKey) {
+      throw new Error('No public key available');
+    }
+
+    return await this.connection.getBalance(pubKey);
+  }
+
+  // Get latest blockhash for transaction building
+  async getLatestBlockhash(commitment?: 'processed' | 'confirmed' | 'finalized'): Promise<{
+    blockhash: string;
+    lastValidBlockHeight: number;
+  }> {
+    const result = await this.connection.getLatestBlockhash(commitment || 'confirmed');
+    return result;
+  }
+
+  // Simulate a transaction without sending it
+  async simulateTransaction(
+    transaction: Transaction | VersionedTransaction,
+    config?: SimulateTransactionConfig
+  ): Promise<RpcResponseAndContext<SimulatedTransactionResponse>> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    // Sign the transaction if it's not already signed
+    const keypair = this.keypairs[this.currentKeypairIndex];
+
+    if (transaction instanceof Transaction) {
+      if (!transaction.signature) {
+        transaction.sign(keypair);
+      }
+      return await this.connection.simulateTransaction(transaction);
+    } else {
+      // VersionedTransaction
+      if (!transaction.signatures[0]) {
+        const signature = nacl.sign.detached(transaction.message.serialize(), keypair.secretKey);
+        transaction.addSignature(keypair.publicKey, signature);
+      }
+      return await this.connection.simulateTransaction(transaction, config);
+    }
+  }
+
+  // Get account info
+  async getAccountInfo(publicKey?: PublicKey | string): Promise<any> {
+    const pubKey = publicKey
+      ? (typeof publicKey === 'string' ? new PublicKey(publicKey) : publicKey)
+      : this.keypairs[this.currentKeypairIndex]?.publicKey;
+
+    if (!pubKey) {
+      throw new Error('No public key available');
+    }
+
+    return await this.connection.getAccountInfo(pubKey);
+  }
+
+  // Get signature status
+  async getSignatureStatuses(
+    signatures: TransactionSignature[]
+  ): Promise<RpcResponseAndContext<(SignatureStatus | null)[]>> {
+    return await this.connection.getSignatureStatuses(signatures);
+  }
+
+  // Request airdrop (for devnet/testnet)
+  async requestAirdrop(amount: number = 1): Promise<string> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    const publicKey = this.keypairs[this.currentKeypairIndex].publicKey;
+    const signature = await this.connection.requestAirdrop(
+      publicKey,
+      amount * LAMPORTS_PER_SOL
+    );
+
+    // Wait for confirmation
+    await this.connection.confirmTransaction(signature);
+    return signature;
+  }
+
+  // Sign In with Solana (SIWS) - for authentication
+  async signIn(input?: {
+    domain?: string;
+    address?: string;
+    statement?: string;
+    uri?: string;
+    version?: string;
+    chainId?: string;
+    nonce?: string;
+    issuedAt?: string;
+    expirationTime?: string;
+    notBefore?: string;
+    requestId?: string;
+    resources?: string[];
+  }): Promise<{
+    account: {
+      address: string;
+      publicKey: string;
+    };
+    signedMessage: {
+      signature: Uint8Array;
+      signatureBase64: string;
+    };
+    signature: Uint8Array;
+    signatureBase64: string;
+  }> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    const keypair = this.keypairs[this.currentKeypairIndex];
+    const address = keypair.publicKey.toBase58();
+
+    // Build SIWS message
+    const domain = input?.domain || 'localhost';
+    const statement = input?.statement || 'Sign in with Solana to the app.';
+    const uri = input?.uri || 'http://localhost';
+    const version = input?.version || '1';
+    const chainId = input?.chainId || '1'; // mainnet
+    const nonce = input?.nonce || Math.random().toString(36).substring(2, 15);
+    const issuedAt = input?.issuedAt || new Date().toISOString();
+
+    // Construct the message according to SIWS spec
+    let message = `${domain} wants you to sign in with your Solana account:\n`;
+    message += `${address}\n\n`;
+    if (statement) message += `${statement}\n\n`;
+    message += `URI: ${uri}\n`;
+    message += `Version: ${version}\n`;
+    message += `Chain ID: ${chainId}\n`;
+    message += `Nonce: ${nonce}\n`;
+    message += `Issued At: ${issuedAt}`;
+
+    if (input?.expirationTime) message += `\nExpiration Time: ${input.expirationTime}`;
+    if (input?.notBefore) message += `\nNot Before: ${input.notBefore}`;
+    if (input?.requestId) message += `\nRequest ID: ${input.requestId}`;
+    if (input?.resources && input.resources.length > 0) {
+      message += '\nResources:';
+      input.resources.forEach(resource => {
+        message += `\n- ${resource}`;
+      });
+    }
+
+    // Sign the message
+    const encodedMessage = new TextEncoder().encode(message);
+    const signature = nacl.sign.detached(encodedMessage, keypair.secretKey);
+    const signatureBase64 = Buffer.from(signature).toString('base64');
+
+    return {
+      account: {
+        address,
+        publicKey: address
+      },
+      signedMessage: {
+        signature,
+        signatureBase64
+      },
+      signature, // For backward compatibility
+      signatureBase64 // For backward compatibility
+    };
+  }
+
+  // ================ SPL Token Methods ================
+
+  // Get token balance for a specific mint
+  async getTokenBalance(
+    mint: PublicKey | string,
+    owner?: PublicKey | string
+  ): Promise<{ amount: string; decimals: number; uiAmount: number | null }> {
+    const mintPubKey = typeof mint === 'string' ? new PublicKey(mint) : mint;
+    const ownerPubKey = owner
+      ? (typeof owner === 'string' ? new PublicKey(owner) : owner)
+      : this.keypairs[this.currentKeypairIndex]?.publicKey;
+
+    if (!ownerPubKey) {
+      throw new Error('No owner public key available');
+    }
+
+    try {
+      // Get the associated token account address
+      const tokenAccount = await getAssociatedTokenAddress(
+        mintPubKey,
+        ownerPubKey
+      );
+
+      // Get the token account balance
+      const balance = await this.connection.getTokenAccountBalance(tokenAccount);
+      return balance.value;
+    } catch (error: any) {
+      // If token account doesn't exist, return 0 balance
+      if (error instanceof TokenAccountNotFoundError || error.message?.includes('could not find account')) {
+        const mintInfo = await getMint(this.connection, mintPubKey);
+        return {
+          amount: '0',
+          decimals: mintInfo.decimals,
+          uiAmount: 0
+        };
+      }
+      throw error;
+    }
+  }
+
+  // Get all token accounts for the current wallet
+  async getTokenAccounts(owner?: PublicKey | string): Promise<any[]> {
+    const ownerPubKey = owner
+      ? (typeof owner === 'string' ? new PublicKey(owner) : owner)
+      : this.keypairs[this.currentKeypairIndex]?.publicKey;
+
+    if (!ownerPubKey) {
+      throw new Error('No owner public key available');
+    }
+
+    const tokenAccounts = await this.connection.getParsedTokenAccountsByOwner(
+      ownerPubKey,
+      { programId: TOKEN_PROGRAM_ID }
+    );
+
+    return tokenAccounts.value.map(account => ({
+      pubkey: account.pubkey.toBase58(),
+      account: account.account,
+      mint: account.account.data.parsed.info.mint,
+      amount: account.account.data.parsed.info.tokenAmount.amount,
+      decimals: account.account.data.parsed.info.tokenAmount.decimals,
+      uiAmount: account.account.data.parsed.info.tokenAmount.uiAmount
+    }));
+  }
+
+  // Transfer SPL tokens
+  async transferToken(
+    mint: PublicKey | string,
+    recipient: PublicKey | string,
+    amount: number,
+    decimals?: number
+  ): Promise<{ signature: string }> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    const keypair = this.keypairs[this.currentKeypairIndex];
+    const mintPubKey = typeof mint === 'string' ? new PublicKey(mint) : mint;
+    const recipientPubKey = typeof recipient === 'string' ? new PublicKey(recipient) : recipient;
+
+    // Get mint info to get decimals if not provided
+    let tokenDecimals = decimals;
+    if (tokenDecimals === undefined) {
+      const mintInfo = await getMint(this.connection, mintPubKey);
+      tokenDecimals = mintInfo.decimals;
+    }
+
+    // Get or create associated token accounts
+    const fromTokenAccount = await getAssociatedTokenAddress(
+      mintPubKey,
+      keypair.publicKey
+    );
+
+    const toTokenAccount = await getAssociatedTokenAddress(
+      mintPubKey,
+      recipientPubKey
+    );
+
+    // Create transaction
+    const transaction = new Transaction();
+
+    // Check if recipient token account exists
+    try {
+      await getAccount(this.connection, toTokenAccount);
+    } catch (error: any) {
+      // If account doesn't exist, add instruction to create it
+      if (error instanceof TokenAccountNotFoundError) {
+        transaction.add(
+          createAssociatedTokenAccountInstruction(
+            keypair.publicKey, // payer
+            toTokenAccount, // ata
+            recipientPubKey, // owner
+            mintPubKey // mint
+          )
+        );
+      } else {
+        throw error;
+      }
+    }
+
+    // Add transfer instruction
+    const transferAmount = amount * Math.pow(10, tokenDecimals);
+    transaction.add(
+      createTransferInstruction(
+        fromTokenAccount,
+        toTokenAccount,
+        keypair.publicKey,
+        transferAmount
+      )
+    );
+
+    // Get recent blockhash
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = keypair.publicKey;
+
+    // Sign and send transaction
+    const signature = await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [keypair]
+    );
+
+    return { signature };
+  }
+
+  // Create a new associated token account
+  async createTokenAccount(
+    mint: PublicKey | string,
+    owner?: PublicKey | string
+  ): Promise<{ address: string; signature: string }> {
+    if (!this.connected) {
+      throw new Error('Wallet not connected');
+    }
+
+    const keypair = this.keypairs[this.currentKeypairIndex];
+    const mintPubKey = typeof mint === 'string' ? new PublicKey(mint) : mint;
+    const ownerPubKey = owner
+      ? (typeof owner === 'string' ? new PublicKey(owner) : owner)
+      : keypair.publicKey;
+
+    // Get associated token account address
+    const tokenAccount = await getAssociatedTokenAddress(
+      mintPubKey,
+      ownerPubKey
+    );
+
+    // Check if account already exists
+    try {
+      await getAccount(this.connection, tokenAccount);
+      // Account already exists
+      return {
+        address: tokenAccount.toBase58(),
+        signature: ''
+      };
+    } catch (error: any) {
+      if (!(error instanceof TokenAccountNotFoundError)) {
+        throw error;
+      }
+    }
+
+    // Create the account
+    const transaction = new Transaction().add(
+      createAssociatedTokenAccountInstruction(
+        keypair.publicKey, // payer
+        tokenAccount, // ata
+        ownerPubKey, // owner
+        mintPubKey // mint
+      )
+    );
+
+    // Get recent blockhash
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = keypair.publicKey;
+
+    // Sign and send transaction
+    const signature = await sendAndConfirmTransaction(
+      this.connection,
+      transaction,
+      [keypair]
+    );
+
+    return {
+      address: tokenAccount.toBase58(),
+      signature
+    };
+  }
+
+  // Get mint info
+  async getMintInfo(mint: PublicKey | string): Promise<any> {
+    const mintPubKey = typeof mint === 'string' ? new PublicKey(mint) : mint;
+    const mintInfo = await getMint(this.connection, mintPubKey);
+    return {
+      address: mintPubKey.toBase58(),
+      decimals: mintInfo.decimals,
+      supply: mintInfo.supply.toString(),
+      mintAuthority: mintInfo.mintAuthority?.toBase58() || null,
+      freezeAuthority: mintInfo.freezeAuthority?.toBase58() || null,
+      isInitialized: mintInfo.isInitialized
+    };
+  }
+
   // Simulate other Solana wallet methods
   async request({ method, params }: { method: string; params?: any[] }): Promise<any> {
     const normalizedParams = params || [];
@@ -147,6 +587,54 @@ export class SolanaWallet {
 
       case 'signAndSendTransaction':
         return this.signAndSendTransaction(normalizedParams[0]);
+
+      case 'sendTransaction':
+        return this.sendTransaction(normalizedParams[0]);
+
+      case 'getBalance':
+        return this.getBalance(normalizedParams[0]);
+
+      case 'getBalanceLamports':
+        return this.getBalanceLamports(normalizedParams[0]);
+
+      case 'getLatestBlockhash':
+        return this.getLatestBlockhash(normalizedParams[0]);
+
+      case 'simulateTransaction':
+        return this.simulateTransaction(normalizedParams[0], normalizedParams[1]);
+
+      case 'getAccountInfo':
+        return this.getAccountInfo(normalizedParams[0]);
+
+      case 'getSignatureStatuses':
+        return this.getSignatureStatuses(normalizedParams[0]);
+
+      case 'requestAirdrop':
+        return this.requestAirdrop(normalizedParams[0]);
+
+      case 'signIn':
+        return this.signIn(normalizedParams[0]);
+
+      // SPL Token methods
+      case 'getTokenBalance':
+        return this.getTokenBalance(normalizedParams[0], normalizedParams[1]);
+
+      case 'getTokenAccounts':
+        return this.getTokenAccounts(normalizedParams[0]);
+
+      case 'transferToken':
+        return this.transferToken(
+          normalizedParams[0],
+          normalizedParams[1],
+          normalizedParams[2],
+          normalizedParams[3]
+        );
+
+      case 'createTokenAccount':
+        return this.createTokenAccount(normalizedParams[0], normalizedParams[1]);
+
+      case 'getMintInfo':
+        return this.getMintInfo(normalizedParams[0]);
 
       default:
         throw new Error(`Unsupported method: ${method}`);
@@ -181,14 +669,21 @@ export class SolanaWallet {
   }
 
   getPublicKey(): PublicKey | null {
-    if (this.keypairs.length === 0) return null;
+    if (!this.connected || this.keypairs.length === 0) {
+      return null;
+    }
+    // Return the actual PublicKey instance - it will be serialized properly when needed
     return this.keypairs[this.currentKeypairIndex].publicKey;
   }
 
   switchAccount(index: number): void {
     if (index >= 0 && index < this.keypairs.length) {
       this.currentKeypairIndex = index;
-      this.emit('accountChanged', this.keypairs[index].publicKey);
+      const newPublicKey = this.keypairs[index].publicKey;
+      // Emit both events for compatibility
+      this.emit('accountChanged', newPublicKey);
+      // AppKit expects 'accountsChanged' with the publicKey as parameter
+      this.emit('accountsChanged', newPublicKey);
     }
   }
 

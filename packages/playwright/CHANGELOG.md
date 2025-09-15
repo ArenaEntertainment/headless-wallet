@@ -1,3 +1,37 @@
+## 0.6.1 (2025-09-15)
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.6.1
+
+## 0.6.0 (2025-09-15)
+
+### 🚀 Features
+
+- Switch all demos to use testnets and remove mock transaction fallbacks ([e94c5668](https://github.com/ArenaEntertainment/headless-wallet/commit/e94c5668))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.6.0
+
+### ❤️ Thank You
+
+- Chris Kitch
+
+## 0.5.1 (2025-09-14)
+
+### 🩹 Fixes
+
+- Fix Solana base58 key support and PublicKey serialization ([731eca33](https://github.com/ArenaEntertainment/headless-wallet/commit/731eca33))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.5.1
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.5.0 (2025-09-14)
 
 ### 🧱 Updated Dependencies
