@@ -1,3 +1,17 @@
+## 0.6.2 (2025-09-15)
+
+### 🩹 Fixes
+
+- AppKit integration private key persistence bug ([#16](https://github.com/ArenaEntertainment/headless-wallet/issues/16))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.6.2
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.6.1 (2025-09-15)
 
 ### 🧱 Updated Dependencies
