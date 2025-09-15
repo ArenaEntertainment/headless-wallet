@@ -1,6 +1,6 @@
 {
   "name": "@arenaentertainment/headless-wallet-playwright",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "Playwright integration for @arenaentertainment/headless-wallet",
   "type": "module",
   "main": "./dist/index.js",

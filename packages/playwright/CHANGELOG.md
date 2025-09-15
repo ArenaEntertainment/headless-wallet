@@ -1,3 +1,17 @@
+## 0.7.0 (2025-09-15)
+
+### 🚀 Features
+
+- enhance EIP-6963 wallet discovery and add BrowserContext injection tests ([#18](https://github.com/ArenaEntertainment/headless-wallet/issues/18))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.7.0
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.6.2 (2025-09-15)
 
 ### 🩹 Fixes
