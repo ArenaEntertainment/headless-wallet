@@ -218,8 +218,9 @@ export async function installHeadlessWallet(
           handler: announceProvider
         });
 
-        // Don't announce immediately - only respond to requests to avoid duplicates
-        // announceProvider();
+        // Announce immediately for standalone usage (AppKit may have already initialized)
+        announceProvider();
+        // Also listen for future requests
         window.addEventListener('eip6963:requestProvider', announceProvider);
 
         // Auto-connect if requested
