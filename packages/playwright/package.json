@@ -41,6 +41,8 @@
     "e2e",
     "ethereum",
     "solana",
-    "web3"
+    "web3",
+    "bridge-pattern",
+    "refactored"
   ]
 }
