@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useWallet, useAccount } from '@arenaentertainment/wallet-mock-react'
+import { useWallet, useAccount } from '@arenaentertainment/headless-wallet-react'
 import {
   Send,
   Clock,

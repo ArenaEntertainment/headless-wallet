@@ -21,6 +21,20 @@
       border-radius: 16px;
       padding: 2rem;
       box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    .framework-badge {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #f7df1e;
+      color: #323330;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 8px rgba(247, 223, 30, 0.3);
     }
 
     h1 {
@@ -195,6 +209,7 @@
 </head>
 <body>
   <div class="container">
+    <div class="framework-badge">Vanilla JS</div>
     <h1>🎮 Arena Headless Wallet + Reown AppKit</h1>
     <p class="subtitle">
       Demonstrating seamless integration between Arena's mock wallet and Reown's AppKit for Web3 development
@@ -219,6 +234,7 @@
       <div class="demo-actions">
         <w3m-button></w3m-button>
         <w3m-network-button></w3m-network-button>
+        <button id="appkit-disconnect" style="background: #dc3545;">Disconnect AppKit</button>
       </div>
     </div>
 
@@ -254,17 +270,17 @@
       <h2>💸 EVM Transaction Demo</h2>
       <div class="demo-actions">
         <button id="send-transaction" disabled>Send Test Transaction</button>
+        <button id="evm-disconnect" disabled>Disconnect EVM (from wallet UI)</button>
       </div>
       <div id="transaction-result"></div>
     </div>
 
     <div class="section">
-      <h2>🟣 Solana Demo</h2>
+      <h2>🟣 Solana Transaction Demo</h2>
       <div class="demo-actions">
-        <button id="solana-connect" disabled>Connect Solana</button>
-        <button id="solana-disconnect" disabled>Disconnect Solana</button>
         <button id="solana-sign-message" disabled>Sign Solana Message</button>
         <button id="solana-send-transaction" disabled>Send Solana Transaction</button>
+        <button id="solana-disconnect" disabled>Disconnect Solana (from wallet UI)</button>
       </div>
       <div id="solana-result"></div>
     </div>

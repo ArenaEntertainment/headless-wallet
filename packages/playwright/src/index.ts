@@ -143,7 +143,11 @@ export async function installHeadlessWallet(
         if (!(window as any).__headlessWalletProviders) {
           (window as any).__headlessWalletProviders = new Map();
         }
-        (window as any).__headlessWalletProviders.set(walletId, { type: 'ethereum', provider: ethereumProvider });
+        const existing = (window as any).__headlessWalletProviders.get(walletId) || {};
+        (window as any).__headlessWalletProviders.set(walletId, {
+          ...existing,
+          ethereum: ethereumProvider
+        });
 
         // EIP-6963 support
         const info = {
@@ -170,7 +174,8 @@ export async function installHeadlessWallet(
           handler: announceProvider
         });
 
-        announceProvider();
+        // Don't announce immediately - only respond to requests to avoid duplicates
+        // announceProvider();
         window.addEventListener('eip6963:requestProvider', announceProvider);
 
         // Auto-connect if requested
@@ -274,6 +279,15 @@ export async function installHeadlessWallet(
 
             return result;
           },
+          // Add request method for new functionality
+          request: async ({ method, params }: { method: string; params?: any[] }) => {
+            return await (window as any).__headlessWalletRequest({
+              walletId,
+              method,
+              params,
+              provider: 'solana'
+            });
+          },
           on: (event: string, handler: (...args: any[]) => void) => {
             if (!solanaListeners.has(event)) {
               solanaListeners.set(event, new Set());
@@ -294,10 +308,10 @@ export async function installHeadlessWallet(
         if (!(window as any).__headlessWalletProviders) {
           (window as any).__headlessWalletProviders = new Map();
         }
+        const existing = (window as any).__headlessWalletProviders.get(walletId) || {};
         (window as any).__headlessWalletProviders.set(walletId, {
-          type: 'solana',
-          provider: solanaProvider,
-          ...(window as any).__headlessWalletProviders.get(walletId) // Merge if EVM already exists
+          ...existing,
+          solana: solanaProvider
         });
 
         // Auto-connect Solana if requested
@@ -322,16 +336,19 @@ export async function installHeadlessWallet(
     debug
   };
 
-  // Add script for future navigations
-  await target.addInitScript(injectionScript, injectionParams);
-
-  // Also inject immediately if the page is already loaded
+  // Only inject via evaluate, don't use addInitScript to avoid persistence issues
   if ('evaluate' in target) {
+    // This is a Page - inject directly
     try {
       await target.evaluate(injectionScript, injectionParams);
     } catch (e) {
-      // Page might not be ready yet, that's OK - the init script will handle it
+      // Page might not be ready yet, wait and retry
+      await target.waitForLoadState('domcontentloaded').catch(() => {});
+      await target.evaluate(injectionScript, injectionParams);
     }
+  } else {
+    // This is a BrowserContext - use addInitScript
+    await target.addInitScript(injectionScript, injectionParams);
   }
 
   return walletId;
@@ -375,7 +392,7 @@ export async function uninstallHeadlessWallet(target: Page | BrowserContext, wal
     wallets.delete(walletId);
   }
 
-  // Clear injection by using an empty script
+  // Only uninstall from Page, not BrowserContext
   if ('evaluate' in target) {
     await target.evaluate((targetWalletId) => {
       // Remove specific wallet if walletId provided, or all wallets
@@ -392,23 +409,29 @@ export async function uninstallHeadlessWallet(target: Page | BrowserContext, wal
         // Remove provider references
         const providerInfo = (window as any).__headlessWalletProviders?.get(wId);
         if (providerInfo) {
-          // Emit disconnect events before removal
-          if (providerInfo.type === 'ethereum' && providerInfo.provider === (window as any).ethereum) {
-            // Emit disconnect event
-            if (typeof providerInfo.provider.removeListener === 'function') {
-              // Remove all listeners
+          // Remove Ethereum provider if exists
+          if (providerInfo.ethereum) {
+            // Remove all listeners
+            if (typeof providerInfo.ethereum.removeListener === 'function') {
               ['connect', 'disconnect', 'accountsChanged', 'chainChanged'].forEach(event => {
-                providerInfo.provider.removeListener(event, () => {});
+                providerInfo.ethereum.removeListener(event, () => {});
               });
             }
-            delete (window as any).ethereum;
+            // Always delete window.ethereum if this was the provider
+            if ((window as any).ethereum === providerInfo.ethereum) {
+              delete (window as any).ethereum;
+            }
           }
 
-          if (providerInfo.type === 'solana' && providerInfo.provider === (window as any).phantom?.solana) {
-            delete (window as any).phantom.solana;
-            // Clean up phantom object if empty
-            if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
-              delete (window as any).phantom;
+          // Remove Solana provider if exists
+          if (providerInfo.solana) {
+            // Always delete window.phantom.solana if this was the provider
+            if ((window as any).phantom?.solana === providerInfo.solana) {
+              delete (window as any).phantom.solana;
+              // Clean up phantom object if empty
+              if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
+                delete (window as any).phantom;
+              }
             }
           }
 
@@ -423,61 +446,6 @@ export async function uninstallHeadlessWallet(target: Page | BrowserContext, wal
       if ((window as any).__headlessWalletProviders?.size === 0) {
         delete (window as any).__headlessWalletProviders;
       }
-
-      // Don't remove exposed function since it needs to persist for subsequent installations
-
-      // Force refresh EIP-6963 discovery
-      window.dispatchEvent(new Event('eip6963:requestProvider'));
-    }, walletId);
-  } else {
-    await target.addInitScript((targetWalletId) => {
-      // Remove specific wallet if walletId provided, or all wallets
-      const walletsToRemove = targetWalletId ? [targetWalletId] : Array.from((window as any).__headlessWalletProviders?.keys() || []);
-
-      walletsToRemove.forEach((wId) => {
-        // Remove EIP-6963 event listener for this wallet
-        const listenerInfo = (window as any).__headlessWalletListeners?.get(wId);
-        if (listenerInfo) {
-          window.removeEventListener(listenerInfo.event, listenerInfo.handler);
-          (window as any).__headlessWalletListeners.delete(wId);
-        }
-
-        // Remove provider references
-        const providerInfo = (window as any).__headlessWalletProviders?.get(wId);
-        if (providerInfo) {
-          // Emit disconnect events before removal
-          if (providerInfo.type === 'ethereum' && providerInfo.provider === (window as any).ethereum) {
-            // Emit disconnect event
-            if (typeof providerInfo.provider.removeListener === 'function') {
-              // Remove all listeners
-              ['connect', 'disconnect', 'accountsChanged', 'chainChanged'].forEach(event => {
-                providerInfo.provider.removeListener(event, () => {});
-              });
-            }
-            delete (window as any).ethereum;
-          }
-
-          if (providerInfo.type === 'solana' && providerInfo.provider === (window as any).phantom?.solana) {
-            delete (window as any).phantom.solana;
-            // Clean up phantom object if empty
-            if ((window as any).phantom && Object.keys((window as any).phantom).length === 0) {
-              delete (window as any).phantom;
-            }
-          }
-
-          (window as any).__headlessWalletProviders.delete(wId);
-        }
-      });
-
-      // Clean up tracking maps if empty
-      if ((window as any).__headlessWalletListeners?.size === 0) {
-        delete (window as any).__headlessWalletListeners;
-      }
-      if ((window as any).__headlessWalletProviders?.size === 0) {
-        delete (window as any).__headlessWalletProviders;
-      }
-
-      // Don't remove exposed function since it needs to persist for subsequent installations
 
       // Force refresh EIP-6963 discovery
       window.dispatchEvent(new Event('eip6963:requestProvider'));

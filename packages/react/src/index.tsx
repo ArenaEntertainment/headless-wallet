@@ -37,11 +37,9 @@ export function HeadlessWalletProvider({
   accounts = [],
   ...walletConfig
 }: HeadlessWalletProviderProps) {
-  useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
+  // Inject immediately when component is created (not in useEffect)
+  // This ensures the wallet is available before AppKit or other wallet libraries initialize
+  if (enabled && typeof window !== 'undefined') {
     try {
       // Simply inject the mock wallet providers into the browser
       // This sets up window.ethereum (and window.phantom.solana if configured)
@@ -57,7 +55,7 @@ export function HeadlessWalletProvider({
     } catch (error) {
       console.warn('Failed to inject mock wallet:', error);
     }
-  }, [enabled, accounts, walletConfig]);
+  }
 
   return <>{children}</>;
 }

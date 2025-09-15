@@ -1,5 +1,7 @@
 import { EVMWallet, type EVMWalletConfig } from './evm/wallet.js';
 import { SolanaWallet, type SolanaWalletConfig } from './solana/wallet.js';
+import { EVMWalletStandard } from './evm/wallet-standard.js';
+import { SolanaWalletStandard } from './solana/wallet-standard.js';
 import type { Chain, Transport } from 'viem';
 export interface Account {
     privateKey: string | Uint8Array;
@@ -33,7 +35,9 @@ export interface HeadlessWalletConfig {
 }
 export declare class HeadlessWallet {
     private evmWallet?;
+    private evmWalletStandard?;
     private solanaWallet?;
+    private solanaWalletStandard?;
     private branding;
     constructor(config: HeadlessWalletConfig);
     getEthereumProvider(): {
@@ -45,9 +49,22 @@ export declare class HeadlessWallet {
         on: (event: string, handler: (...args: any[]) => void) => void;
         removeListener: (event: string, handler: (...args: any[]) => void) => void;
         disconnect: () => void;
+        _wallet: EVMWalletStandard | undefined;
+        uuid: string | undefined;
+        name: string | undefined;
+        icon: string | undefined;
+        rdns: string | undefined;
     };
     getSolanaProvider(): {
         isPhantom: boolean | undefined;
+        readonly isConnected: boolean;
+        readonly publicKey: {
+            _bn: Buffer<ArrayBufferLike>;
+            toString: () => string;
+            toBase58: () => string;
+            toBytes: () => Uint8Array<ArrayBufferLike>;
+            toBuffer: () => Buffer<ArrayBufferLike>;
+        } | null;
         connect: () => Promise<{
             publicKey: any;
         }>;
@@ -70,6 +87,8 @@ export declare class HeadlessWallet {
     };
     getEVMWallet(): EVMWallet | undefined;
     getSolanaWallet(): SolanaWallet | undefined;
+    getSolanaWalletStandard(): SolanaWalletStandard | undefined;
+    getEVMWalletStandard(): EVMWalletStandard | undefined;
     request(args: {
         method: string;
         params?: any[];
@@ -95,3 +114,5 @@ export declare const MockWallet: typeof HeadlessWallet;
 export type MockWalletConfig = HeadlessWalletConfig;
 export { EVMWallet, SolanaWallet };
 export type { EVMWalletConfig, SolanaWalletConfig };
+export { EVMWalletStandard } from './evm/wallet-standard.js';
+export { SolanaWalletStandard } from './solana/wallet-standard.js';

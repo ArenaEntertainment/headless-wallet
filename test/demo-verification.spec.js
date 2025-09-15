@@ -6,7 +6,10 @@ test.describe('Demo Applications Verification', () => {
   const address = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
   test('Reown AppKit demo works with headless wallet', async ({ page }) => {
-    // Install headless wallet
+    // Navigate to the demo first
+    await page.goto('http://localhost:5175/');
+
+    // Install headless wallet after navigation
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey,
@@ -18,9 +21,6 @@ test.describe('Demo Applications Verification', () => {
       },
       autoConnect: false
     });
-
-    // Navigate to the demo
-    await page.goto('http://localhost:5175/');
 
     // Wait for page to load
     await page.waitForLoadState('networkidle');
@@ -52,9 +52,10 @@ test.describe('Demo Applications Verification', () => {
 
     // The demo may register its own wallet as well
     expect(providers.length).toBeGreaterThanOrEqual(1);
-    const testWallet = providers.find(p => p.name === 'Test Headless Wallet');
+    // The demo page may have its own wallet, so filter to our test wallet
+    const testWallet = providers.find(p => p.rdns === 'com.test.headless');
     expect(testWallet).toBeDefined();
-    expect(testWallet.rdns).toBe('com.test.headless');
+    expect(testWallet.name).toBe('Test Headless Wallet');
 
     // Test wallet connection
     const connectionResult = await page.evaluate(async () => {
@@ -126,7 +127,7 @@ test.describe('Demo Applications Verification', () => {
       return;
     }
 
-    // Install headless wallet
+    // Install headless wallet after navigation
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey,
@@ -161,7 +162,7 @@ test.describe('Demo Applications Verification', () => {
       return;
     }
 
-    // Install headless wallet
+    // Install headless wallet after navigation
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey,
@@ -196,7 +197,7 @@ test.describe('Demo Applications Verification', () => {
       return;
     }
 
-    // Install headless wallet
+    // Install headless wallet after navigation
     await installHeadlessWallet(page, {
       accounts: [{
         privateKey,

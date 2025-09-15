@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useWallet, useAccount, useAccounts } from '@arenaentertainment/wallet-mock-react'
+import { useWallet, useAccount, useAccounts } from '@arenaentertainment/headless-wallet-react'
 import {
   Users,
   Plus,

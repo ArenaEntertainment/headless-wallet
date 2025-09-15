@@ -10,6 +10,8 @@ test('simple wallet reinstall test', async ({ page }) => {
   const secondWalletAccount = privateKeyToAccount(secondWalletPrivateKey);
   const secondWalletAddress = secondWalletAccount.address;
 
+  await page.goto('http://localhost:5175/');
+
   console.log('Installing first wallet...');
   const walletId1 = await installHeadlessWallet(page, {
     accounts: [{
@@ -22,8 +24,6 @@ test('simple wallet reinstall test', async ({ page }) => {
     autoConnect: false,
     debug: true
   });
-
-  await page.goto('http://localhost:5175/');
 
   // Check first wallet exists
   let hasEthereum = await page.evaluate(() => {

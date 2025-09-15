@@ -247,6 +247,76 @@ Customize how your wallet appears in connection UIs:
 - `isMetaMask`: Whether EVM provider identifies as MetaMask (default: true)
 - `isPhantom`: Whether Solana provider identifies as Phantom (default: true)
 
+## Supported Methods
+
+### EVM Methods (20+)
+
+The wallet supports all standard Ethereum JSON-RPC methods:
+
+#### Account & Connection
+- `eth_requestAccounts` - Request wallet connection
+- `eth_accounts` - Get connected accounts
+- `eth_chainId` - Get current chain ID
+- `wallet_switchEthereumChain` - Switch to different chain
+- `wallet_addEthereumChain` - Add new chain
+- `wallet_requestPermissions` - Request permissions
+- `wallet_getPermissions` - Get current permissions
+- `wallet_getCapabilities` - Get wallet capabilities
+
+#### Signing & Transactions
+- `personal_sign` - Sign personal message
+- `eth_sign` - Sign message (legacy)
+- `eth_signTypedData_v4` - Sign typed structured data
+- `eth_sendTransaction` - Send transaction
+
+#### Blockchain Data
+- `eth_getBalance` - Get account balance
+- `eth_blockNumber` - Get latest block number
+- `eth_getTransactionReceipt` - Get transaction receipt
+- `eth_estimateGas` - Estimate gas for transaction
+- `eth_gasPrice` - Get current gas price
+- `eth_getCode` - Get contract code at address
+- `eth_getLogs` - Query event logs
+
+#### Token Management
+- `wallet_watchAsset` - Add ERC20 token to wallet
+
+### Solana Methods (20+)
+
+The wallet provides comprehensive Solana functionality:
+
+#### Connection & Accounts
+- `connect` - Connect wallet
+- `disconnect` - Disconnect wallet
+- `getPublicKey` - Get current public key
+- `switchAccount` - Switch between accounts
+
+#### Signing & Transactions
+- `signTransaction` - Sign transaction
+- `signAllTransactions` - Sign multiple transactions
+- `signMessage` - Sign arbitrary message
+- `signAndSendTransaction` - Sign and submit transaction
+- `sendTransaction` - Send pre-signed transaction
+- `simulateTransaction` - Test transaction without sending
+
+#### Blockchain Data
+- `getBalance` - Get SOL balance
+- `getBalanceLamports` - Get balance in lamports
+- `getLatestBlockhash` - Get recent blockhash
+- `getAccountInfo` - Get account details
+- `getSignatureStatuses` - Check transaction status
+- `requestAirdrop` - Request test SOL (devnet/testnet)
+
+#### Authentication
+- `signIn` - Sign In with Solana (SIWS)
+
+#### SPL Token Operations
+- `getTokenBalance` - Get SPL token balance
+- `getTokenAccounts` - List all token accounts
+- `transferToken` - Transfer SPL tokens
+- `createTokenAccount` - Create associated token account
+- `getMintInfo` - Get token mint information
+
 ## Testing Examples
 
 ### Test with wagmi
@@ -284,6 +354,73 @@ test('message signing', async ({ page }) => {
 
   // Verify signature was generated (would be visible in debug output)
   await page.waitForSelector('[data-testid="signature-result"]');
+});
+```
+
+### Test Solana balance and operations
+
+```typescript
+test('Solana balance check', async ({ page }) => {
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: solanaKey, type: 'solana' }],
+    solana: { cluster: 'devnet' }
+  });
+
+  await page.goto('/app');
+
+  const balance = await page.evaluate(async () => {
+    const wallet = window.phantom?.solana;
+    await wallet.connect();
+    return await wallet.request({ method: 'getBalance' });
+  });
+
+  expect(balance).toBeGreaterThanOrEqual(0);
+});
+```
+
+### Test EVM gas estimation
+
+```typescript
+test('gas estimation', async ({ page }) => {
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
+  });
+
+  await page.goto('/app');
+
+  const gasEstimate = await page.evaluate(async () => {
+    return await window.ethereum.request({
+      method: 'eth_estimateGas',
+      params: [{
+        from: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266',
+        to: '0x70997970C51812dc3A010C7d01b50e0d17dc79C8',
+        value: '0x1000000000000000'
+      }]
+    });
+  });
+
+  expect(gasEstimate).toMatch(/^0x[0-9a-f]+$/i);
+});
+```
+
+### Test SPL token operations
+
+```typescript
+test('SPL token balance', async ({ page }) => {
+  await installHeadlessWallet(page, {
+    accounts: [{ privateKey: solanaKey, type: 'solana' }],
+    solana: { cluster: 'devnet' }
+  });
+
+  await page.goto('/app');
+
+  const tokenAccounts = await page.evaluate(async () => {
+    const wallet = window.phantom?.solana;
+    await wallet.connect();
+    return await wallet.request({ method: 'getTokenAccounts' });
+  });
+
+  expect(Array.isArray(tokenAccounts)).toBe(true);
 });
 ```
 

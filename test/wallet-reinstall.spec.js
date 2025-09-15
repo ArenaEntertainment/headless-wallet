@@ -12,6 +12,8 @@ test.describe('Wallet Reinstallation', () => {
     const secondWalletAccount = privateKeyToAccount(secondWalletPrivateKey);
     const secondWalletAddress = secondWalletAccount.address;
 
+    await page.goto('http://localhost:5175/');
+
     // Install first wallet
     const walletId1 = await installHeadlessWallet(page, {
       accounts: [{
@@ -24,8 +26,6 @@ test.describe('Wallet Reinstallation', () => {
       autoConnect: false,
       debug: true
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Connect first wallet via EIP-6963
     await page.evaluate(async () => {
@@ -103,6 +103,8 @@ test.describe('Wallet Reinstallation', () => {
     const firstWalletPrivateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
     const secondWalletPrivateKey = generatePrivateKey();
 
+    await page.goto('http://localhost:5175/');
+
     // Install first wallet
     const walletId1 = await installHeadlessWallet(page, {
       accounts: [{
@@ -115,8 +117,6 @@ test.describe('Wallet Reinstallation', () => {
       },
       autoConnect: false
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Check EIP-6963 discovery for first wallet
     const firstProviders = await page.evaluate(() => {
@@ -137,9 +137,11 @@ test.describe('Wallet Reinstallation', () => {
       });
     });
 
-    expect(firstProviders).toHaveLength(1);
-    expect(firstProviders[0].name).toBe('First EIP-6963 Wallet');
-    expect(firstProviders[0].rdns).toBe('com.first.wallet');
+    // Filter to only our test wallet (demo page may have its own wallet)
+    const testProviders = firstProviders.filter(p => p.rdns === 'com.first.wallet');
+    expect(testProviders).toHaveLength(1);
+    expect(testProviders[0].name).toBe('First EIP-6963 Wallet');
+    expect(testProviders[0].rdns).toBe('com.first.wallet');
 
     // Uninstall first wallet
     await uninstallHeadlessWallet(page, walletId1);
@@ -164,7 +166,9 @@ test.describe('Wallet Reinstallation', () => {
       });
     });
 
-    expect(noProviders).toHaveLength(0);
+    // Should have no test providers (demo wallet might still be there)
+    const noTestProviders = noProviders.filter(p => p.rdns === 'com.first.wallet');
+    expect(noTestProviders).toHaveLength(0);
 
     // Install second wallet
     const walletId2 = await installHeadlessWallet(page, {
@@ -198,9 +202,11 @@ test.describe('Wallet Reinstallation', () => {
       });
     });
 
-    expect(secondProviders).toHaveLength(1);
-    expect(secondProviders[0].name).toBe('Second EIP-6963 Wallet');
-    expect(secondProviders[0].rdns).toBe('com.second.wallet');
+    // Filter to only our second test wallet (demo page may have its own wallet)
+    const secondTestProviders = secondProviders.filter(p => p.rdns === 'com.second.wallet');
+    expect(secondTestProviders).toHaveLength(1);
+    expect(secondTestProviders[0].name).toBe('Second EIP-6963 Wallet');
+    expect(secondTestProviders[0].rdns).toBe('com.second.wallet');
 
     // Clean up
     await uninstallHeadlessWallet(page, walletId2);
@@ -226,6 +232,8 @@ test.describe('Wallet Reinstallation', () => {
       13, 161, 209, 234
     ]);
 
+    await page.goto('http://localhost:5175/');
+
     // Install first Solana wallet
     const walletId1 = await installHeadlessWallet(page, {
       accounts: [{
@@ -235,8 +243,6 @@ test.describe('Wallet Reinstallation', () => {
       autoConnect: false,
       debug: true
     });
-
-    await page.goto('http://localhost:5175/');
 
     // Connect first Solana wallet
     const firstResult = await page.evaluate(async () => {

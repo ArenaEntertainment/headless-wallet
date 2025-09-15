@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useWallet, useChain, useChains } from '@arenaentertainment/wallet-mock-react'
+import { useWallet, useChain, useChains } from '@arenaentertainment/headless-wallet-react'
 import {
   Network,
   Globe,
