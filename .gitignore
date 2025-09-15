@@ -5,7 +5,6 @@ node_modules
 .cache
 .output
 dist
-main.css
 .vscode
 .idea
 .DS_Store
