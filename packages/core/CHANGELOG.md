@@ -1,3 +1,14 @@
+## 0.6.0 (2025-09-15)
+
+### 🚀 Features
+
+- standardize Reown AppKit demos UI and clean up documentation ([d52491b1](https://github.com/ArenaEntertainment/headless-wallet/commit/d52491b1))
+- Switch all demos to use testnets and remove mock transaction fallbacks ([e94c5668](https://github.com/ArenaEntertainment/headless-wallet/commit/e94c5668))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.5.1 (2025-09-14)
 
 ### 🩹 Fixes
