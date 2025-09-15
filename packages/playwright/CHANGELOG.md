@@ -1,3 +1,17 @@
+# 1.0.0 (2025-09-15)
+
+### 🚀 Features
+
+- ⚠️  **playwright:** major refactor to bridge pattern eliminating code duplication ([9ada1d1c](https://github.com/ArenaEntertainment/headless-wallet/commit/9ada1d1c))
+
+### ⚠️  Breaking Changes
+
+- **playwright:** Refactored Playwright package from 450+ lines to 294 lines using bridge pattern that delegates all wallet logic to core HeadlessWallet class. This is a major architectural improvement that eliminates code duplication while maintaining all functionality.
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.7.0 (2025-09-15)
 
 ### 🚀 Features
