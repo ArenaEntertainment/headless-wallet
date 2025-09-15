@@ -3,11 +3,22 @@ import { HeadlessWallet } from '@arenaentertainment/headless-wallet';
 import type { HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
 import type { Chain, Transport } from 'viem';
 
-// Track installed wallets per page/context
+// Track installed wallets globally but group by the root target (BrowserContext)
 const wallets = new Map<string, HeadlessWallet>();
+const walletTargetMap = new Map<string, Page | BrowserContext>();
 
 // Track exposed functions to avoid re-exposure errors
 const exposedFunctions: WeakSet<Page | BrowserContext> = new WeakSet();
+
+// Helper function to get the root target (BrowserContext) for consistent wallet storage
+function getRootTarget(target: Page | BrowserContext): BrowserContext {
+  if ('context' in target) {
+    // This is a Page, get its BrowserContext
+    return target.context();
+  }
+  // This is already a BrowserContext
+  return target;
+}
 
 export async function installHeadlessWallet(
   target: Page | BrowserContext,
@@ -18,7 +29,10 @@ export async function installHeadlessWallet(
 ): Promise<string> {
   const walletId = `wallet-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   const wallet = new HeadlessWallet(config);
+
+  // Store wallet globally and track its target
   wallets.set(walletId, wallet);
+  walletTargetMap.set(walletId, target);
 
   const { autoConnect = false, debug = false } = config;
 
@@ -32,10 +46,23 @@ export async function installHeadlessWallet(
         provider?: 'evm' | 'solana';
       }) => {
         const { walletId: reqWalletId, method, params, provider } = request;
+
+        // Get wallet from global map
         const targetWallet = wallets.get(reqWalletId);
 
         if (!targetWallet) {
-          throw new Error(`Wallet ${reqWalletId} not found`);
+          // List available wallet IDs for debugging
+          const availableWallets = Array.from(wallets.keys());
+          throw new Error(`Wallet ${reqWalletId} not found. Available wallets: [${availableWallets.join(', ')}]`);
+        }
+
+        // Verify the wallet belongs to the correct context
+        const walletTarget = walletTargetMap.get(reqWalletId);
+        const rootTarget = getRootTarget(target);
+        const walletRootTarget = walletTarget ? getRootTarget(walletTarget) : null;
+
+        if (walletRootTarget !== rootTarget) {
+          throw new Error(`Wallet ${reqWalletId} belongs to different context`);
         }
 
         try {
@@ -64,6 +91,23 @@ export async function installHeadlessWallet(
 
   // Define the injection script
   const injectionScript = ({ walletId, hasEVM, hasSolana, branding, autoConnect, debug }: any) => {
+      // Clean up any existing providers first to prevent conflicts
+      if ((window as any).__headlessWalletProviders) {
+        const existingWallets = Array.from((window as any).__headlessWalletProviders.keys());
+        existingWallets.forEach((existingWalletId) => {
+          if (existingWalletId !== walletId) {
+            // Remove old providers to prevent conflicts
+            const providerInfo = (window as any).__headlessWalletProviders.get(existingWalletId);
+            if (providerInfo?.solana && (window as any).phantom?.solana === providerInfo.solana) {
+              delete (window as any).phantom.solana;
+            }
+            if (providerInfo?.ethereum && (window as any).ethereum === providerInfo.ethereum) {
+              delete (window as any).ethereum;
+            }
+            (window as any).__headlessWalletProviders.delete(existingWalletId);
+          }
+        });
+      }
       // EVM Provider (window.ethereum)
       if (hasEVM) {
         // Event emitter implementation
@@ -390,6 +434,7 @@ export async function uninstallHeadlessWallet(target: Page | BrowserContext, wal
   // If walletId is provided, remove specific wallet
   if (walletId) {
     wallets.delete(walletId);
+    walletTargetMap.delete(walletId);
   }
 
   // Only uninstall from Page, not BrowserContext
