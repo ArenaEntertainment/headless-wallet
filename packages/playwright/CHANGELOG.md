@@ -1,3 +1,13 @@
+## 1.0.1 (2025-09-15)
+
+### 🩹 Fixes
+
+- **playwright:** resolve AppKit wallet detection with proper Solana wallet standard ([#18](https://github.com/ArenaEntertainment/headless-wallet/issues/18))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 # 1.0.0 (2025-09-15)
 
 ### 🚀 Features
