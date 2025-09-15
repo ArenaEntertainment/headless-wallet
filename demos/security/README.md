@@ -1,6 +1,6 @@
-# Wallet Mock Security Demo
+# Arena Headless Wallet Security Demo
 
-A focused demonstration of the wallet-mock library's security features and production safeguards.
+A focused demonstration of the Arena Headless Wallet library's security features and production safeguards.
 
 ## Features Demonstrated
 

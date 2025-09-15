@@ -41,14 +41,16 @@ const TEST_KEYS = {
 
 test.describe('Solana String Key Support', () => {
   test('should accept Uint8Array format', async ({ page, context }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.uint8Array, type: 'solana' }
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     // Connect and get public key
     const result = await page.evaluate(async () => {
@@ -64,14 +66,14 @@ test.describe('Solana String Key Support', () => {
   });
 
   test('should accept Base58 string format', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.base58, type: 'solana' }
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     const result = await page.evaluate(async () => {
       if (!window.phantom?.solana) {
@@ -85,14 +87,14 @@ test.describe('Solana String Key Support', () => {
   });
 
   test('should accept hex string with 0x prefix', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.hexWith0x, type: 'solana' }
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     const result = await page.evaluate(async () => {
       if (!window.phantom?.solana) {
@@ -106,14 +108,14 @@ test.describe('Solana String Key Support', () => {
   });
 
   test('should accept hex string without 0x prefix', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.hexWithout0x, type: 'solana' }
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     const result = await page.evaluate(async () => {
       if (!window.phantom?.solana) {
@@ -127,14 +129,14 @@ test.describe('Solana String Key Support', () => {
   });
 
   test('should accept base64 string format', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.base64, type: 'solana' }
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     const result = await page.evaluate(async () => {
       if (!window.phantom?.solana) {
@@ -148,14 +150,14 @@ test.describe('Solana String Key Support', () => {
   });
 
   test('should accept JSON array string format', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.jsonArray, type: 'solana' }
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     const result = await page.evaluate(async () => {
       if (!window.phantom?.solana) {
@@ -169,6 +171,8 @@ test.describe('Solana String Key Support', () => {
   });
 
   test('should handle multiple accounts with different formats', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.uint8Array, type: 'solana' },
@@ -177,8 +181,6 @@ test.describe('Solana String Key Support', () => {
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     const result = await page.evaluate(async () => {
       if (!window.phantom?.solana) {
@@ -193,14 +195,14 @@ test.describe('Solana String Key Support', () => {
   });
 
   test('should sign messages with string key format', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
     await installHeadlessWallet(page, {
       accounts: [
         { privateKey: TEST_KEYS.hexWith0x, type: 'solana' }
       ],
       autoConnect: false
     });
-
-    await page.goto('data:text/html,<html><body>Test</body></html>');
 
     // Connect first
     await page.evaluate(async () => {

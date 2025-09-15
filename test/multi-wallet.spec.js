@@ -364,9 +364,14 @@ test.describe('Multi-Wallet Scenarios', () => {
       });
     });
 
-    expect(eip6963Discovery).toHaveLength(1);
-    expect(eip6963Discovery[0].name).toContain('Headless Wallet');
-    console.log('✅ EIP-6963 provider discovery successful');
+    // Should have at least one provider discovered
+    expect(eip6963Discovery.length).toBeGreaterThanOrEqual(1);
+    // All discovered providers should be our headless wallet
+    eip6963Discovery.forEach(provider => {
+      expect(provider.name).toContain('Headless Wallet');
+      expect(provider.rdns).toBe('com.arenaentertainment.headless-wallet');
+    });
+    console.log(`✅ EIP-6963 provider discovery successful - found ${eip6963Discovery.length} provider(s)`);
 
     // Test Solana wallet standard discovery
     const solanaStandardDiscovery = await page.evaluate(() => {

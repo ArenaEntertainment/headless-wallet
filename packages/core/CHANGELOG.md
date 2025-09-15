@@ -71,7 +71,7 @@ This was a version bump only for @arenaentertainment/headless-wallet to align it
 
 ### 🩹 Fixes
 
-- achieve feature parity with wallet-mock and fix critical issues ([#1](https://github.com/ArenaEntertainment/headless-wallet/issues/1), [#2](https://github.com/ArenaEntertainment/headless-wallet/issues/2), [#3](https://github.com/ArenaEntertainment/headless-wallet/issues/3))
+- achieve feature parity with previous wallet-mock library and fix critical issues ([#1](https://github.com/ArenaEntertainment/headless-wallet/issues/1), [#2](https://github.com/ArenaEntertainment/headless-wallet/issues/2), [#3](https://github.com/ArenaEntertainment/headless-wallet/issues/3))
 
 ### ❤️ Thank You
 

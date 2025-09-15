@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useWallet } from '@arenaentertainment/wallet-mock-react'
+import { useWallet } from '@arenaentertainment/headless-wallet-react'
 import {
   Menu,
   X,

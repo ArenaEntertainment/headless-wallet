@@ -1,3 +1,5 @@
 packages:
   - 'packages/*'
   - 'demos/reown-appkit'
+  - 'demos/reown-appkit-nuxt'
+  - 'demos/reown-appkit-react'

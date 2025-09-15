@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { installHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
-import { recoverAddress } from 'viem';
+import { verifyMessage } from 'viem';
 
 test.describe('Ethers v6 Signature Compatibility', () => {
   test('should handle hex-encoded messages from ethers v6', async ({ page }) => {
@@ -33,12 +33,17 @@ test.describe('Ethers v6 Signature Compatibility', () => {
       return { message, signature, address: accounts[0] };
     });
 
+    console.log('Plain text test result:', plainTextTest);
+    expect(plainTextTest.signature).toBeDefined();
+    expect(plainTextTest.signature).toMatch(/^0x[0-9a-fA-F]+$/);
+
     // Verify plain text signature
-    const recoveredPlain = await recoverAddress({
+    const isValidPlain = await verifyMessage({
+      address,
       message: plainTextTest.message,
       signature: plainTextTest.signature
     });
-    expect(recoveredPlain.toLowerCase()).toBe(address.toLowerCase());
+    expect(isValidPlain).toBe(true);
 
     // Test 2: Hex-encoded message (how ethers v6 BrowserProvider sends it)
     const hexEncodedTest = await page.evaluate(async () => {
@@ -63,13 +68,18 @@ test.describe('Ethers v6 Signature Compatibility', () => {
       };
     });
 
+    console.log('Hex encoded test result:', hexEncodedTest);
+    expect(hexEncodedTest.signature).toBeDefined();
+    expect(hexEncodedTest.signature).toMatch(/^0x[0-9a-fA-F]+$/);
+
     // The signature should be for the original plain message, not the hex string
     // This is what ethers v6 expects
-    const recoveredHex = await recoverAddress({
+    const isValidHex = await verifyMessage({
+      address,
       message: hexEncodedTest.plainMessage,
       signature: hexEncodedTest.signature
     });
-    expect(recoveredHex.toLowerCase()).toBe(address.toLowerCase());
+    expect(isValidHex).toBe(true);
 
     // Test 3: Verify ethers v6 behavior with hex that looks like text
     const ambiguousTest = await page.evaluate(async () => {
@@ -89,11 +99,12 @@ test.describe('Ethers v6 Signature Compatibility', () => {
     });
 
     // Should sign the decoded bytes, not the hex string
-    const recoveredAmbiguous = await recoverAddress({
+    const isValidAmbiguous = await verifyMessage({
+      address,
       message: 'Hello',
       signature: ambiguousTest.signature
     });
-    expect(recoveredAmbiguous.toLowerCase()).toBe(address.toLowerCase());
+    expect(isValidAmbiguous).toBe(true);
   });
 
   test('should handle both string and hex messages correctly', async ({ page }) => {
@@ -153,11 +164,12 @@ test.describe('Ethers v6 Signature Compatibility', () => {
       }
 
       // Verify signature
-      const recovered = await recoverAddress({
+      const isValid = await verifyMessage({
+        address,
         message: expectedMessage,
         signature: result.signature
       });
-      expect(recovered.toLowerCase()).toBe(address.toLowerCase());
+      expect(isValid).toBe(true);
     }
   });
 });

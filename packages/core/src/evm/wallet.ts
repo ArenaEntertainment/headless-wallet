@@ -103,6 +103,78 @@ export class EVMWallet {
         return `0x${blockNumber.toString(16)}`;
       }
 
+      case 'eth_getTransactionReceipt': {
+        const [transactionHash] = normalizedParams;
+        const publicClient = this.createPublicClient();
+        const receipt = await publicClient.getTransactionReceipt({
+          hash: transactionHash as Hex
+        });
+        if (!receipt) {
+          return null;
+        }
+        // Convert to hex format for RPC compatibility
+        return {
+          ...receipt,
+          blockNumber: `0x${receipt.blockNumber.toString(16)}`,
+          cumulativeGasUsed: `0x${receipt.cumulativeGasUsed.toString(16)}`,
+          effectiveGasPrice: receipt.effectiveGasPrice ? `0x${receipt.effectiveGasPrice.toString(16)}` : undefined,
+          gasUsed: `0x${receipt.gasUsed.toString(16)}`,
+          status: receipt.status === 'success' ? '0x1' : '0x0',
+          transactionIndex: `0x${receipt.transactionIndex.toString(16)}`
+        };
+      }
+
+      case 'eth_estimateGas': {
+        const [transaction] = normalizedParams;
+        const publicClient = this.createPublicClient();
+        const estimate = await publicClient.estimateGas({
+          account: transaction.from,
+          to: transaction.to,
+          value: transaction.value ? BigInt(transaction.value) : undefined,
+          data: transaction.data
+        });
+        return `0x${estimate.toString(16)}`;
+      }
+
+      case 'eth_gasPrice': {
+        const publicClient = this.createPublicClient();
+        const gasPrice = await publicClient.getGasPrice();
+        return `0x${gasPrice.toString(16)}`;
+      }
+
+      case 'eth_getCode': {
+        const [address, blockTag = 'latest'] = normalizedParams;
+        const publicClient = this.createPublicClient();
+        const code = await publicClient.getBytecode({
+          address,
+          blockTag: blockTag as any
+        });
+        return code || '0x';
+      }
+
+      case 'eth_getLogs': {
+        const [filter] = normalizedParams;
+        const publicClient = this.createPublicClient();
+        const logsParams: any = {
+          address: filter.address,
+          fromBlock: filter.fromBlock ? BigInt(filter.fromBlock) : undefined,
+          toBlock: filter.toBlock ? BigInt(filter.toBlock) : undefined
+        };
+        // Add topics if present
+        if (filter.topics) {
+          logsParams.event = undefined; // Ensure we're using the raw filter mode
+          logsParams.args = filter.topics;
+        }
+        const logs = await publicClient.getLogs(logsParams);
+        // Convert logs to hex format
+        return logs.map(log => ({
+          ...log,
+          blockNumber: log.blockNumber ? `0x${log.blockNumber.toString(16)}` : null,
+          transactionIndex: log.transactionIndex ? `0x${log.transactionIndex.toString(16)}` : null,
+          logIndex: log.logIndex ? `0x${log.logIndex.toString(16)}` : null
+        }));
+      }
+
       case 'personal_sign': {
         const [message, address] = normalizedParams;
         const account = this.accounts.find(acc => acc.address.toLowerCase() === address.toLowerCase());
@@ -113,15 +185,31 @@ export class EVMWallet {
         const walletClient = this.createWalletClient(account);
 
         // Handle both plain text and hex-encoded messages
-        // If message is a hex string (starts with 0x and is valid hex), treat it as raw bytes
-        // This matches wallet-mock behavior and ethers v6 expectations
+        // Ethers v6 sends messages as hex-encoded strings that should be decoded
         let messageToSign: string | { raw: Hex };
         if (typeof message === 'string' && message.startsWith('0x')) {
           // Check if it's a valid hex string
           const hexRegex = /^0x[0-9a-fA-F]*$/;
           if (hexRegex.test(message) && message.length % 2 === 0) {
-            // Valid hex - treat as raw bytes
-            messageToSign = { raw: message as Hex };
+            // Valid hex - decode it to text for ethers v6 compatibility
+            try {
+              const hex = message.slice(2);
+              if (hex.length === 0) {
+                // Empty hex string
+                messageToSign = '';
+              } else {
+                const bytes = hex.match(/.{2}/g) || [];
+                const decoded = bytes.map(b => {
+                  const code = parseInt(b, 16);
+                  return String.fromCharCode(code);
+                }).join('');
+                messageToSign = decoded;
+              }
+            } catch (error) {
+              // If decoding fails, treat as raw hex
+              console.warn('Failed to decode hex message:', error);
+              messageToSign = { raw: message as Hex };
+            }
           } else {
             // Starts with 0x but not valid hex - treat as plain text
             messageToSign = message;
@@ -269,12 +357,18 @@ export class EVMWallet {
                 'eth_chainId',
                 'eth_getBalance',
                 'eth_blockNumber',
+                'eth_getTransactionReceipt',
+                'eth_estimateGas',
+                'eth_gasPrice',
+                'eth_getCode',
+                'eth_getLogs',
                 'personal_sign',
                 'eth_sign',
                 'eth_signTypedData_v4',
                 'eth_sendTransaction',
                 'wallet_switchEthereumChain',
-                'wallet_addEthereumChain'
+                'wallet_addEthereumChain',
+                'wallet_watchAsset'
               ]
             },
             // Indicate multi-chain switching support
@@ -296,12 +390,18 @@ export class EVMWallet {
                 'eth_chainId',
                 'eth_getBalance',
                 'eth_blockNumber',
+                'eth_getTransactionReceipt',
+                'eth_estimateGas',
+                'eth_gasPrice',
+                'eth_getCode',
+                'eth_getLogs',
                 'personal_sign',
                 'eth_sign',
                 'eth_signTypedData_v4',
                 'eth_sendTransaction',
                 'wallet_switchEthereumChain',
-                'wallet_addEthereumChain'
+                'wallet_addEthereumChain',
+                'wallet_watchAsset'
               ]
             },
             chainSwitching: { supported: true }
@@ -309,6 +409,34 @@ export class EVMWallet {
         }
 
         return capabilities;
+      }
+
+      case 'wallet_watchAsset': {
+        const [assetParams] = normalizedParams;
+
+        // Validate asset type (only ERC20 is supported)
+        if (assetParams?.type !== 'ERC20') {
+          throw new Error('Asset type must be ERC20');
+        }
+
+        // Validate required options
+        const { address, symbol, decimals } = assetParams.options || {};
+        if (!address) {
+          throw new Error('Token address is required');
+        }
+        if (!symbol) {
+          throw new Error('Token symbol is required');
+        }
+        if (decimals === undefined || decimals === null) {
+          throw new Error('Token decimals is required');
+        }
+
+        // In a real wallet, this would add the token to the wallet's token list
+        // For testing purposes, we just return success
+        console.log(`Adding token: ${symbol} (${address}) with ${decimals} decimals`);
+
+        // Return true to indicate the token was successfully added
+        return true;
       }
 
       default:

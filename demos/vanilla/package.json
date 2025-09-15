@@ -12,7 +12,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@arenaentertainment/wallet-mock": "file:../../packages/core"
+    "@arenaentertainment/headless-wallet": "file:../../packages/core"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
