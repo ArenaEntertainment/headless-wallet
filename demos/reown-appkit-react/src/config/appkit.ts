@@ -7,10 +7,7 @@ export const projectId = '5f0684182dbf5c228f863711c8f499ac'
 
 export const networks = [sepolia, polygonAmoy, arbitrumSepolia, optimismSepolia, solanaDevnet, solanaTestnet]
 
-const ethersAdapter = new EthersAdapter({
-  projectId,
-  networks
-})
+const ethersAdapter = new EthersAdapter()
 
 // SolanaAdapter auto-detects wallet-standard wallets
 const solanaAdapter = new SolanaAdapter()
