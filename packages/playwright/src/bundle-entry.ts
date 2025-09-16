@@ -9,12 +9,15 @@ declare global {
   }
 }
 
-// Expose the function globally for injection
-window.__injectHeadlessWallet = (config: HeadlessWalletConfig & { autoConnect?: boolean; debug?: boolean }) => {
-  if (config.debug) {
+// Expose the function globally for injection - DO NOT MINIFY THIS WRAPPER
+window.__injectHeadlessWallet = function(config) {
+  // Extract debug flag BEFORE any minification could affect it
+  const debugMode = config && config.debug;
+
+  if (debugMode) {
     console.log('[Bundled Headless Wallet] Initializing with config:', {
-      accounts: config.accounts?.length || 0,
-      branding: config.branding?.name || 'Arena Headless Wallet'
+      accounts: config.accounts ? config.accounts.length : 0,
+      branding: config.branding ? config.branding.name : 'Arena Headless Wallet'
     });
   }
 
@@ -22,14 +25,14 @@ window.__injectHeadlessWallet = (config: HeadlessWalletConfig & { autoConnect?: 
     // Use the real injectHeadlessWallet function from the core package
     const wallet = injectHeadlessWallet(config);
 
-    if (config.debug) {
+    if (debugMode) {
       console.log('✅ Bundled wallet injection successful');
       console.log('  - EVM wallet:', wallet.hasEVM());
       console.log('  - Solana wallet:', wallet.hasSolana());
 
       // Debug EIP-6963 events
       if (wallet.hasEVM()) {
-        window.addEventListener('eip6963:requestProvider', () => {
+        window.addEventListener('eip6963:requestProvider', function() {
           console.log('🔍 EIP-6963 request detected');
         });
       }

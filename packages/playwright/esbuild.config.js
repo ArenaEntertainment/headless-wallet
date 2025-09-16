@@ -17,7 +17,7 @@ const config = {
   },
   external: [], // Bundle everything
   logLevel: 'info',
-  drop: ['console'], // Remove console.log statements
+  // Don't drop console statements - needed for debug functionality
   keepNames: false, // Allow name mangling for smaller size
   // Handle Node.js specific modules that might cause issues
   inject: [],
