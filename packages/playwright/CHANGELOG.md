@@ -1,3 +1,17 @@
+## 1.0.8 (2025-09-16)
+
+### 🩹 Fixes
+
+- Resolve provider switching and chain selection issues ([#23](https://github.com/ArenaEntertainment/headless-wallet/pull/23))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.7.3
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.0.7 (2025-09-16)
 
 ### 🩹 Fixes
