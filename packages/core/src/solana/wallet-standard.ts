@@ -318,7 +318,7 @@ export class SolanaWalletStandard implements Wallet {
       statement,
       uri = window.location.origin,
       version = '1',
-      chainId = 'solana:mainnet',
+      chainId = this.#getChainId(),
       nonce = this.#generateNonce(),
       issuedAt = new Date().toISOString(),
       expirationTime,
@@ -374,6 +374,16 @@ export class SolanaWalletStandard implements Wallet {
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
     return Buffer.from(array).toString('hex');
+  }
+
+  #getChainId(): string {
+    const cluster = this.wallet.getCluster();
+    const chainIdMap = {
+      'mainnet-beta': 'solana:mainnet',
+      'testnet': 'solana:testnet',
+      'devnet': 'solana:devnet'
+    };
+    return chainIdMap[cluster];
   }
 
   // Internal event handlers

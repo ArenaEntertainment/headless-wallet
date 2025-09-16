@@ -152,6 +152,9 @@ export class HeadlessWallet {
       get isConnected() {
         return self.solanaWallet?.isConnected() || false;
       },
+      get cluster() {
+        return self.solanaWallet?.getCluster() || 'devnet';
+      },
       get publicKey() {
         const pk = self.solanaWallet?.getPublicKey();
         if (!pk) return null;

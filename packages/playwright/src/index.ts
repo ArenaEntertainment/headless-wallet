@@ -66,6 +66,8 @@ export async function installHeadlessWallet(
   const configData = JSON.stringify({
     accounts: config.accounts,
     branding: config.branding,
+    evm: config.evm,
+    solana: config.solana,
     autoConnect: config.autoConnect || false,
     debug: config.debug || false
   });

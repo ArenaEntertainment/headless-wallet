@@ -41,6 +41,7 @@ export class SolanaWallet {
   private currentKeypairIndex = 0;
   private listeners: Map<string, Set<(...args: any[]) => void>> = new Map();
   private connected = false;
+  private cluster: 'devnet' | 'testnet' | 'mainnet-beta';
 
   constructor(config: SolanaWalletConfig) {
     // Create real keypairs from secret keys (supports multiple formats)
@@ -48,8 +49,11 @@ export class SolanaWallet {
       createKeypairFromKey(secretKey)
     );
 
+    // Store cluster configuration
+    this.cluster = config.cluster || 'devnet';
+
     // Set up connection
-    const rpcUrl = config.rpcUrl || clusterApiUrl(config.cluster || 'devnet');
+    const rpcUrl = config.rpcUrl || clusterApiUrl(this.cluster);
     this.connection = new Connection(rpcUrl, 'confirmed');
   }
 
@@ -76,6 +80,10 @@ export class SolanaWallet {
 
   isConnected(): boolean {
     return this.connected;
+  }
+
+  getCluster(): 'devnet' | 'testnet' | 'mainnet-beta' {
+    return this.cluster;
   }
 
 
@@ -299,7 +307,13 @@ export class SolanaWallet {
     const statement = input?.statement || 'Sign in with Solana to the app.';
     const uri = input?.uri || 'http://localhost';
     const version = input?.version || '1';
-    const chainId = input?.chainId || '1'; // mainnet
+    // Use actual cluster for chain ID, with fallback mapping
+    const chainIdMap = {
+      'mainnet-beta': 'solana:mainnet',
+      'testnet': 'solana:testnet',
+      'devnet': 'solana:devnet'
+    };
+    const chainId = input?.chainId || chainIdMap[this.cluster];
     const nonce = input?.nonce || Math.random().toString(36).substring(2, 15);
     const issuedAt = input?.issuedAt || new Date().toISOString();
 

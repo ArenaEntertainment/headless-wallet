@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
 import { http } from 'viem';
+import { mainnet, polygon, arbitrum } from 'viem/chains';
 
 test('Prove chain selection dialog appears', async ({ page }) => {
   console.log('🎯 Testing chain selection dialog specifically...');
@@ -35,10 +36,11 @@ test('Prove chain selection dialog appears', async ({ page }) => {
     },
     // Configure multiple networks to trigger chain selection
     evm: {
+      defaultChain: mainnet, // Set explicit default chain
       transports: {
-        1: http('https://eth-mainnet.g.alchemy.com/v2/demo'), // Ethereum Mainnet
-        137: http('https://polygon-mainnet.g.alchemy.com/v2/demo'), // Polygon
-        42161: http('https://arb-mainnet.g.alchemy.com/v2/demo') // Arbitrum
+        [mainnet.id]: http('https://eth-mainnet.g.alchemy.com/v2/demo'), // Ethereum Mainnet
+        [polygon.id]: http('https://polygon-mainnet.g.alchemy.com/v2/demo'), // Polygon
+        [arbitrum.id]: http('https://arb-mainnet.g.alchemy.com/v2/demo') // Arbitrum
       }
     },
     debug: true
@@ -62,6 +64,11 @@ test('Prove chain selection dialog appears', async ({ page }) => {
     const connectedAccounts = await page.evaluate(() => window.ethereum.request({ method: 'eth_requestAccounts' }));
     console.log('✅ Connected EVM accounts:', connectedAccounts.length);
     console.log('✅ Account addresses:', connectedAccounts);
+
+    // Verify initial chain ID matches mainnet (0x1)
+    const initialChainId = await page.evaluate(() => window.ethereum.request({ method: 'eth_chainId' }));
+    console.log('✅ Initial chain ID:', initialChainId);
+    expect(initialChainId).toBe('0x1'); // Should be mainnet as configured
   }
 
   // Click Connect Wallet button

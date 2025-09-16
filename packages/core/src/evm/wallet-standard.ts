@@ -33,7 +33,9 @@ export class EVMWalletStandard {
     } = {}
   ) {
     this.wallet = wallet;
-    this.currentChainId = '0x1'; // Default to mainnet
+    // Get the actual chain ID from the underlying wallet
+    const currentChain = wallet.getCurrentChain();
+    this.currentChainId = `0x${currentChain.id.toString(16)}`;
 
     // Set branding
     this.name = branding.name || 'Arena Headless Wallet';
@@ -41,10 +43,11 @@ export class EVMWalletStandard {
     this.rdns = branding.rdns || 'com.arenaentertainment.headless-wallet';
     this.uuid = branding.uuid || this.#generateUUID();
 
-    // Initialize state stream
+    // Initialize state stream with correct network version
+    const networkVersion = currentChain.id.toString();
     this.stateStream = new StateStream({
       chainId: this.currentChainId,
-      networkVersion: '1',
+      networkVersion,
       isConnected: false,
       isUnlocked: false,
       accounts: [],
