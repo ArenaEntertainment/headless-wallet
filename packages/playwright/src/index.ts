@@ -67,7 +67,16 @@ export async function installHeadlessWallet(
     })();
   `;
 
-  await target.addInitScript(injectionScript);
+  // Fix for Issue #22: Page injection fails due to addInitScript() timing
+  // addInitScript() only works BEFORE navigation, not after
+  if ('evaluate' in target) {
+    // For Page objects, use evaluate to inject after page load
+    await target.evaluate(injectionScript);
+  } else {
+    // For BrowserContext objects, use addInitScript before page load
+    await target.addInitScript(injectionScript);
+  }
+
   return walletId;
 }
 
