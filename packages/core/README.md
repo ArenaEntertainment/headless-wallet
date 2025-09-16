@@ -47,9 +47,9 @@ const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }
       privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
       type: 'evm'
     },
-    // Solana account (base58 or Uint8Array)
+    // Solana account (supports multiple formats)
     {
-      privateKey: '5J2X...[base58 key]',
+      privateKey: '0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8',
       type: 'solana'
     }
   ]
@@ -113,8 +113,8 @@ Returns: `HeadlessWallet` instance
 
 - `getEthereumProvider()` - Returns EIP-1193 compatible provider
 - `getSolanaProvider()` - Returns Solana wallet adapter
-- `getEip6963Provider()` - Returns EIP-6963 provider info
-- `getSolanaStandardWallet()` - Returns Solana standard wallet
+- `getEVMWalletStandard()` - Returns EVM wallet standard implementation
+- `getSolanaWalletStandard()` - Returns Solana wallet standard implementation
 
 ## EVM Methods Support
 

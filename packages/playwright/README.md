@@ -15,8 +15,8 @@ import { test } from '@playwright/test';
 import { installHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
 
 test('wallet connection', async ({ page }) => {
-  // Install wallet before navigating
-  await installHeadlessWallet(page, {
+  // Install wallet before navigating (returns walletId)
+  const walletId = await installHeadlessWallet(page, {
     accounts: [
       {
         privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
@@ -33,6 +33,9 @@ test('wallet connection', async ({ page }) => {
   );
 
   expect(accounts).toContain('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+
+  // Clean up after test
+  await uninstallHeadlessWallet(page, walletId);
 });
 ```
 
@@ -46,14 +49,15 @@ Installs the headless wallet into a Playwright page or browser context.
 - `target`: `Page | BrowserContext` - Playwright page or context
 - `config`: `HeadlessWalletConfig` - Wallet configuration
 
-**Returns:** `Promise<void>`
+**Returns:** `Promise<string>` - Returns the wallet ID for use with uninstallHeadlessWallet
 
-### `uninstallHeadlessWallet(target)`
+### `uninstallHeadlessWallet(target, walletId)`
 
 Removes the headless wallet from a page or context.
 
 **Parameters:**
 - `target`: `Page | BrowserContext` - Playwright page or context
+- `walletId`: `string` - Wallet ID returned from installHeadlessWallet
 
 **Returns:** `Promise<void>`
 
@@ -111,7 +115,7 @@ await installHeadlessWallet(page, {
 
 ```typescript
 test('wagmi integration', async ({ page }) => {
-  await installHeadlessWallet(page, {
+  const walletId = await installHeadlessWallet(page, {
     accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
   });
 
@@ -120,6 +124,8 @@ test('wagmi integration', async ({ page }) => {
   // wagmi auto-detects the wallet
   await page.click('[data-testid="connect-wallet"]');
   await page.waitForSelector('[data-testid="wallet-connected"]');
+
+  await uninstallHeadlessWallet(page, walletId);
 });
 ```
 
@@ -127,7 +133,7 @@ test('wagmi integration', async ({ page }) => {
 
 ```typescript
 test('sign transaction', async ({ page }) => {
-  await installHeadlessWallet(page, {
+  const walletId = await installHeadlessWallet(page, {
     accounts: [{ privateKey: '0xac0974...', type: 'evm' }],
     debug: true
   });
@@ -139,6 +145,8 @@ test('sign transaction', async ({ page }) => {
 
   // Transaction is auto-approved with autoConnect: false
   await page.waitForSelector('[data-testid="tx-hash"]');
+
+  await uninstallHeadlessWallet(page, walletId);
 });
 ```
 
@@ -146,7 +154,7 @@ test('sign transaction', async ({ page }) => {
 
 ```typescript
 test('multiple accounts', async ({ page }) => {
-  await installHeadlessWallet(page, {
+  const walletId = await installHeadlessWallet(page, {
     accounts: [
       { privateKey: '0xac0974...', type: 'evm' },
       { privateKey: '0xbeef12...', type: 'evm' }
@@ -154,17 +162,26 @@ test('multiple accounts', async ({ page }) => {
   });
 
   // Accounts are available for testing account switching
+
+  await uninstallHeadlessWallet(page, walletId);
 });
 ```
 
 ### Browser context installation
 
 ```typescript
+let walletId: string;
+
 test.beforeEach(async ({ context }) => {
   // Install once for all pages in context
-  await installHeadlessWallet(context, {
+  walletId = await installHeadlessWallet(context, {
     accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
   });
+});
+
+test.afterEach(async ({ context }) => {
+  // Clean up after each test
+  await uninstallHeadlessWallet(context, walletId);
 });
 
 test('page 1', async ({ page }) => {

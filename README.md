@@ -30,8 +30,8 @@ This library acts as a **provider** that injects standard wallet interfaces (`wi
 import { installHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
 
 test('wallet integration', async ({ page }) => {
-  // Install headless wallet with real private key
-  await installHeadlessWallet(page, {
+  // Install headless wallet with real private key (MUST be before page.goto)
+  const walletId = await installHeadlessWallet(page, {
     accounts: [
       { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
     ],
@@ -47,6 +47,9 @@ test('wallet integration', async ({ page }) => {
   );
 
   expect(accounts).toContain('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+
+  // Clean up after test
+  await uninstallHeadlessWallet(page, walletId);
 });
 ```
 

@@ -119,6 +119,34 @@ export async function installHeadlessWallet(
     } else {
       // Page has already been navigated, use evaluate for immediate injection
       await target.evaluate(injectionScript);
+
+      // Force provider re-announcement for wallet switching scenarios (Issue #23)
+      await target.evaluate(`
+        (function() {
+          // Small delay to ensure cleanup events have been processed
+          setTimeout(() => {
+            // Re-announce EIP-6963 provider if EVM wallet exists
+            if (window.ethereum && window.ethereum.uuid) {
+              window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
+                detail: Object.freeze({
+                  info: {
+                    uuid: window.ethereum.uuid,
+                    name: window.ethereum.name,
+                    icon: window.ethereum.icon,
+                    rdns: window.ethereum.rdns
+                  },
+                  provider: window.ethereum
+                })
+              }));
+            }
+
+            // Re-announce Solana wallet standard if Solana wallet exists
+            if (window.phantom?.solana) {
+              window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {}));
+            }
+          }, 50);
+        })();
+      `);
     }
   } else {
     // For BrowserContext objects, use addInitScript before page load
@@ -148,22 +176,50 @@ export async function uninstallHeadlessWallet(
 
       // Clean up EVM provider if this wallet had EVM and no other EVM wallets remain
       if (walletInfo.hasEvm && !hasOtherEvmWallet) {
+        // Notify applications about provider disconnection
+        if (window.ethereum && typeof window.ethereum.emit === 'function') {
+          try {
+            window.ethereum.emit('disconnect', { code: 1013, message: 'User disconnected' });
+          } catch (e) {
+            // Silent fail - not all providers support emit
+          }
+        }
+
         delete window.ethereum;
 
         // Clean up EIP-6963 provider announcement
         if (walletInfo.announceProvider) {
           window.removeEventListener('eip6963:requestProvider', walletInfo.announceProvider);
         }
+
+        // Fire provider removal event to notify wallet libraries
+        window.dispatchEvent(new CustomEvent('eip6963:providerRemoved', {
+          detail: { rdns: 'com.arenaentertainment.headless-wallet' }
+        }));
       }
 
       // Clean up Solana provider if this wallet had Solana and no other Solana wallets remain
       if (walletInfo.hasSolana && !hasOtherSolanaWallet) {
+        // Notify Solana applications about disconnection
+        if (window.phantom?.solana && typeof window.phantom.solana.emit === 'function') {
+          try {
+            window.phantom.solana.emit('disconnect');
+          } catch (e) {
+            // Silent fail - not all providers support emit
+          }
+        }
+
         if (window.phantom?.solana) {
           delete window.phantom.solana;
           if (Object.keys(window.phantom).length === 0) {
             delete window.phantom;
           }
         }
+
+        // Fire Solana provider removal event
+        window.dispatchEvent(new CustomEvent('wallet-standard:unregister-wallet', {
+          detail: { name: 'Arena Headless Wallet' }
+        }));
       }
     }
   `;

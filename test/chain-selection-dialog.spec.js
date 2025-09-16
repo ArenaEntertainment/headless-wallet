@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
+import { http } from 'viem';
 
 test('Prove chain selection dialog appears', async ({ page }) => {
   console.log('🎯 Testing chain selection dialog specifically...');
@@ -7,10 +8,20 @@ test('Prove chain selection dialog appears', async ({ page }) => {
   // Install wallet with both EVM and Solana
   const walletId = await installHeadlessWallet(page, {
     accounts: [
+      // Multiple EVM accounts to trigger chain selection
       {
         privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
         type: 'evm'
       },
+      {
+        privateKey: '0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d',
+        type: 'evm'
+      },
+      {
+        privateKey: '0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a',
+        type: 'evm'
+      },
+      // Solana account for multi-chain support
       {
         privateKey: '0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8',
         type: 'solana'
@@ -21,6 +32,14 @@ test('Prove chain selection dialog appears', async ({ page }) => {
       icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiM2MzY2RjEiLz4KPHBhdGggZD0iTTEyIDEySDIwVjIwSDEyVjEyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+',
       isMetaMask: false,
       isPhantom: true
+    },
+    // Configure multiple networks to trigger chain selection
+    evm: {
+      transports: {
+        1: http('https://eth-mainnet.g.alchemy.com/v2/demo'), // Ethereum Mainnet
+        137: http('https://polygon-mainnet.g.alchemy.com/v2/demo'), // Polygon
+        42161: http('https://arb-mainnet.g.alchemy.com/v2/demo') // Arbitrum
+      }
     },
     debug: true
   });
@@ -37,6 +56,13 @@ test('Prove chain selection dialog appears', async ({ page }) => {
 
   console.log('✅ window.ethereum exists:', hasEthereum);
   console.log('✅ window.phantom.solana exists:', hasSolana);
+
+  // Verify we have multiple EVM accounts configured (after connecting)
+  if (hasEthereum) {
+    const connectedAccounts = await page.evaluate(() => window.ethereum.request({ method: 'eth_requestAccounts' }));
+    console.log('✅ Connected EVM accounts:', connectedAccounts.length);
+    console.log('✅ Account addresses:', connectedAccounts);
+  }
 
   // Click Connect Wallet button
   const connectButton = page.locator('button:has-text("Connect Wallet")');
@@ -119,6 +145,16 @@ test('Prove chain selection dialog appears', async ({ page }) => {
   console.log('- Both providers injected:', hasEthereum && hasSolana);
   console.log('- Chain selection appeared:', chainSelectionVisible || ethereumOption || polygonOption);
 
-  // Test passes if wallet injection worked (multichain detection is proven by screenshots)
+  // Test passes if multichain wallet injection worked
   expect(hasEthereum && hasSolana).toBe(true);
+
+  // Verify we have the expected 3 EVM accounts after connection
+  if (hasEthereum) {
+    const finalAccounts = await page.evaluate(() => window.ethereum.request({ method: 'eth_accounts' }));
+    expect(finalAccounts).toHaveLength(3);
+    expect(finalAccounts).toContain('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'); // Account 1
+    expect(finalAccounts).toContain('0x70997970C51812dc3A010C7d01b50e0d17dc79C8'); // Account 2
+    expect(finalAccounts).toContain('0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC'); // Account 3
+    console.log('✅ Final account verification passed');
+  }
 });
