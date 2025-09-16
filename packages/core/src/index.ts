@@ -164,11 +164,38 @@ export class HeadlessWallet {
           toBuffer: () => pk.toBuffer()
         };
       },
-      connect: () => this.solanaWallet!.connect(),
+      connect: async () => {
+        const result = await this.solanaWallet!.connect();
+        // Enhance the publicKey with methods
+        return {
+          publicKey: {
+            _bn: result.publicKey._bn,
+            _base58: result.publicKey._base58,
+            toString: () => result.publicKey._base58,
+            toBase58: () => result.publicKey._base58,
+            toBytes: () => new Uint8Array(result.publicKey._bn),
+            toBuffer: () => Buffer.from(result.publicKey._bn)
+          }
+        };
+      },
       disconnect: () => this.solanaWallet!.disconnect(),
       signTransaction: (transaction: any) => this.solanaWallet!.signTransaction(transaction),
       signAllTransactions: (transactions: any[]) => this.solanaWallet!.signAllTransactions(transactions),
-      signMessage: (message: Uint8Array) => this.solanaWallet!.signMessage(message),
+      signMessage: async (message: Uint8Array) => {
+        const result = await this.solanaWallet!.signMessage(message);
+        // Enhance the publicKey with methods
+        return {
+          signature: result.signature,
+          publicKey: {
+            _bn: result.publicKey._bn,
+            _base58: result.publicKey._base58,
+            toString: () => result.publicKey._base58,
+            toBase58: () => result.publicKey._base58,
+            toBytes: () => new Uint8Array(result.publicKey._bn),
+            toBuffer: () => Buffer.from(result.publicKey._bn)
+          }
+        };
+      },
       signAndSendTransaction: (transaction: any) => this.solanaWallet!.signAndSendTransaction(transaction),
       request: (args: { method: string; params?: any[] }) => {
         return this.solanaWallet!.request(args);
@@ -347,6 +374,7 @@ export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWall
   }
 
   const wallet = new HeadlessWallet(config);
+  let announceProviderFn: (() => void) | undefined;
 
   // Inject EVM provider
   if (wallet.hasEVM()) {
@@ -358,7 +386,7 @@ export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWall
     const walletName = config.branding?.name || 'Arena Headless Wallet';
     const walletRdns = config.branding?.rdns || 'com.arenaentertainment.headless-wallet';
 
-    const announceProvider = () => {
+    announceProviderFn = () => {
       window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
         detail: Object.freeze({
           info: {
@@ -373,8 +401,8 @@ export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWall
     };
 
     // Announce immediately and on request
-    announceProvider();
-    window.addEventListener('eip6963:requestProvider', announceProvider);
+    announceProviderFn();
+    window.addEventListener('eip6963:requestProvider', announceProviderFn);
   }
 
   // Inject Solana provider
@@ -409,6 +437,11 @@ export function injectHeadlessWallet(config: HeadlessWalletConfig): HeadlessWall
       }));
     }
   }
+
+  // Attach cleanup info to wallet for backward compatibility
+  (wallet as any).__cleanup = {
+    announceProvider: announceProviderFn
+  };
 
   return wallet;
 }

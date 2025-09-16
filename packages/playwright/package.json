@@ -15,14 +15,16 @@
     "dev": "tsc --watch",
     "prepublishOnly": "npm run build"
   },
-  "dependencies": {},
+  "dependencies": {
+    "buffer": "^6.0.3"
+  },
   "peerDependencies": {
     "@playwright/test": "^1.45.0"
   },
   "devDependencies": {
     "@arenaentertainment/headless-wallet": "workspace:*",
-    "@types/node": "^24.3.3",
     "@playwright/test": "^1.45.0",
+    "@types/node": "^24.3.3",
     "esbuild": "^0.23.0",
     "events": "^3.3.0",
     "typescript": "^5.9.2",

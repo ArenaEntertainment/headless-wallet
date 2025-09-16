@@ -4,7 +4,7 @@ import { installHeadlessWallet, uninstallHeadlessWallet } from '../packages/play
 test.describe('AppKit Full Connection Flow Test', () => {
   test('should show headless wallet in AppKit modal and allow connection', async ({ page }) => {
     // Navigate to the external AppKit demo
-    await page.goto('http://localhost:5176');
+    await page.goto('http://localhost:5174');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(3000);
 

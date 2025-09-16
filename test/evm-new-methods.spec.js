@@ -79,10 +79,11 @@ test.describe('New EVM Methods', () => {
       const ethereum = window.ethereum;
       if (!ethereum) throw new Error('Ethereum provider not found');
 
-      // Get code for an EOA (should return 0x)
+      // Get code for a simple EOA address (should return 0x)
+      // Using address 0x0000000000000000000000000000000000000001 which is guaranteed to be EOA
       const code = await ethereum.request({
         method: 'eth_getCode',
-        params: ['0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 'latest']
+        params: ['0x0000000000000000000000000000000000000001', 'latest']
       });
 
       return { code };

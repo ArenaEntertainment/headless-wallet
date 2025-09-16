@@ -446,9 +446,8 @@ export class EVMWalletStandard {
       image?: string;
     };
   }): Promise<boolean> {
-    // Simulate adding token to wallet
-    console.log('Adding asset to watch:', params);
-    return true;
+    // Delegate to the underlying wallet's implementation for proper validation
+    return this.wallet.request({ method: 'wallet_watchAsset', params: [params] });
   }
 
   async #getCapabilities(address?: string): Promise<any> {

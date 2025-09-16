@@ -31,5 +31,7 @@ coverage/
 
 # Examples and temporary files
 examples/
+debug-*.js
+temp-*.js
 
 .playwright-mcp/

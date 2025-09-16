@@ -2,6 +2,7 @@
   "name": "@arenaentertainment/headless-wallet-monorepo",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Universal headless wallet library supporting both EVM and Solana chains",
   "workspaces": [
     "packages/*",
@@ -28,6 +29,8 @@
     "pnpm": ">=8.0.0"
   },
   "dependencies": {
-    "bs58": "^6.0.0"
+    "@playwright/test": "^1.55.0",
+    "bs58": "^6.0.0",
+    "viem": "^2.37.6"
   }
 }

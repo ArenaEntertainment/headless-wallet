@@ -10,13 +10,37 @@ import * as bs58 from 'bs58';
  * - Hex string (0x prefixed or not) - decodes from hex
  * - Base64 string - decodes from base64
  */
-export function convertSolanaKey(key: string | Uint8Array): Uint8Array {
+export function convertSolanaKey(key: string | Uint8Array | any): Uint8Array {
   // If already Uint8Array, validate and return
   if (key instanceof Uint8Array) {
     if (key.length !== 64) {
       throw new Error(`Invalid Solana secret key: expected 64 bytes, got ${key.length}`);
     }
     return key;
+  }
+
+  // Handle serialized Uint8Array (plain object with numeric keys)
+  if (typeof key === 'object' && key !== null && !Array.isArray(key)) {
+    // Check if it looks like a serialized Uint8Array: {0: 1, 1: 2, ...}
+    const keys = Object.keys(key);
+    const isSerializedUint8Array = keys.every(k => !isNaN(Number(k))) &&
+      keys.length > 0 &&
+      typeof key[0] === 'number';
+
+    if (isSerializedUint8Array) {
+      try {
+        const bytes = new Uint8Array(keys.length);
+        for (let i = 0; i < keys.length; i++) {
+          bytes[i] = key[i];
+        }
+        if (bytes.length !== 64) {
+          throw new Error(`Invalid Solana secret key: expected 64 bytes, got ${bytes.length}`);
+        }
+        return bytes;
+      } catch (e) {
+        throw new Error('Invalid serialized Uint8Array format for Solana secret key');
+      }
+    }
   }
 
   // Handle string formats

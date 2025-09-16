@@ -19,12 +19,48 @@ try {
 }
 
 /**
+ * Validates account configurations before installation
+ */
+function validateAccounts(accounts: any[]): void {
+  for (const account of accounts) {
+    if (account.type === 'solana') {
+      // Validate Solana keys
+      const key = account.privateKey;
+
+      // Check for invalid characters, but allow valid formats
+      if (typeof key === 'string') {
+        // Check if it's a JSON array string format like "[1,2,3,...]" - this is valid
+        if (key.trim().startsWith('[') && key.trim().endsWith(']')) {
+          // This is valid JSON array format, skip character validation
+        }
+        // Check if it's base64 format (contains +, /, = which are invalid in base58 but valid in base64)
+        else if (/^[A-Za-z0-9+/]+=*$/.test(key.trim())) {
+          // This is likely base64 format, which is valid
+        }
+        // Check for clearly invalid characters (excluding base64 chars)
+        else if (/[!@#$%^&*()\\:";'<>?,]/.test(key)) {
+          throw new Error('Invalid characters in Solana private key');
+        }
+      }
+
+      // Check Uint8Array length
+      if (key instanceof Uint8Array && key.length !== 64) {
+        throw new Error(`Invalid Solana secret key: expected 64 bytes, got ${key.length}`);
+      }
+    }
+  }
+}
+
+/**
  * Installs a headless wallet by injecting a pre-bundled version with all dependencies
  */
 export async function installHeadlessWallet(
   target: Page | BrowserContext,
   config: HeadlessWalletConfig & { autoConnect?: boolean; debug?: boolean }
 ): Promise<string> {
+  // Validate accounts before injection
+  validateAccounts(config.accounts);
+
   const walletId = `wallet-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
   const configData = JSON.stringify({
@@ -61,7 +97,8 @@ export async function installHeadlessWallet(
         window.__playwrightHeadlessWallets.set('${walletId}', {
           wallet: wallet,
           hasEvm: config.accounts.some(acc => acc.type === 'evm'),
-          hasSolana: config.accounts.some(acc => acc.type === 'solana')
+          hasSolana: config.accounts.some(acc => acc.type === 'solana'),
+          announceProvider: wallet.__cleanup?.announceProvider
         });
 
       } catch (error) {
@@ -72,10 +109,17 @@ export async function installHeadlessWallet(
   `;
 
   // Fix for Issue #22: Page injection fails due to addInitScript() timing
-  // addInitScript() only works BEFORE navigation, not after
   if ('evaluate' in target) {
-    // For Page objects, use evaluate to inject after page load
-    await target.evaluate(injectionScript);
+    // For Page objects, we need to determine if page has been navigated
+    const url = target.url();
+
+    if (!url || url === 'about:blank') {
+      // Page hasn't been navigated yet, use addInitScript for next navigation
+      await target.addInitScript(injectionScript);
+    } else {
+      // Page has already been navigated, use evaluate for immediate injection
+      await target.evaluate(injectionScript);
+    }
   } else {
     // For BrowserContext objects, use addInitScript before page load
     await target.addInitScript(injectionScript);
@@ -105,6 +149,11 @@ export async function uninstallHeadlessWallet(
       // Clean up EVM provider if this wallet had EVM and no other EVM wallets remain
       if (walletInfo.hasEvm && !hasOtherEvmWallet) {
         delete window.ethereum;
+
+        // Clean up EIP-6963 provider announcement
+        if (walletInfo.announceProvider) {
+          window.removeEventListener('eip6963:requestProvider', walletInfo.announceProvider);
+        }
       }
 
       // Clean up Solana provider if this wallet had Solana and no other Solana wallets remain

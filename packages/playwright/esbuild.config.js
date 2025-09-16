@@ -14,13 +14,14 @@ const config = {
   treeShaking: true, // Enable tree shaking
   define: {
     'process.env.NODE_ENV': '"production"',
+    'global': 'globalThis',
   },
   external: [], // Bundle everything
   logLevel: 'info',
   // Don't drop console statements - needed for debug functionality
   keepNames: false, // Allow name mangling for smaller size
   // Handle Node.js specific modules that might cause issues
-  inject: [],
+  inject: ['src/buffer-polyfill.js'],
   // Polyfills for Node.js specific APIs if needed
   banner: {
     js: `
