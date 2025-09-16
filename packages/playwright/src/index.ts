@@ -1,7 +1,12 @@
 import type { Page, BrowserContext } from '@playwright/test';
 import type { HeadlessWalletConfig } from '@arenaentertainment/headless-wallet';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Get the bundle content at module initialization time
 const bundlePath = join(__dirname, '..', 'dist', 'bundle.js');
