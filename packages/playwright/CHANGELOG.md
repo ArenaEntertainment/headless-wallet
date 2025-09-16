@@ -1,3 +1,13 @@
+## 1.0.6 (2025-09-16)
+
+### 🩹 Fixes
+
+- Improve Solana provider cleanup in wallet reinstallation ([fddb13f5](https://github.com/ArenaEntertainment/headless-wallet/commit/fddb13f5))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.0.5 (2025-09-16)
 
 ### 🩹 Fixes
