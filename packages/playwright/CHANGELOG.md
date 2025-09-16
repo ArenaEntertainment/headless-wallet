@@ -1,3 +1,13 @@
+## 1.0.5 (2025-09-16)
+
+### 🩹 Fixes
+
+- resolve Page injection timing issue (Issue #22) ([#22](https://github.com/ArenaEntertainment/headless-wallet/issues/22))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.0.4 (2025-09-16)
 
 ### 🩹 Fixes
