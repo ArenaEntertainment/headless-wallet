@@ -1,3 +1,23 @@
+## 1.0.2 (2025-09-16)
+
+### 🩹 Fixes
+
+- add esbuild alias to resolve Node.js events module for browser bundling ([5234d610](https://github.com/ArenaEntertainment/headless-wallet/commit/5234d610))
+- resolve Node.js 'events' module bundling issue in Playwright package ([a0ae99a2](https://github.com/ArenaEntertainment/headless-wallet/commit/a0ae99a2))
+- **playwright:** implement pre-bundled wallet injection for AppKit multichain detection ([#18](https://github.com/ArenaEntertainment/headless-wallet/issues/18))
+
+### 🔥 Performance
+
+- **playwright:** optimise bundle size from 2.11 MB to 0.92 MB (56% reduction) ([5d1d6518](https://github.com/ArenaEntertainment/headless-wallet/commit/5d1d6518))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.7.1
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.0.1 (2025-09-15)
 
 ### 🩹 Fixes
