@@ -1,3 +1,17 @@
+## 1.0.9 (2025-09-16)
+
+### 🩹 Fixes
+
+- Ensure wallets correctly expose configured chain IDs ([b6125241](https://github.com/ArenaEntertainment/headless-wallet/commit/b6125241))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.7.4
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.0.8 (2025-09-16)
 
 ### 🩹 Fixes
