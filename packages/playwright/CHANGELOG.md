@@ -1,3 +1,13 @@
+## 1.0.3 (2025-09-16)
+
+### 🩹 Fixes
+
+- resolve __dirname ES modules compatibility issue ([#20](https://github.com/ArenaEntertainment/headless-wallet/pull/20))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.0.2 (2025-09-16)
 
 ### 🩹 Fixes
