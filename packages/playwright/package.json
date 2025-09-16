@@ -2,14 +2,16 @@
   "name": "@arenaentertainment/headless-wallet-playwright",
   "version": "1.0.0",
   "description": "Playwright integration for @arenaentertainment/headless-wallet",
-  "type": "module",
+  "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:bundle && tsc",
+    "build:bundle": "node esbuild.config.js",
+    "build:types": "tsc",
     "dev": "tsc --watch"
   },
   "dependencies": {
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^24.3.3",
     "@playwright/test": "^1.45.0",
+    "esbuild": "^0.23.0",
     "typescript": "^5.9.2"
   },
   "publishConfig": {
