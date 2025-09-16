@@ -56,9 +56,13 @@ export async function installHeadlessWallet(
 
         console.log('✅ Playwright successfully used bundled injectHeadlessWallet');
 
-        // Store reference for cleanup
+        // Store reference for cleanup with wallet type info
         if (!window.__playwrightHeadlessWallets) window.__playwrightHeadlessWallets = new Map();
-        window.__playwrightHeadlessWallets.set('${walletId}', wallet);
+        window.__playwrightHeadlessWallets.set('${walletId}', {
+          wallet: wallet,
+          hasEvm: config.accounts.some(acc => acc.type === 'evm'),
+          hasSolana: config.accounts.some(acc => acc.type === 'solana')
+        });
 
       } catch (error) {
         console.error('❌ Failed to inject bundled headless wallet:', error);
@@ -90,12 +94,22 @@ export async function uninstallHeadlessWallet(
   // Clean up browser side
   const cleanupScript = `
     if (window.__playwrightHeadlessWallets?.has('${walletId}')) {
+      const walletInfo = window.__playwrightHeadlessWallets.get('${walletId}');
       window.__playwrightHeadlessWallets.delete('${walletId}');
 
-      // Clean up providers if this was the last wallet
-      if (window.__playwrightHeadlessWallets.size === 0) {
+      // Check remaining wallets for provider cleanup decisions
+      const remainingWallets = Array.from(window.__playwrightHeadlessWallets.values());
+      const hasOtherEvmWallet = remainingWallets.some(info => info.hasEvm);
+      const hasOtherSolanaWallet = remainingWallets.some(info => info.hasSolana);
+
+      // Clean up EVM provider if this wallet had EVM and no other EVM wallets remain
+      if (walletInfo.hasEvm && !hasOtherEvmWallet) {
         delete window.ethereum;
-        if (window.phantom) {
+      }
+
+      // Clean up Solana provider if this wallet had Solana and no other Solana wallets remain
+      if (walletInfo.hasSolana && !hasOtherSolanaWallet) {
+        if (window.phantom?.solana) {
           delete window.phantom.solana;
           if (Object.keys(window.phantom).length === 0) {
             delete window.phantom;
