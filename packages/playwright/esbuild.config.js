@@ -33,6 +33,10 @@ const config = {
   loader: {
     '.ts': 'ts',
   },
+  // Map Node.js built-ins to polyfills
+  alias: {
+    events: 'events',
+  },
 };
 
 async function build() {
