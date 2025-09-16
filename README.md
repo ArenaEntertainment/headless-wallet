@@ -26,12 +26,17 @@ This library acts as a **provider** that injects standard wallet interfaces (`wi
 
 ### Playwright Testing (Primary Use Case)
 
+**Installation Timing**: Choose based on when you need the wallet:
+- **Before navigation** → Use `context` (wallet available on all future pages)
+- **After navigation** → Use `page` (immediate injection into current page)
+
 ```typescript
 import { installHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
 
-test('wallet integration', async ({ page }) => {
-  // Install headless wallet with real private key (MUST be before page.goto)
-  const walletId = await installHeadlessWallet(page, {
+// Method 1: Install on BrowserContext BEFORE navigation (recommended)
+test('wallet integration - context install', async ({ page, context }) => {
+  // Install on context before any navigation for automatic injection
+  const walletId = await installHeadlessWallet(context, {
     accounts: [
       { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
     ],
@@ -48,7 +53,28 @@ test('wallet integration', async ({ page }) => {
 
   expect(accounts).toContain('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
 
-  // Clean up after test
+  await uninstallHeadlessWallet(context, walletId);
+});
+
+// Method 2: Install on Page AFTER navigation (immediate injection)
+test('wallet integration - page install', async ({ page }) => {
+  await page.goto('http://localhost:3000');
+
+  // Install on page after navigation for immediate injection
+  const walletId = await installHeadlessWallet(page, {
+    accounts: [
+      { privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', type: 'evm' }
+    ],
+    autoConnect: false,
+    debug: true
+  });
+
+  const accounts = await page.evaluate(() =>
+    window.ethereum.request({ method: 'eth_requestAccounts' })
+  );
+
+  expect(accounts).toContain('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+
   await uninstallHeadlessWallet(page, walletId);
 });
 ```

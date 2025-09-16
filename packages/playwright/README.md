@@ -167,47 +167,119 @@ test('multiple accounts', async ({ page }) => {
 });
 ```
 
-### Browser context installation
+## Installation Timing and Target Selection
+
+**Critical**: The choice between `Page` and `BrowserContext` depends on **when** you install:
+
+### Install BEFORE Navigation → Use BrowserContext
+
+```typescript
+test('install before navigation', async ({ page, context }) => {
+  // ✅ Install on context BEFORE any navigation
+  const walletId = await installHeadlessWallet(context, {
+    accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
+  });
+
+  // Now navigate - wallet will be available
+  await page.goto('/app');
+
+  // Wallet is automatically injected
+  const accounts = await page.evaluate(() =>
+    window.ethereum.request({ method: 'eth_requestAccounts' })
+  );
+
+  await uninstallHeadlessWallet(context, walletId);
+});
+```
+
+### Install AFTER Navigation → Use Page
+
+```typescript
+test('install after navigation', async ({ page }) => {
+  // Navigate first
+  await page.goto('/app');
+
+  // ✅ Install on page AFTER navigation for immediate injection
+  const walletId = await installHeadlessWallet(page, {
+    accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
+  });
+
+  // Wallet is immediately available
+  const accounts = await page.evaluate(() =>
+    window.ethereum.request({ method: 'eth_requestAccounts' })
+  );
+
+  await uninstallHeadlessWallet(page, walletId);
+});
+```
+
+### Multiple Pages with Context Installation
 
 ```typescript
 let walletId: string;
 
 test.beforeEach(async ({ context }) => {
-  // Install once for all pages in context
+  // Install once for all pages in context (BEFORE navigation)
   walletId = await installHeadlessWallet(context, {
     accounts: [{ privateKey: '0xac0974...', type: 'evm' }]
   });
 });
 
 test.afterEach(async ({ context }) => {
-  // Clean up after each test
   await uninstallHeadlessWallet(context, walletId);
 });
 
 test('page 1', async ({ page }) => {
-  await page.goto('/page1');
-  // Wallet available
+  await page.goto('/page1');  // Wallet automatically available
 });
 
 test('page 2', async ({ page }) => {
-  await page.goto('/page2');
-  // Wallet available
+  await page.goto('/page2');  // Wallet automatically available
 });
 ```
 
 ## Troubleshooting
 
-### Wallet not detected
-- Ensure `installHeadlessWallet` is called before `page.goto()`
+### Installation Target Selection
+
+**❌ Wrong: Installing on Page before navigation**
+```typescript
+// This WON'T work - page not ready yet
+const walletId = await installHeadlessWallet(page, config);
+await page.goto('/app');  // Wallet lost during navigation
+```
+
+**✅ Correct: Use Context for pre-navigation**
+```typescript
+// This WILL work - wallet persists through navigation
+const walletId = await installHeadlessWallet(context, config);
+await page.goto('/app');  // Wallet available
+```
+
+**✅ Correct: Use Page for post-navigation**
+```typescript
+// This WILL work - immediate injection
+await page.goto('/app');
+const walletId = await installHeadlessWallet(page, config);
+```
+
+### Common Issues
+
+**Wallet not detected**
+- 🔴 **Wrong target**: Used `page` before navigation → Use `context` instead
+- 🔴 **Wrong timing**: Called after `page.goto()` with context → Use `page` instead
 - Check that the dApp supports the wallet type (EVM/Solana)
 
-### Re-installation issues
-- The library handles re-installation automatically
-- No need to uninstall between tests
+**"Wallet appears then disappears"**
+- 🔴 **Navigation reset**: Used `page` target before `page.goto()` → Use `context` target
+
+**Multiple pages need wallet**
+- 🔴 **Installing per page**: Use `context` in `beforeEach()` instead
 
 ### Debug mode
 - Set `debug: true` to see all wallet requests and responses
-- Helpful for understanding dApp interactions
+- Watch browser console for injection and provider events
+- Use `page.pause()` to inspect wallet state manually
 
 ## License
 
