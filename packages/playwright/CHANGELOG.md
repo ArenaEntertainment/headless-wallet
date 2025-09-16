@@ -1,3 +1,13 @@
+## 1.0.4 (2025-09-16)
+
+### 🩹 Fixes
+
+- resolve critical bundled wallet injection failure in v1.0.3 ([#21](https://github.com/ArenaEntertainment/headless-wallet/issues/21))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.0.3 (2025-09-16)
 
 ### 🩹 Fixes
