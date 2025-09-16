@@ -24,6 +24,7 @@
     "@types/node": "^24.3.3",
     "@playwright/test": "^1.45.0",
     "esbuild": "^0.23.0",
+    "events": "^3.3.0",
     "typescript": "^5.9.2",
     "viem": "^2.7.8"
   },
