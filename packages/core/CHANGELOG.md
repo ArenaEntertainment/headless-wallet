@@ -1,3 +1,13 @@
+## 0.7.2 (2025-09-16)
+
+### 🩹 Fixes
+
+- Complete test suite stabilisation and cleanup ([4c5bfd9d](https://github.com/ArenaEntertainment/headless-wallet/commit/4c5bfd9d))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.7.1 (2025-09-16)
 
 This was a version bump only for @arenaentertainment/headless-wallet to align it with other projects, there were no code changes.

@@ -1,6 +1,6 @@
 {
   "name": "@arenaentertainment/headless-wallet-react",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "React provider for @arenaentertainment/headless-wallet",
   "type": "module",
   "main": "./dist/index.js",
