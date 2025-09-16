@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installHeadlessWallet } from '../packages/playwright/dist/index.js';
+import { installHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
 
 test('Test bundled wallet with multichain detection', async ({ page }) => {
   console.log('🎯 Testing bundled approach for multichain detection...');

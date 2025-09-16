@@ -1,6 +1,6 @@
-const esbuild = require('esbuild');
-const { join } = require('path');
-const { readFileSync, statSync } = require('fs');
+import esbuild from 'esbuild';
+import { join } from 'path';
+import { readFileSync, statSync } from 'fs';
 
 const config = {
   entryPoints: ['src/bundle-entry.ts'],
@@ -9,13 +9,16 @@ const config = {
   target: ['es2020'],
   platform: 'browser',
   outfile: 'dist/bundle.js',
-  minify: false, // Keep readable for debugging
+  minify: true, // Enable minification for size reduction
   sourcemap: false,
+  treeShaking: true, // Enable tree shaking
   define: {
-    'process.env.NODE_ENV': '"development"',
+    'process.env.NODE_ENV': '"production"',
   },
   external: [], // Bundle everything
   logLevel: 'info',
+  drop: ['console'], // Remove console.log statements
+  keepNames: false, // Allow name mangling for smaller size
   // Handle Node.js specific modules that might cause issues
   inject: [],
   // Polyfills for Node.js specific APIs if needed
@@ -56,8 +59,8 @@ async function build() {
 }
 
 // If run directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   build();
 }
 
-module.exports = { build, config };
+export { build, config };
