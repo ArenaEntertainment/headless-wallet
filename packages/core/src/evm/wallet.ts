@@ -29,6 +29,8 @@ export class EVMWallet {
   private transports: Record<number, Transport>;
   private listeners: Map<string, Set<(...args: any[]) => void>> = new Map();
   private isConnected: boolean = false;
+  private publicClient: PublicClient | null = null;
+  private walletClientCache: Map<string, WalletClient> = new Map();
 
   constructor(config: EVMWalletConfig) {
     // Create real accounts from private keys
@@ -91,19 +93,33 @@ export class EVMWallet {
     }
   }
 
-  private createWalletClient(account: LocalAccount): WalletClient {
-    return createWalletClient({
-      account,
-      chain: this.currentChain,
-      transport: this.transports[this.currentChain.id] || http()
-    });
+  private getWalletClient(account: LocalAccount): WalletClient {
+    const key = `${account.address}-${this.currentChain.id}`;
+
+    // Check if we need a new client (different account/chain combo)
+    if (!this.walletClientCache.has(key)) {
+      const client = createWalletClient({
+        account,
+        chain: this.currentChain,
+        transport: this.transports[this.currentChain.id] || http(),
+        cacheTime: 0  // No caching - always fresh data
+      });
+      this.walletClientCache.set(key, client);
+    }
+
+    return this.walletClientCache.get(key)!;
   }
 
-  private createPublicClient(): PublicClient {
-    return createPublicClient({
-      chain: this.currentChain,
-      transport: this.transports[this.currentChain.id] || http()
-    });
+  private getPublicClient(): PublicClient {
+    // Create new client if none exists or chain has changed
+    if (!this.publicClient || this.publicClient.chain.id !== this.currentChain.id) {
+      this.publicClient = createPublicClient({
+        chain: this.currentChain,
+        transport: this.transports[this.currentChain.id] || http(),
+        cacheTime: 0  // No caching - always fresh data
+      });
+    }
+    return this.publicClient;
   }
 
   async request({ method, params }: { method: string; params?: any[] }): Promise<any> {
@@ -136,7 +152,7 @@ export class EVMWallet {
 
       case 'eth_getBalance': {
         const [address, blockTag = 'latest'] = normalizedParams;
-        const publicClient = this.createPublicClient();
+        const publicClient = this.getPublicClient();
         const balance = await publicClient.getBalance({
           address,
           blockTag: blockTag as any
@@ -145,14 +161,14 @@ export class EVMWallet {
       }
 
       case 'eth_blockNumber': {
-        const publicClient = this.createPublicClient();
+        const publicClient = this.getPublicClient();
         const blockNumber = await publicClient.getBlockNumber();
         return `0x${blockNumber.toString(16)}`;
       }
 
       case 'eth_getTransactionReceipt': {
         const [transactionHash] = normalizedParams;
-        const publicClient = this.createPublicClient();
+        const publicClient = this.getPublicClient();
         try {
           const receipt = await publicClient.getTransactionReceipt({
             hash: transactionHash as Hex
@@ -182,7 +198,7 @@ export class EVMWallet {
 
       case 'eth_estimateGas': {
         const [transaction] = normalizedParams;
-        const publicClient = this.createPublicClient();
+        const publicClient = this.getPublicClient();
         try {
           const estimate = await publicClient.estimateGas({
             account: transaction.from,
@@ -203,14 +219,14 @@ export class EVMWallet {
       }
 
       case 'eth_gasPrice': {
-        const publicClient = this.createPublicClient();
+        const publicClient = this.getPublicClient();
         const gasPrice = await publicClient.getGasPrice();
         return `0x${gasPrice.toString(16)}`;
       }
 
       case 'eth_getCode': {
         const [address, blockTag = 'latest'] = normalizedParams;
-        const publicClient = this.createPublicClient();
+        const publicClient = this.getPublicClient();
         const code = await publicClient.getBytecode({
           address,
           blockTag: blockTag as any
@@ -220,7 +236,7 @@ export class EVMWallet {
 
       case 'eth_getLogs': {
         const [filter] = normalizedParams;
-        const publicClient = this.createPublicClient();
+        const publicClient = this.getPublicClient();
 
         // Handle block tags that can't be converted to BigInt
         const parseBlockTag = (blockTag: any) => {
@@ -286,7 +302,7 @@ export class EVMWallet {
           throw new Error(`Account ${address} not found`);
         }
 
-        const walletClient = this.createWalletClient(account);
+        const walletClient = this.getWalletClient(account);
 
         // Handle both plain text and hex-encoded messages
         // Ethers v6 sends messages as hex-encoded strings that should be decoded
@@ -346,7 +362,7 @@ export class EVMWallet {
           ? JSON.parse(typedDataString)
           : typedDataString;
 
-        const walletClient = this.createWalletClient(account);
+        const walletClient = this.getWalletClient(account);
         const signature = await walletClient.signTypedData({
           ...typedData,
           account
@@ -363,7 +379,7 @@ export class EVMWallet {
           throw new Error(`Account ${transaction.from} not found`);
         }
 
-        const walletClient = this.createWalletClient(account);
+        const walletClient = this.getWalletClient(account);
 
         // Build transaction parameters - avoid gasPrice with EIP-1559 params
         const txParams: any = {
@@ -391,6 +407,12 @@ export class EVMWallet {
         const newChain = this.getChainById(chainId);
         if (!newChain) {
           throw new Error(`Chain ${chainId} not supported`);
+        }
+
+        // Clear cached clients when switching chains
+        if (this.currentChain.id !== newChain.id) {
+          this.publicClient = null;  // Will be recreated on next use
+          this.walletClientCache.clear();  // Clear all wallet clients
         }
 
         this.currentChain = newChain;
@@ -546,7 +568,7 @@ export class EVMWallet {
       default:
         // For other methods, try to forward to the wallet client
         try {
-          const walletClient = this.createWalletClient(this.accounts[0]);
+          const walletClient = this.getWalletClient(this.accounts[0]);
           return await walletClient.request({
             method: method as any,
             params: normalizedParams as any
@@ -586,6 +608,10 @@ export class EVMWallet {
 
   // Disconnect functionality
   disconnect(): void {
+    // Clear cached clients
+    this.publicClient = null;
+    this.walletClientCache.clear();
+
     // Clear connection state
     this.isConnected = false;
 
@@ -619,6 +645,9 @@ export class EVMWallet {
   // Account switching methods
   switchAccount(index: number): void {
     if (index >= 0 && index < this.accounts.length && index !== this.currentAccountIndex) {
+      // Clear wallet client cache when switching accounts
+      this.walletClientCache.clear();
+
       this.currentAccountIndex = index;
 
       // Emit accountsChanged with all addresses, current account first
