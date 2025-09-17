@@ -289,4 +289,44 @@ test.describe('New EVM Methods', () => {
     expect(result.errors[1]).toContain('Token symbol is required');
     expect(result.errors[2]).toContain('Token decimals is required');
   });
+
+  test('should get account balance', async ({ page }) => {
+    await page.goto('data:text/html,<html><body>Test</body></html>');
+
+    await installHeadlessWallet(page, {
+      accounts: [
+        { privateKey: TEST_PRIVATE_KEY, type: 'evm' }
+      ]
+    });
+
+    const result = await page.evaluate(async (expectedAddress) => {
+      const ethereum = window.ethereum;
+      if (!ethereum) throw new Error('Ethereum provider not found');
+
+      // Get balance for the test account
+      const balance = await ethereum.request({
+        method: 'eth_getBalance',
+        params: [expectedAddress, 'latest']
+      });
+
+      // Also test balance for a different address (will likely be 0x0 or small)
+      const otherBalance = await ethereum.request({
+        method: 'eth_getBalance',
+        params: ['0x1000000000000000000000000000000000000001', 'latest']
+      });
+
+      return { balance, otherBalance };
+    }, EXPECTED_ADDRESS);
+
+    // Balance should be a hex string
+    expect(typeof result.balance).toBe('string');
+    expect(result.balance).toMatch(/^0x[0-9a-fA-F]+$/);
+
+    // Other address balance should also be a hex string
+    expect(typeof result.otherBalance).toBe('string');
+    expect(result.otherBalance).toMatch(/^0x[0-9a-fA-F]+$/);
+
+    console.log('Test account balance:', result.balance);
+    console.log('Other address balance:', result.otherBalance);
+  });
 });
