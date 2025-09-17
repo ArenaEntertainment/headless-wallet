@@ -1,3 +1,17 @@
+## 1.2.0 (2025-09-17)
+
+### 🚀 Features
+
+- Auto-configure ALL available testnet chains for zero-config testing ([b6c62062](https://github.com/ArenaEntertainment/headless-wallet/commit/b6c62062))
+
+### 🧱 Updated Dependencies
+
+- Updated @arenaentertainment/headless-wallet to 0.9.0
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 1.1.0 (2025-09-17)
 
 ### 🧱 Updated Dependencies
