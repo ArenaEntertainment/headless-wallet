@@ -1,3 +1,7 @@
+## 0.8.0 (2025-09-17)
+
+This was a version bump only for @arenaentertainment/headless-wallet to align it with other projects, there were no code changes.
+
 ## 0.7.4 (2025-09-16)
 
 ### 🩹 Fixes
