@@ -1,3 +1,17 @@
+## 0.10.0 (2025-09-17)
+
+### 🚀 Features
+
+- Implement client reuse optimisation to reduce RPC rate limiting ([47cd3107](https://github.com/ArenaEntertainment/headless-wallet/commit/47cd3107))
+
+### 🩹 Fixes
+
+- Add optional chaining for publicClient.chain access ([4e9fb5dd](https://github.com/ArenaEntertainment/headless-wallet/commit/4e9fb5dd))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.9.0 (2025-09-17)
 
 ### 🚀 Features
