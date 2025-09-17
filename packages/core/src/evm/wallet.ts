@@ -112,7 +112,7 @@ export class EVMWallet {
 
   private getPublicClient(): PublicClient {
     // Create new client if none exists or chain has changed
-    if (!this.publicClient || this.publicClient.chain.id !== this.currentChain.id) {
+    if (!this.publicClient || this.publicClient.chain?.id !== this.currentChain.id) {
       this.publicClient = createPublicClient({
         chain: this.currentChain,
         transport: this.transports[this.currentChain.id] || http(),
