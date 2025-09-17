@@ -225,6 +225,9 @@ Unlike other mock libraries that return fake data, this library:
 Configure custom RPC endpoints for both EVM and Solana chains:
 
 ```typescript
+import { mainnet, sepolia, polygon, arbitrum } from 'viem/chains';
+import { http } from 'viem';
+
 {
   accounts: [...],
 
@@ -233,12 +236,24 @@ Configure custom RPC endpoints for both EVM and Solana chains:
     // Option 1: Simple RPC URL
     rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY',
 
-    // Option 2: Advanced with viem transports (for multiple chains)
+    // Option 2: Auto-extract RPCs from viem chains (NEW!)
+    chains: [mainnet, sepolia, polygon, arbitrum],
+    defaultChain: sepolia, // Recommended for testing
+    // RPCs automatically extracted from each chain's default RPC
+    // NOTE: If no chains specified, ALL 200+ testnets auto-configured!
+
+    // Option 3: Advanced with explicit viem transports
     transports: {
       1: http('https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY'),
       137: http('https://polygon-mainnet.g.alchemy.com/v2/YOUR_API_KEY')
     },
-    defaultChain: mainnet
+    defaultChain: mainnet,
+
+    // Option 4: Mix auto-extracted + custom RPCs
+    chains: [mainnet, sepolia, polygon], // Auto-extract these
+    transports: {
+      1: http('https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY') // Override mainnet
+    }
   },
 
   // Solana RPC Configuration

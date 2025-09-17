@@ -1,1 +1,2 @@
 - Failing tests are not acceptable, ever!
+- Always update documentation when changing functionality

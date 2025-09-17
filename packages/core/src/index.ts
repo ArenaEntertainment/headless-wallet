@@ -42,6 +42,8 @@ export interface HeadlessWalletConfig {
   branding?: WalletBranding;
   evm?: {
     defaultChain?: Chain;
+    /** Array of chains to configure with auto-extracted RPCs */
+    chains?: Chain[];
     transports?: Record<number, Transport>;
     rpcUrl?: string;
   };
@@ -81,6 +83,7 @@ export class HeadlessWallet {
       const evmConfig: EVMWalletConfig = {
         privateKeys: evmAccounts.map(acc => acc.privateKey as string),
         defaultChain: config.evm?.defaultChain,
+        chains: config.evm?.chains,
         transports: config.evm?.transports,
         rpcUrl: config.evm?.rpcUrl
       };

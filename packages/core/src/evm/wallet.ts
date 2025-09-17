@@ -16,6 +16,8 @@ import * as chains from 'viem/chains';
 export interface EVMWalletConfig {
   privateKeys: string[];
   defaultChain?: Chain;
+  /** Array of chains to configure with auto-extracted RPCs */
+  chains?: Chain[];
   transports?: Record<number, Transport>;
   rpcUrl?: string;
 }
@@ -34,10 +36,55 @@ export class EVMWallet {
       privateKeyToAccount(privateKey as `0x${string}`)
     );
 
-    this.currentChain = config.defaultChain || chains.mainnet;
+    // Default testnet chains for safe testing - ALL available testnets for maximum compatibility
+    const defaultTestnetChains = Object.values(chains).filter(chain => {
+      const name = chain.name.toLowerCase();
+      const chainName = (chain as any).name?.toLowerCase() || '';
+
+      // Include all testnets, devnets, and Sepolia/Goerli networks
+      return name.includes('testnet') ||
+             name.includes('sepolia') ||
+             name.includes('goerli') ||
+             name.includes('mumbai') ||
+             name.includes('devnet') ||
+             chainName.includes('testnet') ||
+             chainName.includes('sepolia') ||
+             chainName.includes('goerli') ||
+             chainName.includes('mumbai') ||
+             chainName.includes('devnet');
+    });
+
+    // Log how many testnet chains we're auto-configuring (in debug builds)
+    if (process.env.NODE_ENV !== 'production' && (!config.chains || config.chains.length === 0)) {
+      console.log(`🔧 Auto-configured ${defaultTestnetChains.length} testnet chains for safe testing`);
+      console.log(`📋 Available chains: ${defaultTestnetChains.map(c => c.name).join(', ')}`);
+    }
+
+    // Use provided chains or default to testnets, with user chains taking priority
+    const chainsToUse = config.chains && config.chains.length > 0
+      ? config.chains
+      : defaultTestnetChains;
+
+    this.currentChain = config.defaultChain || chains.sepolia;
     this.transports = config.transports || {};
 
-    // Default to HTTP transport if none provided
+    // Auto-create transports for all configured chains using their default RPCs
+    if (chainsToUse.length > 0) {
+      for (const chain of chainsToUse) {
+        if (!this.transports[chain.id] && chain.rpcUrls?.default?.http?.[0]) {
+          this.transports[chain.id] = http(chain.rpcUrls.default.http[0]);
+        }
+      }
+
+      // If defaultChain is not in the chains array, add it
+      if (!chainsToUse.some(chain => chain.id === this.currentChain.id)) {
+        if (!this.transports[this.currentChain.id] && this.currentChain.rpcUrls?.default?.http?.[0]) {
+          this.transports[this.currentChain.id] = http(this.currentChain.rpcUrls.default.http[0]);
+        }
+      }
+    }
+
+    // Default to HTTP transport if none provided for current chain (backward compatibility)
     if (!this.transports[this.currentChain.id]) {
       const rpcUrl = config.rpcUrl || this.currentChain.rpcUrls.default.http[0];
       this.transports[this.currentChain.id] = http(rpcUrl);

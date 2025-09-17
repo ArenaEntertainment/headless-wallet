@@ -93,6 +93,7 @@ interface HeadlessWalletPluginOptions {
   // EVM configuration
   evm?: {
     defaultChain?: Chain;
+    chains?: Chain[];
     transports?: Record<number, Transport>;
     rpcUrl?: string;
   };
@@ -123,7 +124,7 @@ app.use(HeadlessWalletPlugin, {
 ### Multi-Chain Configuration
 
 ```typescript
-import { mainnet, polygon } from 'viem/chains';
+import { mainnet, sepolia, polygon, arbitrum } from 'viem/chains';
 import { http } from 'viem';
 
 app.use(HeadlessWalletPlugin, {
@@ -133,10 +134,22 @@ app.use(HeadlessWalletPlugin, {
     { privateKey: 'base58_key', type: 'solana' }
   ],
   evm: {
-    defaultChain: mainnet,
+    // Option 1: Auto-extract RPCs from viem chains ⭐ NEW!
+    chains: [mainnet, sepolia, polygon, arbitrum],
+    defaultChain: sepolia,
+    // Automatically uses each chain's default RPC
+
+    // Option 2: Explicit transports (full control)
     transports: {
       [mainnet.id]: http('https://eth-mainnet.g.alchemy.com/v2/KEY'),
       [polygon.id]: http('https://polygon.g.alchemy.com/v2/KEY')
+    },
+    defaultChain: mainnet,
+
+    // Option 3: Mix auto-extracted + custom RPCs
+    chains: [mainnet, sepolia, polygon],
+    transports: {
+      [mainnet.id]: http('https://eth-mainnet.g.alchemy.com/v2/KEY') // Override mainnet
     }
   },
   solana: {
@@ -144,6 +157,10 @@ app.use(HeadlessWalletPlugin, {
   }
 });
 ```
+
+#### Automatic RPC Extraction
+
+When you specify a `chains` array, the wallet automatically extracts default RPC endpoints from each viem chain object, eliminating the need to manually configure RPC URLs while still allowing custom overrides via the `transports` option.
 
 ### Custom Branding
 

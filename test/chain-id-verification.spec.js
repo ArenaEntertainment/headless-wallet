@@ -3,8 +3,8 @@ import { installHeadlessWallet, uninstallHeadlessWallet } from '@arenaentertainm
 import { mainnet, polygon, arbitrum } from 'viem/chains';
 import { http } from 'viem';
 
-test('should expose correct chain ID on connection - default mainnet', async ({ page }) => {
-  console.log('🎯 Testing default mainnet chain ID exposure');
+test('should expose correct chain ID on connection - default sepolia', async ({ page }) => {
+  console.log('🎯 Testing default sepolia chain ID exposure');
 
   const walletId = await installHeadlessWallet(page, {
     accounts: [{
@@ -33,7 +33,7 @@ test('should expose correct chain ID on connection - default mainnet', async ({ 
     window.ethereum.request({ method: 'eth_chainId' })
   );
   console.log('Chain ID after connection:', chainIdAfterConnection);
-  expect(chainIdAfterConnection).toBe('0x1'); // Should remain mainnet
+  expect(chainIdAfterConnection).toBe('0xaa36a7'); // Should remain sepolia
 
   expect(accounts).toContain('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
 

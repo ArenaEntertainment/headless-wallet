@@ -87,27 +87,55 @@ Removes the headless wallet from a page or context.
 ### Advanced Configuration with RPC
 
 ```typescript
-import { mainnet, polygon } from 'viem/chains';
+import { mainnet, sepolia, polygon, arbitrum } from 'viem/chains';
 import { http } from 'viem';
 
 await installHeadlessWallet(page, {
   accounts: [...],
 
-  // EVM configuration
+  // EVM RPC Configuration - Multiple Options:
   evm: {
-    defaultChain: mainnet,
+    // Option 1: Simple RPC URL (single chain)
+    rpcUrl: 'https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY',
+
+    // Option 2: Auto-extract RPCs from viem chains ⭐ NEW!
+    chains: [mainnet, sepolia, polygon, arbitrum],
+    defaultChain: sepolia,
+    // Automatically uses each chain's default RPC
+
+    // Option 3: Explicit viem transports (full control)
     transports: {
       [mainnet.id]: http('https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY'),
       [polygon.id]: http('https://polygon.g.alchemy.com/v2/YOUR_KEY')
+    },
+    defaultChain: mainnet,
+
+    // Option 4: Mix auto-extracted + custom RPCs
+    chains: [mainnet, sepolia, polygon],
+    transports: {
+      [mainnet.id]: http('https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY') // Override mainnet
     }
   },
 
-  // Solana configuration
+  // Solana RPC
   solana: {
-    rpcUrl: 'https://api.mainnet-beta.solana.com'
+    rpcUrl: 'https://api.mainnet-beta.solana.com',
+    // Or use predefined cluster
+    cluster: 'mainnet-beta' // 'devnet' | 'testnet' | 'mainnet-beta'
   }
 });
 ```
+
+#### Automatic RPC Extraction
+
+When you specify a `chains` array, the wallet automatically extracts default RPC endpoints from each viem chain object:
+
+- **mainnet** → `https://eth.merkle.io`
+- **sepolia** → `https://sepolia.drpc.org`
+- **polygon** → `https://polygon-rpc.com`
+- **arbitrum** → `https://arb1.arbitrum.io/rpc`
+
+This eliminates the need to manually configure RPC URLs for each chain while still allowing custom overrides via the `transports` option.
 
 ## Testing Examples
 
