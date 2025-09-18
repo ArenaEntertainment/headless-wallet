@@ -54,16 +54,25 @@ export class EVMWallet {
              name.includes('devnet');
     });
 
+    // Check configuration to determine chain selection strategy
+    const hasExplicitTransports = config.transports && Object.keys(config.transports).length > 0;
+    const hasExplicitChains = Array.isArray(config.chains) && config.chains.length > 0;
+    const willAutoConfigureTestnets = !hasExplicitChains && !hasExplicitTransports;
+
     // Log how many testnet chains we're auto-configuring (in debug builds)
-    if (process.env.NODE_ENV !== 'production' && (!Array.isArray(config.chains) || config.chains.length === 0)) {
+    if (process.env.NODE_ENV !== 'production' && willAutoConfigureTestnets) {
       console.log(`🔧 Auto-configured ${defaultTestnetChains.length} testnet chains for safe testing`);
       console.log(`📋 Available chains: ${defaultTestnetChains.map(c => c.name).join(', ')}`);
     }
 
     // Use provided chains or default to testnets, with user chains taking priority
-    const chainsToUse = Array.isArray(config.chains) && config.chains.length > 0
+    // If explicit transports are provided without chains, don't auto-configure testnets
+
+    const chainsToUse = hasExplicitChains
       ? config.chains
-      : defaultTestnetChains;
+      : hasExplicitTransports
+        ? [] // Don't auto-configure if explicit transports are provided
+        : defaultTestnetChains;
 
     this.currentChain = config.defaultChain || chains.sepolia;
     this.transports = config.transports || {};
@@ -417,6 +426,7 @@ export class EVMWallet {
 
         // Set up transport for new chain if not exists
         if (!this.transports[newChain.id]) {
+          console.warn(`⚠️  No explicit transport for chain ${newChain.id}, using default RPC`);
           this.transports[newChain.id] = http(newChain.rpcUrls.default.http[0]);
         }
 
@@ -582,13 +592,23 @@ export class EVMWallet {
 
     // Only return chains that have configured transports (i.e., are supported)
     if (!this.transports[id]) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`❌ No transport configured for chain ${id}`);
+      }
       return null;
     }
 
     for (const chain of Object.values(chains)) {
       if ('id' in chain && chain.id === id) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`✅ Found chain: ${id} -> ${chain.name}`);
+        }
         return chain as Chain;
       }
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`❌ Chain ${id} not found in viem/chains`);
     }
     return null;
   }
