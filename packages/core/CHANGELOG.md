@@ -1,3 +1,13 @@
+## 0.11.7 (2025-09-18)
+
+### 🩹 Fixes
+
+- Replace instanceof checks with duck typing for cross-module compatibility ([#25](https://github.com/ArenaEntertainment/headless-wallet/issues/25))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.6 (2025-09-18)
 
 ### 🩹 Fixes
