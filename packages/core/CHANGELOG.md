@@ -1,3 +1,13 @@
+## 0.11.2 (2025-09-18)
+
+### 🩹 Fixes
+
+- Fix EVMWalletStandard to use actual configured chains instead of hardcoded list ([38a23440](https://github.com/ArenaEntertainment/headless-wallet/commit/38a23440))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.1 (2025-09-18)
 
 ### 🩹 Fixes
