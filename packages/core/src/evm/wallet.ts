@@ -641,6 +641,13 @@ export class EVMWallet {
     return this.currentChain;
   }
 
+  getSupportedChainIds(): string[] {
+    // Convert number keys to hex strings for external use
+    return Object.keys(this.transports).map(id =>
+      `0x${parseInt(id).toString(16)}`
+    );
+  }
+
   addTransport(chainId: number, transport: Transport): void {
     this.transports[chainId] = transport;
   }

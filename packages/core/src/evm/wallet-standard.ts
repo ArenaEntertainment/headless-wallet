@@ -1,5 +1,6 @@
 import { EVMWallet } from './wallet.js';
 import type { Chain } from 'viem';
+import * as chains from 'viem/chains';
 import { StateStream, type StreamState } from './state-stream.js';
 import { LegacyMethodProvider } from './legacy-methods.js';
 
@@ -501,19 +502,44 @@ export class EVMWalletStandard {
   }
 
   #initializeSupportedChains(): void {
-    // Add default supported chains
-    const chains = [
-      { id: '0x1', name: 'Ethereum Mainnet' },
-      { id: '0x89', name: 'Polygon' },
-      { id: '0xa4b1', name: 'Arbitrum One' },
-      { id: '0xa', name: 'Optimism' },
-      { id: '0x38', name: 'BNB Smart Chain' },
-      { id: '0xa86a', name: 'Avalanche' },
-    ];
+    // Get all supported chain IDs from the underlying wallet
+    const supportedChainIds = this.wallet.getSupportedChainIds();
 
-    chains.forEach((chain) => {
-      this.supportedChains.set(chain.id, chain);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔧 EVMWalletStandard: Initializing ${supportedChainIds.length} supported chains:`, supportedChainIds);
+    }
+
+    // Create a reverse lookup map from chain ID to chain object
+    const chainLookup = new Map<number, Chain>();
+    Object.values(chains).forEach((chain: any) => {
+      if (chain && typeof chain === 'object' && chain.id) {
+        chainLookup.set(chain.id, chain);
+      }
     });
+
+    // Add all actually supported chains instead of hardcoded list
+    supportedChainIds.forEach((hexChainId) => {
+      const chainId = parseInt(hexChainId, 16);
+      const chain = chainLookup.get(chainId);
+
+      if (chain) {
+        this.supportedChains.set(hexChainId, {
+          id: hexChainId,
+          name: chain.name,
+          nativeCurrency: chain.nativeCurrency,
+        });
+      } else {
+        // Fallback for unknown chains
+        this.supportedChains.set(hexChainId, {
+          id: hexChainId,
+          name: `Chain ${chainId}`,
+        });
+      }
+    });
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`✅ EVMWalletStandard: Registered ${this.supportedChains.size} chains`);
+    }
   }
 
   #getDefaultIcon(): string {
