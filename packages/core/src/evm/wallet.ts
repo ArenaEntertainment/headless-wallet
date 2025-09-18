@@ -55,13 +55,13 @@ export class EVMWallet {
     });
 
     // Log how many testnet chains we're auto-configuring (in debug builds)
-    if (process.env.NODE_ENV !== 'production' && (!config.chains || config.chains.length === 0)) {
+    if (process.env.NODE_ENV !== 'production' && (!Array.isArray(config.chains) || config.chains.length === 0)) {
       console.log(`🔧 Auto-configured ${defaultTestnetChains.length} testnet chains for safe testing`);
       console.log(`📋 Available chains: ${defaultTestnetChains.map(c => c.name).join(', ')}`);
     }
 
     // Use provided chains or default to testnets, with user chains taking priority
-    const chainsToUse = config.chains && config.chains.length > 0
+    const chainsToUse = Array.isArray(config.chains) && config.chains.length > 0
       ? config.chains
       : defaultTestnetChains;
 
@@ -69,18 +69,18 @@ export class EVMWallet {
     this.transports = config.transports || {};
 
     // Auto-create transports for all configured chains using their default RPCs
-    if (chainsToUse.length > 0) {
+    if (chainsToUse && chainsToUse.length > 0) {
       for (const chain of chainsToUse) {
         if (!this.transports[chain.id] && chain.rpcUrls?.default?.http?.[0]) {
           this.transports[chain.id] = http(chain.rpcUrls.default.http[0]);
         }
       }
+    }
 
-      // If defaultChain is not in the chains array, add it
-      if (!chainsToUse.some(chain => chain.id === this.currentChain.id)) {
-        if (!this.transports[this.currentChain.id] && this.currentChain.rpcUrls?.default?.http?.[0]) {
-          this.transports[this.currentChain.id] = http(this.currentChain.rpcUrls.default.http[0]);
-        }
+    // If defaultChain is not in the chains array, add it
+    if (chainsToUse && !chainsToUse.some(chain => chain.id === this.currentChain.id)) {
+      if (!this.transports[this.currentChain.id] && this.currentChain.rpcUrls?.default?.http?.[0]) {
+        this.transports[this.currentChain.id] = http(this.currentChain.rpcUrls.default.http[0]);
       }
     }
 
@@ -579,7 +579,6 @@ export class EVMWallet {
 
   private getChainById(chainId: string): Chain | null {
     const id = fromHex(chainId as Hex, 'number');
-
 
     // Only return chains that have configured transports (i.e., are supported)
     if (!this.transports[id]) {
