@@ -86,6 +86,29 @@ export class SolanaWallet {
     return this.cluster;
   }
 
+  /**
+   * Duck typing to detect VersionedTransaction across module boundaries
+   * This works when instanceof fails due to different web3.js versions
+   */
+  private isVersionedTransaction(transaction: any): boolean {
+    return transaction &&
+           typeof transaction.version === 'number' &&
+           transaction.version === 0 &&
+           transaction.message &&
+           typeof transaction.serialize === 'function' &&
+           Array.isArray(transaction.signatures);
+  }
+
+  /**
+   * Duck typing to detect legacy Transaction across module boundaries
+   */
+  private isLegacyTransaction(transaction: any): boolean {
+    return transaction &&
+           transaction.version === undefined &&
+           Array.isArray(transaction.instructions) &&
+           typeof transaction.serialize === 'function' &&
+           Array.isArray(transaction.signatures);
+  }
 
   async signTransaction(transaction: any): Promise<Transaction | VersionedTransaction> {
     if (!this.connected) {
@@ -106,8 +129,12 @@ export class SolanaWallet {
     });
 
     // Handle transaction objects that come from the browser and lose their prototype
-    if (transaction instanceof Transaction || transaction instanceof VersionedTransaction) {
-      // Already a proper instance (unlikely in browser context)
+    // Note: Don't use instanceof - it fails across module boundaries!
+    if (this.isVersionedTransaction(transaction)) {
+      console.log('[Solana Wallet] Detected VersionedTransaction via duck typing');
+      tx = transaction;
+    } else if (this.isLegacyTransaction(transaction)) {
+      console.log('[Solana Wallet] Detected legacy Transaction via duck typing');
       tx = transaction;
     } else if (transaction.constructor?.name === 'VersionedTransaction' || transaction.constructor?.name === '_VersionedTransaction') {
       // VersionedTransaction that lost prototype - reconstruct it
