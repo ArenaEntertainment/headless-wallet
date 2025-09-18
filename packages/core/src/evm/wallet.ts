@@ -40,20 +40,18 @@ export class EVMWallet {
 
     // Default testnet chains for safe testing - ALL available testnets for maximum compatibility
     const defaultTestnetChains = Object.values(chains).filter(chain => {
-      const name = chain.name.toLowerCase();
-      const chainName = (chain as any).name?.toLowerCase() || '';
+      // Use viem's built-in testnet property for reliable testnet detection
+      if ((chain as any).testnet === true) {
+        return true;
+      }
 
-      // Include all testnets, devnets, and Sepolia/Goerli networks
+      // Fallback to name-based detection for older chains without testnet property
+      const name = chain.name.toLowerCase();
       return name.includes('testnet') ||
              name.includes('sepolia') ||
              name.includes('goerli') ||
              name.includes('mumbai') ||
-             name.includes('devnet') ||
-             chainName.includes('testnet') ||
-             chainName.includes('sepolia') ||
-             chainName.includes('goerli') ||
-             chainName.includes('mumbai') ||
-             chainName.includes('devnet');
+             name.includes('devnet');
     });
 
     // Log how many testnet chains we're auto-configuring (in debug builds)
@@ -406,7 +404,7 @@ export class EVMWallet {
         const [{ chainId }] = normalizedParams;
         const newChain = this.getChainById(chainId);
         if (!newChain) {
-          throw new Error(`Chain ${chainId} not supported`);
+          throw new Error(`Unrecognized chain ID. Try adding the chain first.`);
         }
 
         // Clear cached clients when switching chains
@@ -581,6 +579,12 @@ export class EVMWallet {
 
   private getChainById(chainId: string): Chain | null {
     const id = fromHex(chainId as Hex, 'number');
+
+
+    // Only return chains that have configured transports (i.e., are supported)
+    if (!this.transports[id]) {
+      return null;
+    }
 
     for (const chain of Object.values(chains)) {
       if ('id' in chain && chain.id === id) {
