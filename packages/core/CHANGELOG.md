@@ -1,3 +1,13 @@
+## 0.11.8 (2025-09-18)
+
+### 🩹 Fixes
+
+- Add Uint8Array transaction handling for Wallet Standard compatibility ([b6fe65b7](https://github.com/ArenaEntertainment/headless-wallet/commit/b6fe65b7))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.7 (2025-09-18)
 
 ### 🩹 Fixes
