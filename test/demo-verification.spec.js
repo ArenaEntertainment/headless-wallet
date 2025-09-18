@@ -6,8 +6,13 @@ test.describe('Demo Applications Verification', () => {
   const address = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
 
   test('Reown AppKit demo works with headless wallet', async ({ page }) => {
-    // Navigate to the demo first
-    await page.goto('http://localhost:5175/');
+    // Check if demo server is running (will skip if not available)
+    try {
+      await page.goto('http://localhost:5175/', { waitUntil: 'domcontentloaded', timeout: 5000 });
+    } catch {
+      test.skip();
+      return;
+    }
 
     // Install headless wallet after navigation
     await installHeadlessWallet(page, {
@@ -115,13 +120,9 @@ test.describe('Demo Applications Verification', () => {
   });
 
   test('Vanilla demo works with headless wallet', async ({ page }) => {
-    // First check if vanilla demo is running
+    // Check if demo server is running (will skip if not available)
     try {
-      const response = await page.goto('http://localhost:3002/', { waitUntil: 'domcontentloaded', timeout: 5000 });
-      if (!response || !response.ok()) {
-        test.skip();
-        return;
-      }
+      await page.goto('http://localhost:3002/', { waitUntil: 'domcontentloaded', timeout: 5000 });
     } catch {
       test.skip();
       return;
@@ -150,13 +151,9 @@ test.describe('Demo Applications Verification', () => {
   });
 
   test('React demo works with headless wallet', async ({ page }) => {
-    // First check if React demo is running
+    // Check if demo server is running (will skip if not available)
     try {
-      const response = await page.goto('http://localhost:5174/', { waitUntil: 'domcontentloaded', timeout: 5000 });
-      if (!response || !response.ok()) {
-        test.skip();
-        return;
-      }
+      await page.goto('http://localhost:5174/', { waitUntil: 'domcontentloaded', timeout: 5000 });
     } catch {
       test.skip();
       return;
@@ -184,32 +181,5 @@ test.describe('Demo Applications Verification', () => {
     expect(accounts).toContain(address);
   });
 
-  test('Security demo works with headless wallet', async ({ page }) => {
-    // First check if security demo is running
-    try {
-      const response = await page.goto('http://localhost:8080/', { waitUntil: 'domcontentloaded', timeout: 5000 });
-      if (!response || !response.ok()) {
-        test.skip();
-        return;
-      }
-    } catch {
-      test.skip();
-      return;
-    }
-
-    // Install headless wallet after navigation
-    await installHeadlessWallet(page, {
-      accounts: [{
-        privateKey,
-        type: 'evm'
-      }],
-      autoConnect: false
-    });
-
-    // Basic connectivity test
-    const hasEthereum = await page.evaluate(() => {
-      return typeof window.ethereum !== 'undefined';
-    });
-    expect(hasEthereum).toBe(true);
-  });
+  // Note: Security demo test removed as the security demo no longer exists
 });

@@ -87,27 +87,90 @@ export class SolanaWallet {
   }
 
 
-  async signTransaction(transaction: Transaction | VersionedTransaction): Promise<Transaction | VersionedTransaction> {
+  async signTransaction(transaction: any): Promise<Transaction | VersionedTransaction> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
     const keypair = this.keypairs[this.currentKeypairIndex];
+    let tx: Transaction | VersionedTransaction;
 
-    if (transaction instanceof Transaction) {
-      // Legacy transaction
-      transaction.sign(keypair);
-      return transaction;
+    // Handle transaction objects that come from the browser and lose their prototype
+    if (transaction instanceof Transaction || transaction instanceof VersionedTransaction) {
+      // Already a proper instance (unlikely in browser context)
+      tx = transaction;
+    } else if (transaction.serialize && typeof transaction.serialize === 'function') {
+      // Has serialize method but lost class prototype - try to call it
+      try {
+        const serialized = transaction.serialize({ requireAllSignatures: false });
+        tx = Transaction.from(serialized);
+      } catch (error) {
+        throw new Error(`Failed to deserialize transaction: ${error}`);
+      }
+    } else if (transaction.serializedMessage) {
+      // VersionedTransaction format
+      try {
+        tx = VersionedTransaction.deserialize(Buffer.from(transaction.serializedMessage));
+      } catch (error) {
+        throw new Error(`Failed to deserialize versioned transaction: ${error}`);
+      }
+    } else if (transaction._serialized) {
+      // Already serialized buffer
+      try {
+        tx = Transaction.from(Buffer.from(transaction._serialized));
+      } catch (error) {
+        throw new Error(`Failed to deserialize from buffer: ${error}`);
+      }
+    } else if (transaction.instructions && Array.isArray(transaction.instructions)) {
+      // Plain object - reconstruct Transaction
+      try {
+        tx = new Transaction();
+
+        // Copy basic properties
+        if (transaction.recentBlockhash) {
+          tx.recentBlockhash = transaction.recentBlockhash;
+        }
+        if (transaction.feePayer) {
+          tx.feePayer = new PublicKey(transaction.feePayer);
+        }
+
+        // Reconstruct instructions
+        for (const inst of transaction.instructions) {
+          tx.add({
+            keys: inst.keys.map((k: any) => ({
+              pubkey: new PublicKey(k.pubkey),
+              isSigner: k.isSigner,
+              isWritable: k.isWritable
+            })),
+            programId: new PublicKey(inst.programId),
+            data: Buffer.from(inst.data)
+          });
+        }
+
+        // Copy existing signatures if any
+        if (transaction.signatures) {
+          tx.signatures = transaction.signatures;
+        }
+      } catch (error) {
+        throw new Error(`Failed to reconstruct transaction from plain object: ${error}`);
+      }
     } else {
-      // Versioned transaction
-      const signature = nacl.sign.detached(transaction.message.serialize(), keypair.secretKey);
-      transaction.addSignature(keypair.publicKey, signature);
-      return transaction;
+      throw new Error('Unsupported transaction format');
+    }
+
+    // Now sign the properly reconstructed transaction
+    if (tx instanceof Transaction) {
+      tx.partialSign(keypair);
+      return tx;
+    } else {
+      // VersionedTransaction
+      tx.sign([keypair]);
+      return tx;
     }
   }
 
   async signAllTransactions(
-    transactions: (Transaction | VersionedTransaction)[]
+    transactions: any[]
   ): Promise<(Transaction | VersionedTransaction)[]> {
     const signedTransactions = [];
     for (const transaction of transactions) {
@@ -138,15 +201,19 @@ export class SolanaWallet {
     };
   }
 
-  async signAndSendTransaction(transaction: Transaction): Promise<{ signature: string }> {
+  async signAndSendTransaction(transaction: any): Promise<{ signature: string }> {
     if (!this.connected) {
       throw new Error('Wallet not connected');
     }
 
+    // Use our fixed signTransaction method to handle deserialization
+    const signedTx = await this.signTransaction(transaction) as Transaction;
+
+    // Then send it
     const keypair = this.keypairs[this.currentKeypairIndex];
     const signature = await sendAndConfirmTransaction(
       this.connection,
-      transaction,
+      signedTx,
       [keypair]
     );
 
