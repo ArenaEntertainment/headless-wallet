@@ -1,3 +1,13 @@
+## 0.11.9 (2025-09-18)
+
+### 🩹 Fixes
+
+- Correct Wallet Standard transaction format handling ([93c76663](https://github.com/ArenaEntertainment/headless-wallet/commit/93c76663))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.8 (2025-09-18)
 
 ### 🩹 Fixes
