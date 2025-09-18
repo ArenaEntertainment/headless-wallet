@@ -1,3 +1,13 @@
+## 0.11.3 (2025-09-18)
+
+### 🩹 Fixes
+
+- Improve explicit transport handling and fix balance test expectations ([cc14b367](https://github.com/ArenaEntertainment/headless-wallet/commit/cc14b367))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.2 (2025-09-18)
 
 ### 🩹 Fixes
