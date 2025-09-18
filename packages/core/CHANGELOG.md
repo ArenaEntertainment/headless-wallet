@@ -1,3 +1,13 @@
+## 0.11.0 (2025-09-18)
+
+### 🚀 Features
+
+- Improve testnet detection using viem's testnet property ([59ffcf1e](https://github.com/ArenaEntertainment/headless-wallet/commit/59ffcf1e))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.10.0 (2025-09-17)
 
 ### 🚀 Features
