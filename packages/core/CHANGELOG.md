@@ -1,3 +1,13 @@
+## 0.11.5 (2025-09-18)
+
+### 🩹 Fixes
+
+- Resolve Solana transaction deserialization issues and failing tests ([7b432fa5](https://github.com/ArenaEntertainment/headless-wallet/commit/7b432fa5))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.4 (2025-09-18)
 
 ### 🩹 Fixes

@@ -1,6 +1,6 @@
 {
   "name": "@arenaentertainment/headless-wallet-vue",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "description": "Vue plugin for @arenaentertainment/headless-wallet",
   "type": "module",
   "main": "./dist/index.js",
