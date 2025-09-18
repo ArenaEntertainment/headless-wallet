@@ -118,23 +118,25 @@ export class SolanaWallet {
     const keypair = this.keypairs[this.currentKeypairIndex];
     let tx: Transaction | VersionedTransaction;
 
-    // Debug logging to understand the transaction format
-    console.log('[Solana Wallet] Transaction debug info:', {
-      constructorName: transaction.constructor?.name,
-      hasSerialize: typeof transaction.serialize === 'function',
-      hasMessage: !!transaction.message,
-      hasSignatures: !!transaction.signatures,
-      hasInstructions: !!transaction.instructions,
-      keys: Object.keys(transaction)
-    });
-
+    // Handle serialized transactions (Uint8Array/Buffer) from Wallet Standard
+    if (transaction instanceof Uint8Array || Buffer.isBuffer(transaction)) {
+      try {
+        // Try VersionedTransaction first (modern format)
+        tx = VersionedTransaction.deserialize(transaction);
+      } catch (versionedError) {
+        try {
+          // Fall back to legacy Transaction
+          tx = Transaction.from(transaction);
+        } catch (legacyError) {
+          throw new Error(`Failed to deserialize Uint8Array transaction. VersionedTransaction error: ${versionedError}. Transaction error: ${legacyError}`);
+        }
+      }
+    }
     // Handle transaction objects that come from the browser and lose their prototype
     // Note: Don't use instanceof - it fails across module boundaries!
-    if (this.isVersionedTransaction(transaction)) {
-      console.log('[Solana Wallet] Detected VersionedTransaction via duck typing');
+    else if (this.isVersionedTransaction(transaction)) {
       tx = transaction;
     } else if (this.isLegacyTransaction(transaction)) {
-      console.log('[Solana Wallet] Detected legacy Transaction via duck typing');
       tx = transaction;
     } else if (transaction.constructor?.name === 'VersionedTransaction' || transaction.constructor?.name === '_VersionedTransaction') {
       // VersionedTransaction that lost prototype - reconstruct it

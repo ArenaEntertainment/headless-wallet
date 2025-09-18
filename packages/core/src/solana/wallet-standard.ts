@@ -238,13 +238,21 @@ export class SolanaWalletStandard implements Wallet {
         throw new Error('Account not found');
       }
 
-      // Sign transaction
-      const signedTx = await this.wallet.signTransaction(
-        transaction as any as Transaction | VersionedTransaction
-      );
+      // Sign transaction - wallet.signTransaction now handles Uint8Array input properly
+      const signedTx = await this.wallet.signTransaction(transaction);
+
+      // Wallet Standard expects signedTransaction to be a Uint8Array
+      // so serialize the signed transaction back to Uint8Array
+      let serializedSignedTx: Uint8Array;
+      if (signedTx instanceof Transaction) {
+        serializedSignedTx = new Uint8Array(signedTx.serialize());
+      } else {
+        // VersionedTransaction
+        serializedSignedTx = new Uint8Array(signedTx.serialize());
+      }
 
       outputs.push({
-        signedTransaction: signedTx as any,
+        signedTransaction: serializedSignedTx,
       });
     }
 
