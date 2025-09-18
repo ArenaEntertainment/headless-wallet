@@ -95,10 +95,45 @@ export class SolanaWallet {
     const keypair = this.keypairs[this.currentKeypairIndex];
     let tx: Transaction | VersionedTransaction;
 
+    // Debug logging to understand the transaction format
+    console.log('[Solana Wallet] Transaction debug info:', {
+      constructorName: transaction.constructor?.name,
+      hasSerialize: typeof transaction.serialize === 'function',
+      hasMessage: !!transaction.message,
+      hasSignatures: !!transaction.signatures,
+      hasInstructions: !!transaction.instructions,
+      keys: Object.keys(transaction)
+    });
+
     // Handle transaction objects that come from the browser and lose their prototype
     if (transaction instanceof Transaction || transaction instanceof VersionedTransaction) {
       // Already a proper instance (unlikely in browser context)
       tx = transaction;
+    } else if (transaction.constructor?.name === 'VersionedTransaction' || transaction.constructor?.name === '_VersionedTransaction') {
+      // VersionedTransaction that lost prototype - reconstruct it
+      try {
+        // Try to access the message directly if it exists
+        if (transaction.message && transaction.signatures) {
+          const serialized = transaction.serialize();
+          tx = VersionedTransaction.deserialize(serialized);
+        } else {
+          throw new Error('Invalid VersionedTransaction structure');
+        }
+      } catch (error) {
+        throw new Error(`Failed to reconstruct VersionedTransaction: ${error}`);
+      }
+    } else if (transaction.constructor?.name === 'Transaction' || transaction.constructor?.name === '_Transaction') {
+      // Legacy Transaction that lost prototype - reconstruct it
+      try {
+        if (transaction.serialize && typeof transaction.serialize === 'function') {
+          const serialized = transaction.serialize({ requireAllSignatures: false });
+          tx = Transaction.from(serialized);
+        } else {
+          throw new Error('Invalid Transaction structure');
+        }
+      } catch (error) {
+        throw new Error(`Failed to reconstruct Transaction: ${error}`);
+      }
     } else if (transaction.serialize && typeof transaction.serialize === 'function') {
       // Has serialize method but lost class prototype - try to call it
       try {
@@ -154,8 +189,29 @@ export class SolanaWallet {
       } catch (error) {
         throw new Error(`Failed to reconstruct transaction from plain object: ${error}`);
       }
+    } else if (transaction.message && transaction.message.header) {
+      // Looks like a VersionedTransaction structure - try to reconstruct
+      try {
+        console.log('[Solana Wallet] Attempting VersionedTransaction reconstruction from message structure');
+        // Create a new VersionedTransaction from the message
+        const versionedTx = new VersionedTransaction(transaction.message);
+        // Copy over any existing signatures
+        if (transaction.signatures && Array.isArray(transaction.signatures)) {
+          transaction.signatures.forEach((sig: any, index: number) => {
+            if (sig && sig.length > 0) {
+              versionedTx.signatures[index] = sig;
+            }
+          });
+        }
+        tx = versionedTx;
+      } catch (error) {
+        throw new Error(`Failed to reconstruct from message structure: ${error}`);
+      }
     } else {
-      throw new Error('Unsupported transaction format');
+      console.error('[Solana Wallet] Unsupported transaction format. Available properties:', Object.keys(transaction));
+      console.error('[Solana Wallet] Constructor name:', transaction.constructor?.name);
+      console.error('[Solana Wallet] Transaction object:', transaction);
+      throw new Error(`Unsupported transaction format: ${transaction.constructor?.name || 'unknown'}`);
     }
 
     // Now sign the properly reconstructed transaction
