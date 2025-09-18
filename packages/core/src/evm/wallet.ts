@@ -38,7 +38,7 @@ export class EVMWallet {
       privateKeyToAccount(privateKey as `0x${string}`)
     );
 
-    // Default testnet chains for safe testing - ALL available testnets for maximum compatibility
+    // Default chains for testing - ALL available testnets plus commonly used mainnets for comprehensive testing
     const defaultTestnetChains = Object.values(chains).filter(chain => {
       // Use viem's built-in testnet property for reliable testnet detection
       if ((chain as any).testnet === true) {
@@ -54,25 +54,37 @@ export class EVMWallet {
              name.includes('devnet');
     });
 
+    // Add commonly used mainnet chains for testing (these are safe to test against)
+    const commonMainnetChains = [
+      chains.mainnet,      // Ethereum (0x1)
+      chains.polygon,      // Polygon (0x89)
+      chains.optimism,     // Optimism (0xa)
+      chains.arbitrum,     // Arbitrum (0xa4b1)
+      chains.base,         // Base (0x2105)
+      chains.bsc,          // BSC (0x38)
+    ].filter(Boolean);
+
+    const defaultChainsForTesting = [...defaultTestnetChains, ...commonMainnetChains];
+
     // Check configuration to determine chain selection strategy
     const hasExplicitTransports = config.transports && Object.keys(config.transports).length > 0;
     const hasExplicitChains = Array.isArray(config.chains) && config.chains.length > 0;
     const willAutoConfigureTestnets = !hasExplicitChains && !hasExplicitTransports;
 
-    // Log how many testnet chains we're auto-configuring (in debug builds)
+    // Log how many chains we're auto-configuring (in debug builds)
     if (process.env.NODE_ENV !== 'production' && willAutoConfigureTestnets) {
-      console.log(`🔧 Auto-configured ${defaultTestnetChains.length} testnet chains for safe testing`);
-      console.log(`📋 Available chains: ${defaultTestnetChains.map(c => c.name).join(', ')}`);
+      console.log(`🔧 Auto-configured ${defaultChainsForTesting.length} chains (${defaultTestnetChains.length} testnets + ${commonMainnetChains.length} common mainnets) for comprehensive testing`);
+      console.log(`📋 Available chains: ${defaultChainsForTesting.map(c => c.name).join(', ')}`);
     }
 
-    // Use provided chains or default to testnets, with user chains taking priority
-    // If explicit transports are provided without chains, don't auto-configure testnets
+    // Use provided chains or default to testnets + common mainnets, with user chains taking priority
+    // If explicit transports are provided without chains, don't auto-configure
 
     const chainsToUse = hasExplicitChains
       ? config.chains
       : hasExplicitTransports
         ? [] // Don't auto-configure if explicit transports are provided
-        : defaultTestnetChains;
+        : defaultChainsForTesting;
 
     this.currentChain = config.defaultChain || chains.sepolia;
     this.transports = config.transports || {};

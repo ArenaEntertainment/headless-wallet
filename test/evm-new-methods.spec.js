@@ -132,11 +132,20 @@ test.describe('New EVM Methods', () => {
       const ethereum = window.ethereum;
       if (!ethereum) throw new Error('Ethereum provider not found');
 
-      // Get logs (will be empty for test network)
+      // Get logs from recent blocks (smaller range to avoid RPC limits)
+      // First get the latest block number
+      const latestBlock = await ethereum.request({
+        method: 'eth_blockNumber',
+        params: []
+      });
+
+      // Use a small range of recent blocks to avoid "ranges over 10000 blocks" error
+      const fromBlock = `0x${(parseInt(latestBlock, 16) - 100).toString(16)}`;
+
       const logs = await ethereum.request({
         method: 'eth_getLogs',
         params: [{
-          fromBlock: '0x0',
+          fromBlock: fromBlock,
           toBlock: 'latest',
           address: '0x0000000000000000000000000000000000000000'
         }]

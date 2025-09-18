@@ -22,7 +22,7 @@ test('should expose correct chain ID on connection - default sepolia', async ({ 
     window.ethereum.request({ method: 'eth_chainId' })
   );
   console.log('Chain ID before connection:', chainIdBeforeConnection);
-  expect(chainIdBeforeConnection).toBe('0x1'); // Mainnet
+  expect(chainIdBeforeConnection).toBe('0xaa36a7'); // Sepolia (default testnet)
 
   // Connect and verify chain ID is still correct
   const accounts = await page.evaluate(() =>

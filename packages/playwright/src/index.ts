@@ -123,30 +123,36 @@ export async function installHeadlessWallet(
       await target.evaluate(injectionScript);
 
       // Force provider re-announcement for wallet switching scenarios (Issue #23)
+      // Only re-announce if this is a replacement scenario (when there are existing wallets)
       await target.evaluate(`
         (function() {
-          // Small delay to ensure cleanup events have been processed
-          setTimeout(() => {
-            // Re-announce EIP-6963 provider if EVM wallet exists
-            if (window.ethereum && window.ethereum.uuid) {
-              window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
-                detail: Object.freeze({
-                  info: {
-                    uuid: window.ethereum.uuid,
-                    name: window.ethereum.name,
-                    icon: window.ethereum.icon,
-                    rdns: window.ethereum.rdns
-                  },
-                  provider: window.ethereum
-                })
-              }));
-            }
+          // Check if this might be a replacement scenario
+          const hasExistingWallets = window.__playwrightHeadlessWallets && window.__playwrightHeadlessWallets.size > 1;
 
-            // Re-announce Solana wallet standard if Solana wallet exists
-            if (window.phantom?.solana) {
-              window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {}));
-            }
-          }, 50);
+          if (hasExistingWallets) {
+            // Small delay to ensure cleanup events have been processed
+            setTimeout(() => {
+              // Re-announce EIP-6963 provider if EVM wallet exists
+              if (window.ethereum && window.ethereum.uuid) {
+                window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {
+                  detail: Object.freeze({
+                    info: {
+                      uuid: window.ethereum.uuid,
+                      name: window.ethereum.name,
+                      icon: window.ethereum.icon,
+                      rdns: window.ethereum.rdns
+                    },
+                    provider: window.ethereum
+                  })
+                }));
+              }
+
+              // Re-announce Solana wallet standard if Solana wallet exists
+              if (window.phantom?.solana) {
+                window.dispatchEvent(new CustomEvent('wallet-standard:app-ready', {}));
+              }
+            }, 50);
+          }
         })();
       `);
     }

@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { installHeadlessWallet, uninstallHeadlessWallet } from '@arenaentertainment/headless-wallet-playwright';
-import { sepolia, polygonMumbai } from 'viem/chains';
+import { sepolia, baseSepolia } from 'viem/chains';
 
 // Test private key (Hardhat test account #0)
 const TEST_PRIVATE_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -77,8 +77,8 @@ test.describe('Client Reuse Performance', () => {
     // But this proves we're hitting the RPC each time, not caching
     expect(result.balances.every(b => typeof b === 'string' && b.startsWith('0x'))).toBe(true);
 
-    // Verify other RPC methods work (check for mainnet since that's current default)
-    expect(result.chainId).toBe('0x1'); // Mainnet (current default)
+    // Verify other RPC methods work (check for Sepolia since that's current default)
+    expect(result.chainId).toBe('0xaa36a7'); // Sepolia (current default)
     expect(result.blockNumber).toMatch(/^0x[0-9a-f]+$/i);
     expect(result.gasPrice).toMatch(/^0x[0-9a-f]+$/i);
 
@@ -94,7 +94,7 @@ test.describe('Client Reuse Performance', () => {
       ],
       // Use explicit chains to enable chain switching
       evm: {
-        chains: [sepolia, polygonMumbai]
+        chains: [sepolia, baseSepolia]
       },
       debug: true
     });
@@ -115,11 +115,11 @@ test.describe('Client Reuse Performance', () => {
         params: ['0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 'latest']
       });
 
-      // Switch to Polygon Mumbai
+      // Switch to Base Sepolia
       try {
         await ethereum.request({
           method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x13881' }] // 80001 in hex
+          params: [{ chainId: '0x14a34' }] // 84532 in hex (Base Sepolia)
         });
 
         // Give it a moment to switch
@@ -128,7 +128,7 @@ test.describe('Client Reuse Performance', () => {
         const newChainId = await ethereum.request({ method: 'eth_chainId' });
 
         // Make a call on the new chain
-        const mumbaiBalance = await ethereum.request({
+        const baseSepoliaBalance = await ethereum.request({
           method: 'eth_getBalance',
           params: ['0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', 'latest']
         });
@@ -137,7 +137,7 @@ test.describe('Client Reuse Performance', () => {
           initialChainId,
           newChainId,
           sepoliaBalance,
-          mumbaiBalance,
+          baseSepoliaBalance,
           switchSuccessful: true
         };
       } catch (error) {
@@ -145,7 +145,7 @@ test.describe('Client Reuse Performance', () => {
           initialChainId,
           newChainId: null,
           sepoliaBalance,
-          mumbaiBalance: null,
+          baseSepoliaBalance: null,
           switchSuccessful: false,
           error: error.message
         };
@@ -154,15 +154,15 @@ test.describe('Client Reuse Performance', () => {
 
     console.log('Chain switch test results:', result);
 
-    // Should start with mainnet (current default)
-    expect(result.initialChainId).toBe('0x1');
+    // Should start with Sepolia (current default)
+    expect(result.initialChainId).toBe('0xaa36a7');
     expect(result.sepoliaBalance).toMatch(/^0x[0-9a-f]+$/i);
 
     // Chain switch might fail due to network issues, but that's OK
     // The important thing is that client cleanup happens properly
     if (result.switchSuccessful) {
-      expect(result.newChainId).toBe('0x13881'); // Mumbai
-      expect(result.mumbaiBalance).toMatch(/^0x[0-9a-f]+$/i);
+      expect(result.newChainId).toBe('0x14a34'); // Base Sepolia
+      expect(result.baseSepoliaBalance).toMatch(/^0x[0-9a-f]+$/i);
     }
 
     await uninstallHeadlessWallet(page, walletId);

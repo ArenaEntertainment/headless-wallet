@@ -16,7 +16,16 @@ test.describe('Network Failures and Recovery', () => {
         { privateKey: TEST_SOLANA_KEYPAIR, type: 'solana' }
       ],
       autoConnect: false,
-      debug: true
+      debug: true,
+      evm: {
+        // Configure specific chains needed for testing
+        chains: [
+          { id: 1, name: 'Ethereum Mainnet', rpcUrls: { default: { http: ['https://eth.llamarpc.com'] } }, nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } },
+          { id: 137, name: 'Polygon', rpcUrls: { default: { http: ['https://polygon-rpc.com'] } }, nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 } },
+          { id: 10, name: 'Optimism', rpcUrls: { default: { http: ['https://mainnet.optimism.io'] } }, nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 } },
+          { id: 56, name: 'BSC', rpcUrls: { default: { http: ['https://bsc-dataseed.binance.org'] } }, nativeCurrency: { name: 'BNB', symbol: 'BNB', decimals: 18 } }
+        ]
+      }
     });
   });
 

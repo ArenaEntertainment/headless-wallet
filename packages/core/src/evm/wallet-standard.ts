@@ -398,10 +398,32 @@ export class EVMWalletStandard {
       };
     }
 
-    await this.wallet.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId }],
-    });
+    // Call the underlying wallet's chain switching logic directly to avoid recursion
+    // This mimics what happens in wallet.ts lines 413-434
+    const newChain = (this.wallet as any).getChainById(chainId);
+    if (!newChain) {
+      throw {
+        code: 4902,
+        message: 'Unrecognized chain ID. Try adding the chain first.',
+      };
+    }
+
+    // Update the wallet's current chain and clear cached clients
+    const walletCurrentChain = (this.wallet as any).currentChain;
+    if (walletCurrentChain.id !== newChain.id) {
+      (this.wallet as any).publicClient = null;
+      (this.wallet as any).walletClientCache.clear();
+    }
+
+    (this.wallet as any).currentChain = newChain;
+
+    // Set up transport for new chain if not exists
+    const transports = (this.wallet as any).transports;
+    if (!transports[newChain.id]) {
+      const { http } = await import('viem');
+      console.warn(`⚠️  No explicit transport for chain ${newChain.id}, using default RPC`);
+      transports[newChain.id] = http(newChain.rpcUrls.default.http[0]);
+    }
 
     this.currentChainId = chainId;
     this.stateStream.updateState('chainId', chainId);
