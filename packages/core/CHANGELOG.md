@@ -1,3 +1,13 @@
+## 0.11.1 (2025-09-18)
+
+### 🩹 Fixes
+
+- Resolve critical testnet chain auto-configuration bug ([#24](https://github.com/ArenaEntertainment/headless-wallet/issues/24))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.0 (2025-09-18)
 
 ### 🚀 Features
