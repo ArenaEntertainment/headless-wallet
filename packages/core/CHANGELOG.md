@@ -1,3 +1,13 @@
+## 0.11.4 (2025-09-18)
+
+### 🩹 Fixes
+
+- Achieve 100% test success - eliminate all test failures and skips ([24c820a9](https://github.com/ArenaEntertainment/headless-wallet/commit/24c820a9))
+
+### ❤️ Thank You
+
+- Chris Kitch
+
 ## 0.11.3 (2025-09-18)
 
 ### 🩹 Fixes
